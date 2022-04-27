@@ -11,7 +11,7 @@
 class vmm {
 public :
    TString folder = "../data/";
-   TString file = "run_0007";
+   TString file = "run_0186";
    TString ending = ".root";
 
    TTree          *fChain;   //!pointer to the analyzed TTree or TChain
