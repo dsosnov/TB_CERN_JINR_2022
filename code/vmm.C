@@ -327,7 +327,7 @@ void vmm::Loop()
 
             if (sciT_ch2 != 0)
             {
-               straw31_vs_sci2->Fill(t31 - sciT_ch1);
+               straw31_vs_sci2->Fill(t31 - sciT_ch2);
             }
 
             if (sciT_ch2 != 0 && sciT_ch1 != 0 && sciT_ch0 != 0)
