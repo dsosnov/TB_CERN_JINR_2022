@@ -1,5 +1,5 @@
-#ifndef vmm_h
-#define vmm_h
+#ifndef calibration_h
+#define calibration_h
 
 #include <TROOT.h>
 #include <TChain.h>
@@ -8,10 +8,10 @@
 // Header file for the classes stored in the TTree if any.
 #include "c++/v1/vector"
 
-class vmm {
+class calibration {
 public :
    TString folder = "../data/";
-   TString file = "run_0007";
+   TString file = "run_0017";
    TString ending = ".root";
 
    TTree          *fChain;   //!pointer to the analyzed TTree or TChain
@@ -66,19 +66,18 @@ public :
    TBranch        *b_art;   //!
    TBranch        *b_art_trigger;   //!
 
-   vmm(TTree *tree=0);
-   virtual ~vmm();
+   calibration(TTree *tree=0);
+   virtual ~calibration();
    virtual Int_t    GetEntry(Long64_t entry);
    virtual Long64_t LoadTree(Long64_t entry);
    virtual void     Init(TTree *tree);
    virtual void     Loop();
-
 };
 
 #endif
 
-#ifdef vmm_cxx
-vmm::vmm(TTree *tree) : fChain(0) 
+#ifdef calibration_cxx
+calibration::calibration(TTree *tree) : fChain(0) 
 {
    if (tree == 0) {
       TFile *f = (TFile*)gROOT->GetListOfFiles()->FindObject(folder + file + ending);
@@ -91,19 +90,19 @@ vmm::vmm(TTree *tree) : fChain(0)
    Init(tree);
 }
 
-vmm::~vmm()
+calibration::~calibration()
 {
    if (!fChain) return;
    delete fChain->GetCurrentFile();
 }
 
-Int_t vmm::GetEntry(Long64_t entry)
+Int_t calibration::GetEntry(Long64_t entry)
 {
 // Read contents of entry.
    if (!fChain) return 0;
    return fChain->GetEntry(entry);
 }
-Long64_t vmm::LoadTree(Long64_t entry)
+Long64_t calibration::LoadTree(Long64_t entry)
 {
 // Set the environment to read one entry
    if (!fChain) return -5;
@@ -115,7 +114,7 @@ Long64_t vmm::LoadTree(Long64_t entry)
    return centry;
 }
 
-void vmm::Init(TTree *tree)
+void calibration::Init(TTree *tree)
 {
    triggerTimeStamp = 0;
    triggerCounter = 0;
@@ -170,4 +169,4 @@ void vmm::Init(TTree *tree)
    fChain->SetBranchAddress("art_trigger", &art_trigger, &b_art_trigger);
 }
 
-#endif // #ifdef vmm_cxx
+#endif // #ifdef calibration_cxx

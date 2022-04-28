@@ -95,30 +95,39 @@ void vmm::Loop()
    TDirectory *tdo_dir = out->mkdir("TDO");
    tdo_dir->cd();
 
-   // ================================== LIMITS SEARCH ==================================
-   auto *gausFitF = new TF1("gausFitF", "gaus", 0, 256); //
+   // ================================== LIMITS SEARCH ================================== //or get from file
+   // auto *gausFitF = new TF1("gausFitF", "gaus", 0, 256); //
+   ifstream myfile ("../out/calibration_25_100.txt");
+   int bin1 = 0;
+   int bin2 = 0;
+   int i = 0;
+   while (myfile >> bin1 >> bin2)
+   {
+      limits.push_back({bin1, bin2});
+      std::cout << "CH " << i << "\t L TDO: " << bin1 << "\t R TDO: " << bin2 << "\n";
+      i++;
+   }
    for (Int_t i = 0; i < 64; i++)
    {
-      gausFitF->SetParameter(0, 0);
-      gausFitF->SetParameter(1, 0);
-      gausFitF->SetParameter(2, 0);
+      // gausFitF->SetParameter(0, 0);
+      // gausFitF->SetParameter(1, 0);
+      // gausFitF->SetParameter(2, 0);
       // h[i]->RebinX(4);
-      h[i]->Fit(gausFitF, "Q");                                                   // fit the TDO distribution with Gauss
-      int bin1 = gausFitF->GetParameter(1) - 2 * gausFitF->GetParameter(2); // 2 sigma to left edge
-      int bin2 = gausFitF->GetParameter(1) + 2 * gausFitF->GetParameter(2); // 2 sigma to right edge
+      // h[i]->Fit(gausFitF, "Q");                                                   // fit the TDO distribution with Gauss
+      // int bin1 = gausFitF->GetParameter(1) - 2 * gausFitF->GetParameter(2); // 2 sigma to left edge
+      // int bin2 = gausFitF->GetParameter(1) + 2 * gausFitF->GetParameter(2); // 2 sigma to right edge
 
       // int bin1 = h[i]->GetBinCenter(h[i]->FindFirstBinAbove(h[i]->GetMaximum() / 10));
       // int bin2 = h[i]->GetBinCenter(h[i]->FindLastBinAbove(h[i]->GetMaximum() / 10));
 
-      limits.push_back({bin1, bin2});
+      // limits.push_back({bin1, bin2});
       h[i]->Write();
 
-      std::cout << "CH " << i << "\t L TDO: " << bin1 << "\t R TDO: " << bin2 << "\n";
+      // std::cout << "CH " << i << "\t L TDO: " << bin1 << "\t R TDO: " << bin2 << "\n";
    }
    // ===================================================================================
-
    tdo_dir->cd("../");
-
+   
    nbytes = 0;
    nb = 0;
 
@@ -219,7 +228,7 @@ void vmm::Loop()
                   int ffpdo = pdo->at(0).at(k);
                   int fftdo = tdo->at(0).at(k);
                   int ffbcid = bcid->at(0).at(k);
-                  double fft = ffbcid * 25.0 - (fftdo - 56) * 25.0 / (73 - 56); //'hand' limits
+                  double fft = ffbcid * 25.0 - (fftdo - 96) * 25.0 / (156 - 96); //'hand' limits
                   // double fft = ffbcid * 25.0 - (fftdo - limits[ffch][0]) * 25.0 / (limits[ffch][1] - limits[ffch][0]); // 'auto' limits
 
                   straw31_vs_sci0_all->Fill(t31 - fft);
@@ -252,89 +261,89 @@ void vmm::Loop()
             // ========================         LOOP OVER 40 events around         ========================
             //                           jentry to find correlation with sci 1
 
-            mbytes = 0, mb = 0;
-            for (Long64_t kentry = jentry - 20; kentry < jentry + 20; kentry++)
-            {
-               Long64_t iientry = LoadTree(kentry);
-               if (iientry < 0)
-                  continue;
-               mb = fChain->GetEntry(kentry);
-               mbytes += mb;
+            // mbytes = 0, mb = 0;
+            // for (Long64_t kentry = jentry - 20; kentry < jentry + 20; kentry++)
+            // {
+            //    Long64_t iientry = LoadTree(kentry);
+            //    if (iientry < 0)
+            //       continue;
+            //    mb = fChain->GetEntry(kentry);
+            //    mbytes += mb;
 
-               for (int k = 0; k < channel->at(0).size(); k++)
-               {
-                  int ffch = channel->at(0).at(k);
-                  if (ffch != 1)
-                     continue;
+            //    for (int k = 0; k < channel->at(0).size(); k++)
+            //    {
+            //       int ffch = channel->at(0).at(k);
+            //       if (ffch != 1)
+            //          continue;
 
-                  int ffpdo = pdo->at(0).at(k);
-                  int fftdo = tdo->at(0).at(k);
-                  int ffbcid = bcid->at(0).at(k);
-                  double fft = ffbcid * 25.0 - (fftdo - 64) * 25.0 / (85 - 64); //'hand' limits
-                  // double fft = ffbcid * 25.0 - (fftdo - limits[ffch][0]) * 25.0 / (limits[ffch][1] - limits[ffch][0]); // 'auto' limits
+            //       int ffpdo = pdo->at(0).at(k);
+            //       int fftdo = tdo->at(0).at(k);
+            //       int ffbcid = bcid->at(0).at(k);
+            //       double fft = ffbcid * 25.0 - (fftdo - 64) * 25.0 / (85 - 64); //'hand' limits
+            //       // double fft = ffbcid * 25.0 - (fftdo - limits[ffch][0]) * 25.0 / (limits[ffch][1] - limits[ffch][0]); // 'auto' limits
 
-                  if (abs(t31 - fft) < minTsci1)
-                  {
-                     minTsci1 = abs(t31 - fft);
-                     sciT_ch1 = fft;
-                  }
-               }
-            }
+            //       if (abs(t31 - fft) < minTsci1)
+            //       {
+            //          minTsci1 = abs(t31 - fft);
+            //          sciT_ch1 = fft;
+            //       }
+            //    }
+            // }
 
-            if (sciT_ch1 != 0)
-            {
-               straw31_vs_sci1->Fill(t31 - sciT_ch1);
-            }
+            // if (sciT_ch1 != 0)
+            // {
+            //    straw31_vs_sci1->Fill(t31 - sciT_ch1);
+            // }
 
-            if (sciT_ch1 != 0 && sciT_ch0 != 0)
-            {
-               sci0_vs_sci1->Fill(sciT_ch0 - sciT_ch1);
-            }
+            // if (sciT_ch1 != 0 && sciT_ch0 != 0)
+            // {
+            //    sci0_vs_sci1->Fill(sciT_ch0 - sciT_ch1);
+            // }
 
             // ============================= end of sci 1 correlation finding =============================
 
             // ========================         LOOP OVER 40 events around         ========================
             //                           jentry to find correlation with sci 2
 
-            mbytes = 0, mb = 0;
-            for (Long64_t kentry = jentry - 20; kentry < jentry + 20; kentry++)
-            {
-               Long64_t iientry = LoadTree(kentry);
-               if (iientry < 0)
-                  continue;
-               mb = fChain->GetEntry(kentry);
-               mbytes += mb;
+            // mbytes = 0, mb = 0;
+            // for (Long64_t kentry = jentry - 20; kentry < jentry + 20; kentry++)
+            // {
+            //    Long64_t iientry = LoadTree(kentry);
+            //    if (iientry < 0)
+            //       continue;
+            //    mb = fChain->GetEntry(kentry);
+            //    mbytes += mb;
 
-               for (int k = 0; k < channel->at(0).size(); k++)
-               {
-                  int ffch = channel->at(0).at(k);
-                  if (ffch != 2)
-                     continue;
+            //    for (int k = 0; k < channel->at(0).size(); k++)
+            //    {
+            //       int ffch = channel->at(0).at(k);
+            //       if (ffch != 2)
+            //          continue;
 
-                  int ffpdo = pdo->at(0).at(k);
-                  int fftdo = tdo->at(0).at(k);
-                  int ffbcid = bcid->at(0).at(k);
-                  double fft = ffbcid * 25.0 - (fftdo - 56) * 25.0 / (75 - 56); //'hand' limits
-                  // double fft = ffbcid * 25.0 - (fftdo - limits[ffch][0]) * 25.0 / (limits[ffch][1] - limits[ffch][0]); // 'auto' limits
+            //       int ffpdo = pdo->at(0).at(k);
+            //       int fftdo = tdo->at(0).at(k);
+            //       int ffbcid = bcid->at(0).at(k);
+            //       double fft = ffbcid * 25.0 - (fftdo - 56) * 25.0 / (75 - 56); //'hand' limits
+            //       // double fft = ffbcid * 25.0 - (fftdo - limits[ffch][0]) * 25.0 / (limits[ffch][1] - limits[ffch][0]); // 'auto' limits
 
-                  if (abs(t31 - fft) < minTsci2)
-                  {
-                     minTsci2 = abs(t31 - fft);
-                     sciT_ch2 = fft;
-                  }
-               }
-            }
+            //       if (abs(t31 - fft) < minTsci2)
+            //       {
+            //          minTsci2 = abs(t31 - fft);
+            //          sciT_ch2 = fft;
+            //       }
+            //    }
+            // }
 
-            if (sciT_ch2 != 0)
-            {
-               straw31_vs_sci2->Fill(t31 - sciT_ch2);
-            }
+            // if (sciT_ch2 != 0)
+            // {
+            //    straw31_vs_sci2->Fill(t31 - sciT_ch2);
+            // }
 
-            if (sciT_ch2 != 0 && sciT_ch1 != 0 && sciT_ch0 != 0)
-            {
-               sci1_vs_sci2->Fill(sciT_ch1 - sciT_ch2);
-               sci0_vs_sci2->Fill(sciT_ch0 - sciT_ch2);
-            }
+            // if (sciT_ch2 != 0 && sciT_ch1 != 0 && sciT_ch0 != 0)
+            // {
+            //    sci1_vs_sci2->Fill(sciT_ch1 - sciT_ch2);
+            //    sci0_vs_sci2->Fill(sciT_ch0 - sciT_ch2);
+            // }
 
             // ============================= end of sci 2 correlation finding =============================
          }
@@ -345,14 +354,14 @@ void vmm::Loop()
       }
    }
 
-   sci0_vs_sci1->Fit("gaus", "Q", "", sci0_vs_sci1->GetBinCenter(sci0_vs_sci1->FindFirstBinAbove(sci0_vs_sci1->GetMaximum() / 10)), 
-                                      sci0_vs_sci1->GetBinCenter(sci0_vs_sci1->FindLastBinAbove(sci0_vs_sci1->GetMaximum() / 10)));
+   // sci0_vs_sci1->Fit("gaus", "Q", "", sci0_vs_sci1->GetBinCenter(sci0_vs_sci1->FindFirstBinAbove(sci0_vs_sci1->GetMaximum() / 10)), 
+   //                                    sci0_vs_sci1->GetBinCenter(sci0_vs_sci1->FindLastBinAbove(sci0_vs_sci1->GetMaximum() / 10)));
 
-   sci0_vs_sci2->Fit("gaus", "Q", "", sci0_vs_sci2->GetBinCenter(sci0_vs_sci2->FindFirstBinAbove(sci0_vs_sci2->GetMaximum() / 10)), 
-                                      sci0_vs_sci2->GetBinCenter(sci0_vs_sci2->FindLastBinAbove(sci0_vs_sci2->GetMaximum() / 10)));
+   // sci0_vs_sci2->Fit("gaus", "Q", "", sci0_vs_sci2->GetBinCenter(sci0_vs_sci2->FindFirstBinAbove(sci0_vs_sci2->GetMaximum() / 10)), 
+   //                                    sci0_vs_sci2->GetBinCenter(sci0_vs_sci2->FindLastBinAbove(sci0_vs_sci2->GetMaximum() / 10)));
 
-   sci1_vs_sci2->Fit("gaus", "Q", "", sci1_vs_sci2->GetBinCenter(sci1_vs_sci2->FindFirstBinAbove(sci1_vs_sci2->GetMaximum() / 10)), 
-                                      sci1_vs_sci2->GetBinCenter(sci1_vs_sci2->FindLastBinAbove(sci1_vs_sci2->GetMaximum() / 10)));
+   // sci1_vs_sci2->Fit("gaus", "Q", "", sci1_vs_sci2->GetBinCenter(sci1_vs_sci2->FindFirstBinAbove(sci1_vs_sci2->GetMaximum() / 10)), 
+   //                                    sci1_vs_sci2->GetBinCenter(sci1_vs_sci2->FindLastBinAbove(sci1_vs_sci2->GetMaximum() / 10)));
 
 
    tdo_sci0->Write();
