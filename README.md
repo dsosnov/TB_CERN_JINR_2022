@@ -5,4 +5,4 @@
 ### СODE folder includes
 
 - vmm.C & .h -- source and header files for the fast analysis
-- correlation.C & .h -- source and header files for straw [TDO] to [ns] calibration 
+- calibration.C & .h -- source and header files for straw [TDO] to [ns] calibration 
