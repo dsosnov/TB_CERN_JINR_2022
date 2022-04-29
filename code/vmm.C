@@ -280,7 +280,7 @@ void vmm::Loop()
                   int ffbcid = bcid->at(0).at(k);
                   // if (ffbcid < 40)
                   //    continue;
-                  double fft = ffbcid * 25.0 - (fftdo - 96) * 25.0 / (156 - 96); //'hand' limits
+                  double fft = ffbcid * 25.0 - (fftdo - 88) * 25.0 / (140 - 88); //'hand' limits
                   // double fft = ffbcid * 25.0 - (fftdo - limits[ffch][0]) * 25.0 / (limits[ffch][1] - limits[ffch][0]); // 'auto' limits
 
                   straw31_vs_sci0_all->Fill(t31 - fft);
@@ -356,7 +356,7 @@ void vmm::Loop()
                   int ffpdo = pdo->at(0).at(k);
                   int fftdo = tdo->at(0).at(k);
                   int ffbcid = bcid->at(0).at(k);
-                  double fft = ffbcid * 25.0 - (fftdo - 64) * 25.0 / (85 - 64); //'hand' limits
+                  double fft = ffbcid * 25.0 - (fftdo - 110) * 25.0 / (160 - 110); //'hand' limits
                   // double fft = ffbcid * 25.0 - (fftdo - limits[ffch][0]) * 25.0 / (limits[ffch][1] - limits[ffch][0]); // 'auto' limits
 
                   if (abs(t31 - fft) < minTsci1 && abs(t30 - fft) < minTsci1_ch30)
@@ -402,7 +402,7 @@ void vmm::Loop()
                   int ffpdo = pdo->at(0).at(k);
                   int fftdo = tdo->at(0).at(k);
                   int ffbcid = bcid->at(0).at(k);
-                  double fft = ffbcid * 25.0 - (fftdo - 56) * 25.0 / (75 - 56); //'hand' limits
+                  double fft = ffbcid * 25.0 - (fftdo - 96) * 25.0 / (148 - 96); //'hand' limits
                   // double fft = ffbcid * 25.0 - (fftdo - limits[ffch][0]) * 25.0 / (limits[ffch][1] - limits[ffch][0]); // 'auto' limits
 
                   if (abs(t31 - fft) < minTsci2 && abs(t30 - fft) < minTsci2_ch30)
