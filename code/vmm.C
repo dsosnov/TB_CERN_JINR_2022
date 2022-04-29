@@ -362,7 +362,7 @@ void vmm::Loop()
                   if (abs(t31 - fft) < minTsci1 && abs(t30 - fft) < minTsci1_ch30)
                   {
                      minTsci1 = abs(t31 - fft);
-                     minTsci1_ch30 = abs(t30 - fft)
+                     minTsci1_ch30 = abs(t30 - fft);
                      sciT_ch1 = fft;
                   }
                }
