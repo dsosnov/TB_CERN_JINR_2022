@@ -8,9 +8,12 @@ void vmm::Loop()
 {
    // fast check plots
    auto *tdo_sci0 = new TH1D("tdo_sci0", "tdo_sci0; TDO", 128, 0, 256);
+   auto *bcid_sci0 = new TH1D("bcid_sci0", "bcid_sci0; TDO", 4096, 0, 4096);
    auto *tdo_sci1 = new TH1D("tdo_sci1", "tdo_sci1; TDO", 128, 0, 256);
    auto *tdo_sci2 = new TH1D("tdo_sci2", "tdo_sci2; TDO", 128, 0, 256);
    auto *tdo_straw31 = new TH1D("tdo_straw31", "tdo_straw31; TDO", 128, 0, 256); // without 350 PDO counts cut
+   auto *bcid_straw31 = new TH1D("bcid_straw31", "bcid_straw31; BCID", 4096, 0, 4096);
+   auto *bcid_straw30 = new TH1D("bcid_straw30", "bcid_straw30; BCID", 4096, 0, 4096);
    auto *tdo_vs_pdo_straw31 = new TH2D("tdo_vs_pdo_straw31", "tdo_vs_pdo_straw31; TDO", 256, 0, 1024, 128, 0, 256);
 
    // correlation plots
@@ -28,8 +31,12 @@ void vmm::Loop()
 
    auto *straw31_vs_straw30_banana = new TH2D("straw31_vs_straw30_banana",
                                               "straw31_vs_straw30_banana; straw 31 #Deltat, ns; straw 30 #Deltat, ns", 500, -250, 250, 500, -250, 250);
+
    auto *straw31_vs_straw30_banana_all = new TH2D("straw31_vs_straw30_banana_all",
-                                              "straw31_vs_straw30_banana_all; straw 31 #Deltat, ns; straw 30 #Deltat, ns", 500, -250, 250, 500, -250, 250);
+                                                  "straw31_vs_straw30_banana_all; straw 31 #Deltat, ns; straw 30 #Deltat, ns", 500, -250, 250, 500, -250, 250);
+
+   auto *straw31_vs_straw30_banana_bcid = new TH2D("straw31_vs_straw30_banana_bcid",
+                                                   "straw31_vs_straw30_banana_bcid; straw 31 #Delta BCID; straw 30 #Delta BCID", 500, -250, 250, 500, -250, 250);
 
    // TDO distribution for every Ch
    TH1D *h[64];
@@ -42,6 +49,29 @@ void vmm::Loop()
       h[i] = new TH1D(name, title, 128, 0, 256);
    }
 
+   // BCID check
+   TH1D *h_bcid_31[121];
+   TH1D *h_bcid_30[121];
+   char name_bcid_1[20];
+   char title_bcid_1[80];
+   char name_bcid_2[20];
+   char title_bcid_2[80];
+   int index = 0;
+
+   for (int i = -5; i < 6; i++)
+   {
+      for (int j = -5; j < 6; j++)
+      {
+         sprintf(name_bcid_1, "ch_31_h_bcid%d", index);
+         sprintf(title_bcid_1, "#Delta BCID_{30} = %d and #Delta BCID_{31} = %d; PDO_{31}", i, j);
+         sprintf(name_bcid_2, "ch_30_h_bcid%d", index);
+         sprintf(title_bcid_2, "#Delta BCID_{30} = %d and #Delta BCID_{31} = %d; PDO_{30}", i, j);
+         h_bcid_31[index] = new TH1D(name_bcid_1, title_bcid_1, 256, 0, 1024);
+         h_bcid_30[index] = new TH1D(name_bcid_2, title_bcid_2, 256, 0, 1024);
+         index++;
+      }
+   }
+
    // =============================== TDO & distributions ===============================
 
    if (fChain == 0)
@@ -50,43 +80,43 @@ void vmm::Loop()
    Long64_t nentries = fChain->GetEntriesFast();
 
    Long64_t nbytes = 0, nb = 0;
-   for (Long64_t jentry = 0; jentry < nentries; jentry++)
-   {
-      Long64_t ientry = LoadTree(jentry);
-      if (ientry < 0)
-         break;
-      nb = fChain->GetEntry(jentry);
-      nbytes += nb;
-      for (int j = 0; j < channel->at(0).size(); j++)
-      {
-         int chtemp = channel->at(0).at(j);
-         if (pdo->at(0).at(j) > 350) // !!! <------ setup for TDO distributions for every Ch
-         {
-            h[chtemp]->Fill(tdo->at(0).at(j));
-         }
-         if (chtemp == 0)
-         {
-            tdo_sci0->Fill(tdo->at(0).at(j));
-         }
-         else if (chtemp == 1)
-         {
-            tdo_sci1->Fill(tdo->at(0).at(j));
-         }
-         else if (chtemp == 2)
-         {
-            tdo_sci2->Fill(tdo->at(0).at(j));
-         }
-         else if (chtemp == 31)
-         {
-            tdo_straw31->Fill(tdo->at(0).at(j));
-            tdo_vs_pdo_straw31->Fill(pdo->at(0).at(j), tdo->at(0).at(j));
-         }
-         else
-         {
-            continue;
-         }
-      }
-   }
+   // for (Long64_t jentry = 0; jentry < nentries; jentry++)
+   // {
+   //    Long64_t ientry = LoadTree(jentry);
+   //    if (ientry < 0)
+   //       break;
+   //    nb = fChain->GetEntry(jentry);
+   //    nbytes += nb;
+   //    for (int j = 0; j < channel->at(0).size(); j++)
+   //    {
+   //       int chtemp = channel->at(0).at(j);
+   //       if (pdo->at(0).at(j) > 350) // !!! <------ setup for TDO distributions for every Ch
+   //       {
+   //          h[chtemp]->Fill(tdo->at(0).at(j));
+   //       }
+   //       if (chtemp == 0)
+   //       {
+   //          tdo_sci0->Fill(tdo->at(0).at(j));
+   //       }
+   //       else if (chtemp == 1)
+   //       {
+   //          tdo_sci1->Fill(tdo->at(0).at(j));
+   //       }
+   //       else if (chtemp == 2)
+   //       {
+   //          tdo_sci2->Fill(tdo->at(0).at(j));
+   //       }
+   //       else if (chtemp == 31)
+   //       {
+   //          tdo_straw31->Fill(tdo->at(0).at(j));
+   //          tdo_vs_pdo_straw31->Fill(pdo->at(0).at(j), tdo->at(0).at(j));
+   //       }
+   //       else
+   //       {
+   //          continue;
+   //       }
+   //    }
+   // }
    // ===================================================================================
 
    vector<array<int, 2>> limits; // vector of TDO limits for every Ch [limits.size() == 64]!
@@ -96,8 +126,7 @@ void vmm::Loop()
    tdo_dir->cd();
 
    // ================================== LIMITS SEARCH ================================== //or get from file
-   // auto *gausFitF = new TF1("gausFitF", "gaus", 0, 256); //
-   ifstream myfile ("../out/calibration_25_100.txt");
+   ifstream myfile("../out/calibration_25_100.txt");
    int bin1 = 0;
    int bin2 = 0;
    int i = 0;
@@ -107,6 +136,8 @@ void vmm::Loop()
       std::cout << "CH " << i << "\t L TDO: " << bin1 << "\t R TDO: " << bin2 << "\n";
       i++;
    }
+
+   // auto *gausFitF = new TF1("gausFitF", "gaus", 0, 256);
    for (Int_t i = 0; i < 64; i++)
    {
       // gausFitF->SetParameter(0, 0);
@@ -127,7 +158,7 @@ void vmm::Loop()
    }
    // ===================================================================================
    tdo_dir->cd("../");
-   
+
    nbytes = 0;
    nb = 0;
 
@@ -145,6 +176,8 @@ void vmm::Loop()
       nbytes += nb;
 
       double t31 = 0;
+      int straw_bcid_ch31 = 0;
+      int straw_pdo_ch31 = 0;
 
       for (int j = 0; j < channel->at(0).size(); j++)
       {
@@ -155,20 +188,29 @@ void vmm::Loop()
          if (fch == 31)
          {
             int fpdo = pdo->at(0).at(j);
+            // if (fpdo < 100 || fpdo > 900)
+            //    continue;
             int ftdo = tdo->at(0).at(j);
             int fbcid = bcid->at(0).at(j);
+            // if (fbcid < 40)
+            //          continue;
 
+            straw_bcid_ch31 = fbcid;
+            straw_pdo_ch31 = fpdo;
             t31 = fbcid * 25.0 - (ftdo - limits[fch][0]) * 25.0 / (limits[fch][1] - limits[fch][0]); // 'auto' limits
             // t31 = fbcid * 25.0 - (fftdo - X) * 25.0 / (Y - X); //'hand' limits
 
             Long64_t mbytes = 0, mb = 0;
-            double minTsci0 = 1e3;
+            double minTsci0 = 1e3, minTsci0_ch30 = 1e3;
             double minTsci1 = 1e3;
             double minTsci2 = 1e3;
             double minT30 = 1e3;
 
             double sciT_ch0 = 0, sciT_ch1 = 0, sciT_ch2 = 0;
             double t30 = 0;
+
+            int sci_bcid_ch0 = 0, straw_bcid_ch30 = 0;
+            int sci_pdo_ch0 = 0, straw_pdo_ch30 = 0;
 
             // ========================         LOOP OVER 40 events around         ========================
             //                           jentry to find correlation with straw 30
@@ -188,8 +230,12 @@ void vmm::Loop()
                      continue;
 
                   int ffpdo = pdo->at(0).at(k);
+                  // if (ffpdo < 100 || ffpdo > 900)
+                  //    continue;
                   int fftdo = tdo->at(0).at(k);
                   int ffbcid = bcid->at(0).at(k);
+                  // if (ffbcid < 40)
+                  //    continue;
                   double fft = ffbcid * 25.0 - (fftdo - limits[ffch][0]) * 25.0 / (limits[ffch][1] - limits[ffch][0]); // 'auto' limits
                   // double fft = ffbcid * 25.0 - (fftdo - X) * 25.0 / (Y - X); //'hand' limits
 
@@ -198,12 +244,10 @@ void vmm::Loop()
                   {
                      minT30 = abs(t31 - fft);
                      t30 = fft;
+                     straw_bcid_ch30 = ffbcid;
+                     straw_pdo_ch30 = ffpdo;
                   }
                }
-            }
-            if (t30 != 0)
-            {
-               straw31_vs_straw30->Fill(t30 - t31);
             }
             // ============================ end of straw 30 correlation finding ===========================
 
@@ -228,6 +272,8 @@ void vmm::Loop()
                   int ffpdo = pdo->at(0).at(k);
                   int fftdo = tdo->at(0).at(k);
                   int ffbcid = bcid->at(0).at(k);
+                  // if (ffbcid < 40)
+                  //    continue;
                   double fft = ffbcid * 25.0 - (fftdo - 96) * 25.0 / (156 - 96); //'hand' limits
                   // double fft = ffbcid * 25.0 - (fftdo - limits[ffch][0]) * 25.0 / (limits[ffch][1] - limits[ffch][0]); // 'auto' limits
 
@@ -238,22 +284,47 @@ void vmm::Loop()
                      straw31_vs_straw30_banana_all->Fill(t31 - fft, t30 - fft);
                   }
 
-                  if (abs(t31 - fft) < minTsci0)
+                  if (abs(t31 - fft) < minTsci0 && abs(t30 - fft) < minTsci0_ch30)
                   {
                      minTsci0 = abs(t31 - fft);
+                     minTsci0_ch30 = abs(t30 - fft);
                      sciT_ch0 = fft;
+                     sci_bcid_ch0 = ffbcid;
                   }
                }
             }
 
             if (sciT_ch0 != 0)
             {
-               straw31_vs_sci0->Fill(t31 - sciT_ch0);
+               // straw31_vs_sci0->Fill(t31 - sciT_ch0);
+               // bcid_sci0->Fill(sci_bcid_ch0);
+               // bcid_straw31->Fill(straw_bcid_ch31);
+               // bcid_straw30->Fill(straw_bcid_ch30);
             }
 
             if (t30 != 0 && sciT_ch0 != 0)
             {
                straw31_vs_straw30_banana->Fill(t31 - sciT_ch0, t30 - sciT_ch0);
+               straw31_vs_straw30_banana_bcid->Fill(straw_bcid_ch31 - sci_bcid_ch0, straw_bcid_ch30 - sci_bcid_ch0);
+               straw31_vs_sci0->Fill(t31 - sciT_ch0);
+               bcid_sci0->Fill(sci_bcid_ch0);
+               bcid_straw31->Fill(straw_bcid_ch31);
+               bcid_straw30->Fill(straw_bcid_ch30);
+               straw31_vs_straw30->Fill(t30 - t31);
+
+               int findex = 0;
+               for (int ii = -5; ii < 6; ii++)
+               {
+                  for (int jj = -5; jj < 6; jj++)
+                  {
+                     if (straw_bcid_ch30 - sci_bcid_ch0 == ii && straw_bcid_ch31 - sci_bcid_ch0 == jj)
+                     {
+                        h_bcid_31[findex]->Fill(straw_pdo_ch31);
+                        h_bcid_30[findex]->Fill(straw_pdo_ch30);
+                     }
+                     findex++;
+                  }
+               }
             }
 
             // ============================= end of sci 0 correlation finding =============================
@@ -354,21 +425,33 @@ void vmm::Loop()
       }
    }
 
-   // sci0_vs_sci1->Fit("gaus", "Q", "", sci0_vs_sci1->GetBinCenter(sci0_vs_sci1->FindFirstBinAbove(sci0_vs_sci1->GetMaximum() / 10)), 
+   TDirectory *pdo_dir = out->mkdir("PDO");
+   pdo_dir->cd();
+   for (int i = 0; i < 121; i++)
+   {
+      h_bcid_31[i]->Write();
+      h_bcid_30[i]->Write();
+   }
+
+   pdo_dir->cd("../");
+
+   // sci0_vs_sci1->Fit("gaus", "Q", "", sci0_vs_sci1->GetBinCenter(sci0_vs_sci1->FindFirstBinAbove(sci0_vs_sci1->GetMaximum() / 10)),
    //                                    sci0_vs_sci1->GetBinCenter(sci0_vs_sci1->FindLastBinAbove(sci0_vs_sci1->GetMaximum() / 10)));
 
-   // sci0_vs_sci2->Fit("gaus", "Q", "", sci0_vs_sci2->GetBinCenter(sci0_vs_sci2->FindFirstBinAbove(sci0_vs_sci2->GetMaximum() / 10)), 
+   // sci0_vs_sci2->Fit("gaus", "Q", "", sci0_vs_sci2->GetBinCenter(sci0_vs_sci2->FindFirstBinAbove(sci0_vs_sci2->GetMaximum() / 10)),
    //                                    sci0_vs_sci2->GetBinCenter(sci0_vs_sci2->FindLastBinAbove(sci0_vs_sci2->GetMaximum() / 10)));
 
-   // sci1_vs_sci2->Fit("gaus", "Q", "", sci1_vs_sci2->GetBinCenter(sci1_vs_sci2->FindFirstBinAbove(sci1_vs_sci2->GetMaximum() / 10)), 
+   // sci1_vs_sci2->Fit("gaus", "Q", "", sci1_vs_sci2->GetBinCenter(sci1_vs_sci2->FindFirstBinAbove(sci1_vs_sci2->GetMaximum() / 10)),
    //                                    sci1_vs_sci2->GetBinCenter(sci1_vs_sci2->FindLastBinAbove(sci1_vs_sci2->GetMaximum() / 10)));
 
-
    tdo_sci0->Write();
+   bcid_sci0->Write();
    tdo_sci1->Write();
    tdo_sci2->Write();
    tdo_straw31->Write();
    tdo_vs_pdo_straw31->Write();
+   bcid_straw31->Write();
+   bcid_straw30->Write();
    straw31_vs_sci0->Write();
    straw31_vs_sci1->Write();
    straw31_vs_sci2->Write();
@@ -380,5 +463,6 @@ void vmm::Loop()
    straw31_vs_sci0_all->Write();
    straw31_vs_straw30_all->Write();
    straw31_vs_straw30_banana_all->Write();
+   straw31_vs_straw30_banana_bcid->Write();
    out->Close();
 }
