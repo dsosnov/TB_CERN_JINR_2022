@@ -485,3 +485,9 @@ void vmm::Loop()
    straw31_vs_straw30_banana_bcid->Write();
    out->Close();
 }
+
+int main(){
+  auto v = new vmm();
+  v->Loop();
+  return 0;
+}

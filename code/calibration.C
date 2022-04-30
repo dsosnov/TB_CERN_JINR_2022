@@ -78,3 +78,9 @@ void calibration::Loop()
    tdo_dir->cd("../");
    out->Close();
 }
+
+int main(){
+  auto c = new calibration();
+  c->Loop();
+  return 0;
+}

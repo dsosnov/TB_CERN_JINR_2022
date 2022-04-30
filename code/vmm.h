@@ -5,8 +5,17 @@
 #include <TChain.h>
 #include <TFile.h>
 
+#include <vector>
+#include <fstream>
+#include <iostream>
+#include <map>
+using std::vector;
+using std::array;
+using std::ifstream, std::ofstream;
+using std::map;
+
 // Header file for the classes stored in the TTree if any.
-#include "c++/v1/vector"
+// #include "c++/v1/vector"
 
 class vmm {
 public :
