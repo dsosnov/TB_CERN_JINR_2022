@@ -7,74 +7,62 @@
 void vmm::Loop()
 {
    // fast check plots
-   auto *tdo_sci0 = new TH1D("tdo_sci0", "tdo_sci0; TDO", 128, 0, 256);
-   auto *bcid_sci0 = new TH1D("bcid_sci0", "bcid_sci0; TDO", 4096, 0, 4096);
-   auto *tdo_sci1 = new TH1D("tdo_sci1", "tdo_sci1; TDO", 128, 0, 256);
-   auto *tdo_sci2 = new TH1D("tdo_sci2", "tdo_sci2; TDO", 128, 0, 256);
-   auto *tdo_straw31 = new TH1D("tdo_straw31", "tdo_straw31; TDO", 128, 0, 256); // without 350 PDO counts cut
-   auto *bcid_straw31 = new TH1D("bcid_straw31", "bcid_straw31; BCID", 4096, 0, 4096);
-   auto *bcid_straw30 = new TH1D("bcid_straw30", "bcid_straw30; BCID", 4096, 0, 4096);
-   auto *tdo_vs_pdo_straw31 = new TH2D("tdo_vs_pdo_straw31", "tdo_vs_pdo_straw31; TDO", 256, 0, 1024, 128, 0, 256);
+  auto *tdo_sci0 = new TH1D("tdo_sci0", Form("%s: cid_sci0; TDO", file.Data()), 128, 0, 256);
+  auto *bcid_sci0 = new TH1D("bcid_sci0", Form("%s: bcid_sci0; TDO", file.Data()), 4096, 0, 4096);
+   auto *tdo_sci1 = new TH1D("tdo_sci1", Form("%s: cid_sci0; TDO", file.Data()), 128, 0, 256);
+   auto *tdo_sci2 = new TH1D("tdo_sci2", Form("%s: cid_sci0; TDO", file.Data()), 128, 0, 256);
+   auto *tdo_straw31 = new TH1D("tdo_straw31", Form("%s: tdocid_sci0; TDO", file.Data()), 128, 0, 256); // without 350 PDO counts cut
+   auto *bcid_straw31 = new TH1D("bcid_straw31", Form("%s: bcid_cid_sci0; TDO", file.Data()), 4096, 0, 4096);
+   auto *bcid_straw30 = new TH1D("bcid_straw30", Form("%s: bcid_cid_sci0; TDO", file.Data()), 4096, 0, 4096);
+   auto *tdo_vs_pdo_straw31 = new TH2D("tdo_vs_pdo_straw31", Form("%s: tdo_vs_pdocid_sci0; TDO", file.Data()), 256, 0, 1024, 128, 0, 256);
 
    // correlation plots
-   auto *straw31_vs_sci0 = new TH1D("straw31_vs_sci0", "straw31_vs_sci0; #Delta t, ns", 500, -500, 500);
-   auto *straw31_vs_sci0_all = new TH1D("straw31_vs_sci0_all", "straw31_vs_sci0_all; #Delta t, ns", 500, -500, 500);
-   auto *straw31_vs_sci1 = new TH1D("straw31_vs_sci1", "straw31_vs_sci1; #Delta t, ns", 500, -500, 500);
-   auto *straw31_vs_sci2 = new TH1D("straw31_vs_sci2", "straw31_vs_sci2; #Delta t, ns", 500, -500, 500);
+   auto *straw31_vs_sci0 = new TH1D("straw31_vs_sci0", Form("%s: straw31_vs_sci0;cid_sci0; TDO", file.Data()), 500, -500, 500);
+   auto *straw31_vs_sci0_all = new TH1D("straw31_vs_sci0_all", Form("%s: straw31_vs_sci0_all;cid_sci0; TDO", file.Data()), 500, -500, 500);
+   auto *straw31_vs_sci1 = new TH1D("straw31_vs_sci1", Form("%s: straw31_vs_sci1;cid_sci0; TDO", file.Data()), 500, -500, 500);
+   auto *straw31_vs_sci2 = new TH1D("straw31_vs_sci2", Form("%s: straw31_vs_sci2;cid_sci0; TDO", file.Data()), 500, -500, 500);
 
-   auto *sci0_vs_sci1 = new TH1D("sci0_vs_sci1", "sci0_vs_sci1; #Delta t, ns", 500, -500, 500);
-   auto *sci0_vs_sci2 = new TH1D("sci0_vs_sci2", "sci0_vs_sci2; #Delta t, ns", 500, -500, 500);
-   auto *sci1_vs_sci2 = new TH1D("sci1_vs_sci2", "sci1_vs_sci2; #Delta t, ns", 500, -500, 500);
+   auto *sci0_vs_sci1 = new TH1D("sci0_vs_sci1", Form("%s: sci0_vs_sci1;cid_sci0; TDO", file.Data()), 500, -500, 500);
+   auto *sci0_vs_sci2 = new TH1D("sci0_vs_sci2", Form("%s: sci0_vs_sci2;cid_sci0; TDO", file.Data()), 500, -500, 500);
+   auto *sci1_vs_sci2 = new TH1D("sci1_vs_sci2", Form("%s: sci1_vs_sci2;cid_sci0; TDO", file.Data()), 500, -500, 500);
 
-   auto *straw31_vs_straw30 = new TH1D("straw31_vs_straw30", "straw31_vs_straw30; #Delta t, ns", 500, -500, 500);
-   auto *straw31_vs_straw30_all = new TH1D("straw31_vs_straw30_all", "straw31_vs_straw30_all; #Delta t, ns", 500, -500, 500);
+   auto *straw31_vs_straw30 = new TH1D("straw31_vs_straw30", Form("%s: straw31_vs_straw30;cid_sci0; TDO", file.Data()), 500, -500, 500);
+   auto *straw31_vs_straw30_all = new TH1D("straw31_vs_straw30_all", Form("%s: straw31_vs_straw30_all;cid_sci0; TDO", file.Data()), 500, -500, 500);
 
    auto *straw31_vs_straw30_banana_ch0 = new TH2D("straw31_vs_straw30_banana_ch0",
-                                              "straw31_vs_straw30_banana_ch0; straw 31 #Deltat, ns; straw 30 #Deltat, ns", 500, -250, 250, 500, -250, 250);
+                                              Form("%s: straw31_vs_straw30_banana_ch0; straw 31 #Deltat, ns; straw 3cid_sci0; TDO", file.Data()), 500, -250, 250, 500, -250, 250);
 
    auto *straw31_vs_straw30_banana_ch1 = new TH2D("straw31_vs_straw30_banana_ch1",
-                                              "straw31_vs_straw30_banana_ch1; straw 31 #Deltat, ns; straw 30 #Deltat, ns", 500, -250, 250, 500, -250, 250);
+                                              Form("%s: straw31_vs_straw30_banana_ch1; straw 31 #Deltat, ns; straw 3cid_sci0; TDO", file.Data()), 500, -250, 250, 500, -250, 250);
 
    auto *straw31_vs_straw30_banana_ch2 = new TH2D("straw31_vs_straw30_banana_ch2",
-                                              "straw31_vs_straw30_banana_ch2; straw 31 #Deltat, ns; straw 30 #Deltat, ns", 500, -250, 250, 500, -250, 250);
+                                              Form("%s: straw31_vs_straw30_banana_ch2; straw 31 #Deltat, ns; straw 3cid_sci0; TDO", file.Data()), 500, -250, 250, 500, -250, 250);
 
    auto *straw31_vs_straw30_banana_all = new TH2D("straw31_vs_straw30_banana_all",
-                                                  "straw31_vs_straw30_banana_all; straw 31 #Deltat, ns; straw 30 #Deltat, ns", 500, -250, 250, 500, -250, 250);
+                                                  Form("%s: straw31_vs_straw30_banana_all; straw 31 #Deltat, ns; straw 3cid_sci0; TDO", file.Data()), 500, -250, 250, 500, -250, 250);
 
    auto *straw31_vs_straw30_banana_bcid = new TH2D("straw31_vs_straw30_banana_bcid",
-                                                   "straw31_vs_straw30_banana_bcid; straw 31 #Delta BCID; straw 30 #Delta BCID", 500, -250, 250, 500, -250, 250);
+                                                   Form("%s: straw31_vs_straw30_banana_bcid; straw 31 #Delta BCID; straw 3cid_sci0; TDO", file.Data()), 500, -250, 250, 500, -250, 250);
 
    // TDO distribution for every Ch
    TH1D *h[64];
-   char name[10];
-   char title[20];
    for (Int_t i = 0; i < 64; i++)
    {
-      sprintf(name, "h_ch%d", i);
-      sprintf(title, "TDO of ch%d", i);
-      h[i] = new TH1D(name, title, 128, 0, 256);
+     h[i] = new TH1D(Form("h_ch%d", i), Form("%s: TDO of ch%d", file.Data(), i), 128, 0, 256);
    }
 
    // BCID check
    TH1D *h_bcid_31[121];
    TH1D *h_bcid_30[121];
-   char name_bcid_1[20];
-   char title_bcid_1[80];
-   char name_bcid_2[20];
-   char title_bcid_2[80];
    int index = 0;
 
    for (int i = -5; i < 6; i++)
    {
       for (int j = -5; j < 6; j++)
       {
-         sprintf(name_bcid_1, "ch_31_h_bcid%d", index);
-         sprintf(title_bcid_1, "#Delta BCID_{30} = %d and #Delta BCID_{31} = %d; PDO_{31}", i, j);
-         sprintf(name_bcid_2, "ch_30_h_bcid%d", index);
-         sprintf(title_bcid_2, "#Delta BCID_{30} = %d and #Delta BCID_{31} = %d; PDO_{30}", i, j);
-         h_bcid_31[index] = new TH1D(name_bcid_1, title_bcid_1, 256, 0, 1024);
-         h_bcid_30[index] = new TH1D(name_bcid_2, title_bcid_2, 256, 0, 1024);
-         index++;
+        h_bcid_31[index] = new TH1D(Form("ch_31_h_bcid%d", index), Form("%s: #Delta BCID_{30} = %d and #Delta BCID_{31} = %d; PDO_{31}", file.Data(), i, j), 256, 0, 1024);
+        h_bcid_30[index] = new TH1D(Form("ch_30_h_bcid%d", index), Form("%s: #Delta BCID_{30} = %d and #Delta BCID_{31} = %d; PDO_{30}", file.Data(), i, j), 256, 0, 1024);
+        index++;
       }
    }
 
