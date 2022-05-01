@@ -197,7 +197,7 @@ void vmm::Loop()
             // if (fpdo < 100 || fpdo > 900)
             //    continue;
             int ftdo = tdo->at(0).at(j);
-            int fbcid = bcid->at(0).at(j);
+            int fbcid = grayDecoded->at(0).at(j);
             // if (fbcid < 40)
             //          continue;
 
@@ -239,7 +239,7 @@ void vmm::Loop()
                   // if (ffpdo < 100 || ffpdo > 900)
                   //    continue;
                   int fftdo = tdo->at(0).at(k);
-                  int ffbcid = bcid->at(0).at(k);
+                  int ffbcid = grayDecoded->at(0).at(k);
                   // if (ffbcid < 40)
                   //    continue;
                   double fft = ffbcid * 25.0 - (fftdo - limits[ffch][0]) * 25.0 / (limits[ffch][1] - limits[ffch][0]); // 'auto' limits
@@ -277,7 +277,7 @@ void vmm::Loop()
 
                   int ffpdo = pdo->at(0).at(k);
                   int fftdo = tdo->at(0).at(k);
-                  int ffbcid = bcid->at(0).at(k);
+                  int ffbcid = grayDecoded->at(0).at(k);
                   // if (ffbcid < 40)
                   //    continue;
                   double fft = ffbcid * 25.0 - (fftdo - 88) * 25.0 / (140 - 88); //'hand' limits
@@ -355,7 +355,7 @@ void vmm::Loop()
 
                   int ffpdo = pdo->at(0).at(k);
                   int fftdo = tdo->at(0).at(k);
-                  int ffbcid = bcid->at(0).at(k);
+                  int ffbcid = grayDecoded->at(0).at(k);
                   double fft = ffbcid * 25.0 - (fftdo - 110) * 25.0 / (160 - 110); //'hand' limits
                   // double fft = ffbcid * 25.0 - (fftdo - limits[ffch][0]) * 25.0 / (limits[ffch][1] - limits[ffch][0]); // 'auto' limits
 
@@ -401,7 +401,7 @@ void vmm::Loop()
 
                   int ffpdo = pdo->at(0).at(k);
                   int fftdo = tdo->at(0).at(k);
-                  int ffbcid = bcid->at(0).at(k);
+                  int ffbcid = grayDecoded->at(0).at(k);
                   double fft = ffbcid * 25.0 - (fftdo - 96) * 25.0 / (148 - 96); //'hand' limits
                   // double fft = ffbcid * 25.0 - (fftdo - limits[ffch][0]) * 25.0 / (limits[ffch][1] - limits[ffch][0]); // 'auto' limits
 
