@@ -146,22 +146,19 @@ Long64_t vmm::LoadTree(Long64_t entry)
 
 void vmm::addLimits(int minLimit, TString filename){
    vector<array<int, 2>> limitsCurrent;
-   try
+   ifstream myfile(Form("../out/%s", filename.Data()));
+   int bin1 = 0;
+   int bin2 = 0;
+   int i = 0;
+   while (myfile >> bin1 >> bin2)
    {
-      ifstream myfile(Format("../out/%s", filename.Data()));
-      int bin1 = 0;
-      int bin2 = 0;
-      int i = 0;
-      while (myfile >> bin1 >> bin2)
-      {
-         limitsCurrent.push_back({bin1, bin2});
-         std::cout << "MinPDO "<< minLimit << "\tCH " << i << "\t L TDO: " << bin1 << "\t R TDO: " << bin2 << "\n";
-         i++;
-      }
-   } catch (...)
-   {
-     std::cout << "Calibration file " << filename << "not found" << std::endl;
-     exit(1);
+      limitsCurrent.push_back({bin1, bin2});
+      std::cout << "MinPDO "<< minLimit << "\tCH " << i << "\t L TDO: " << bin1 << "\t R TDO: " << bin2 << "\n";
+      i++;
+   }
+   if(!limitsCurrent.size()){
+      std::cout << "Problem with calibration file " << filename << std::endl;
+      exit(1);
    }
    limits.emplace(minLimit, limitsCurrent);
 }
@@ -193,7 +190,7 @@ double vmm::getTime(int channel, int bcid, int tdo, int pdo){
    }
    return getTimeByHand(bcid, tdo, ll, ul);
 }
-static double vmm::getTimeByHand(int bcid, int tdo, int lowLimit, int upLimit){
+double vmm::getTimeByHand(int bcid, int tdo, int lowLimit, int upLimit){
    return bcid * 25.0 - (tdo - lowLimit) * 25.0 / (upLimit - lowLimit);
 }
 
@@ -254,11 +251,11 @@ void vmm::Init(TTree *tree)
    // ================================== LIMITS SEARCH ================================== //or get from file
    // addLimits(0, "calibration_25_100");
 
-   addLimits(100, "calibration_25_100_pdo100");
-   addLimits(150, "calibration_25_100_pdo150");
-   addLimits(200, "calibration_25_100_pdo200");
-   addLimits(250, "calibration_25_100_pdo250");
-   addLimits(300, "calibration_25_100_pdo300");
+   addLimits(100, "calibration_25_100_pdo100.txt");
+   addLimits(150, "calibration_25_100_pdo150.txt");
+   addLimits(200, "calibration_25_100_pdo200.txt");
+   addLimits(250, "calibration_25_100_pdo250.txt");
+   addLimits(300, "calibration_25_100_pdo300.txt");
 }
 
 #endif // #ifdef vmm_cxx
