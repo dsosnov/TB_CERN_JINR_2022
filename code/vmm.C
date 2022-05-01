@@ -86,43 +86,43 @@ void vmm::Loop()
    Long64_t nentries = fChain->GetEntriesFast();
 
    Long64_t nbytes = 0, nb = 0;
-   // for (Long64_t jentry = 0; jentry < nentries; jentry++)
-   // {
-   //    Long64_t ientry = LoadTree(jentry);
-   //    if (ientry < 0)
-   //       break;
-   //    nb = fChain->GetEntry(jentry);
-   //    nbytes += nb;
-   //    for (int j = 0; j < channel->at(0).size(); j++)
-   //    {
-   //       int chtemp = channel->at(0).at(j);
-   //       if (pdo->at(0).at(j) > 350) // !!! <------ setup for TDO distributions for every Ch
-   //       {
-   //          h[chtemp]->Fill(tdo->at(0).at(j));
-   //       }
-   //       if (chtemp == 0)
-   //       {
-   //          tdo_sci0->Fill(tdo->at(0).at(j));
-   //       }
-   //       else if (chtemp == 1)
-   //       {
-   //          tdo_sci1->Fill(tdo->at(0).at(j));
-   //       }
-   //       else if (chtemp == 2)
-   //       {
-   //          tdo_sci2->Fill(tdo->at(0).at(j));
-   //       }
-   //       else if (chtemp == 31)
-   //       {
-   //          tdo_straw31->Fill(tdo->at(0).at(j));
-   //          tdo_vs_pdo_straw31->Fill(pdo->at(0).at(j), tdo->at(0).at(j));
-   //       }
-   //       else
-   //       {
-   //          continue;
-   //       }
-   //    }
-   // }
+   for (Long64_t jentry = 0; jentry < nentries; jentry++)
+   {
+      Long64_t ientry = LoadTree(jentry);
+      if (ientry < 0)
+         break;
+      nb = fChain->GetEntry(jentry);
+      nbytes += nb;
+      for (int j = 0; j < channel->at(0).size(); j++)
+      {
+         int chtemp = channel->at(0).at(j);
+         if (pdo->at(0).at(j) > 350) // !!! <------ setup for TDO distributions for every Ch
+         {
+            h[chtemp]->Fill(tdo->at(0).at(j));
+         }
+         if (chtemp == 0)
+         {
+            tdo_sci0->Fill(tdo->at(0).at(j));
+         }
+         else if (chtemp == 1)
+         {
+            tdo_sci1->Fill(tdo->at(0).at(j));
+         }
+         else if (chtemp == 2)
+         {
+            tdo_sci2->Fill(tdo->at(0).at(j));
+         }
+         else if (chtemp == 31)
+         {
+            tdo_straw31->Fill(tdo->at(0).at(j));
+            tdo_vs_pdo_straw31->Fill(pdo->at(0).at(j), tdo->at(0).at(j));
+         }
+         else
+         {
+            continue;
+         }
+      }
+   }
    // ===================================================================================
 
    vector<array<int, 2>> limits; // vector of TDO limits for every Ch [limits.size() == 64]!
@@ -302,10 +302,10 @@ void vmm::Loop()
 
             if (sciT_ch0 != 0)
             {
-               // straw31_vs_sci0->Fill(t31 - sciT_ch0);
-               // bcid_sci0->Fill(sci_bcid_ch0);
-               // bcid_straw31->Fill(straw_bcid_ch31);
-               // bcid_straw30->Fill(straw_bcid_ch30);
+               straw31_vs_sci0->Fill(t31 - sciT_ch0);
+               bcid_sci0->Fill(sci_bcid_ch0);
+               bcid_straw31->Fill(straw_bcid_ch31);
+               bcid_straw30->Fill(straw_bcid_ch30);
             }
 
             if (t30 != 0 && sciT_ch0 != 0)
@@ -420,10 +420,12 @@ void vmm::Loop()
                straw31_vs_straw30_banana_ch2->Fill(t31 - sciT_ch2, t30 - sciT_ch2);
             }
 
-            if (sciT_ch2 != 0 && sciT_ch1 != 0 && sciT_ch0 != 0)
+            if (sciT_ch2 != 0)
             {
-               sci1_vs_sci2->Fill(sciT_ch1 - sciT_ch2);
-               sci0_vs_sci2->Fill(sciT_ch0 - sciT_ch2);
+              if(sciT_ch1 != 0)
+                sci1_vs_sci2->Fill(sciT_ch1 - sciT_ch2);
+              if(sciT_ch0 != 0)
+                sci0_vs_sci2->Fill(sciT_ch0 - sciT_ch2);
             }
 
             // ============================= end of sci 2 correlation finding =============================
