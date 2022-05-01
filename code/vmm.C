@@ -179,7 +179,7 @@ void vmm::Loop()
             // if (fpdo < 100 || fpdo > 900)
             //    continue;
             int ftdo = tdo->at(0).at(j);
-            int fbcid = bcid->at(0).at(j);
+            int fbcid = grayDecoded->at(0).at(j);
             // if (fbcid < 40)
             //          continue;
 
@@ -221,7 +221,7 @@ void vmm::Loop()
                   // if (ffpdo < 100 || ffpdo > 900)
                   //    continue;
                   int fftdo = tdo->at(0).at(k);
-                  int ffbcid = bcid->at(0).at(k);
+                  int ffbcid = grayDecoded->at(0).at(k);
                   // if (ffbcid < 40)
                   //    continue;
                   double fft = getTime(ffch, ffbcid, fftdo, ffpdo); // 'auto' limits
@@ -259,7 +259,7 @@ void vmm::Loop()
 
                   int ffpdo = pdo->at(0).at(k);
                   int fftdo = tdo->at(0).at(k);
-                  int ffbcid = bcid->at(0).at(k);
+                  int ffbcid = grayDecoded->at(0).at(k);
                   // if (ffbcid < 40)
                   //    continue;
                   double fft = getTimeByHand(ffbcid, fftdo, 88, 140); //'hand' limits
@@ -337,7 +337,7 @@ void vmm::Loop()
 
                   int ffpdo = pdo->at(0).at(k);
                   int fftdo = tdo->at(0).at(k);
-                  int ffbcid = bcid->at(0).at(k);
+                  int ffbcid = grayDecoded->at(0).at(k);
                   double fft = getTimeByHand(ffbcid, fftdo, 110, 160); //'hand' limits
                   // double fft = getTime(ffch, ffbcid, fftdo, ffpdo); // 'auto' limits
 
@@ -383,7 +383,7 @@ void vmm::Loop()
 
                   int ffpdo = pdo->at(0).at(k);
                   int fftdo = tdo->at(0).at(k);
-                  int ffbcid = bcid->at(0).at(k);
+                  int ffbcid = grayDecoded->at(0).at(k);
                   double fft = getTimeByHand(ffbcid, fftdo, 96, 148); //'hand' limits
                   // double fft = getTime(ffch, ffbcid, fftdo, ffpdo); // 'auto' limits
 
