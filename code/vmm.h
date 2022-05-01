@@ -85,6 +85,10 @@ vmm::vmm(TString filename) : file(filename)
    if (!f || !f->IsOpen()) {
       f = new TFile(folder + file + ending);
    }
+   if(!f->IsOpen()) {
+      std::cout << "Problem with opening data file" << std::endl;
+      exit(1);
+   }
    TTree* tree = nullptr; 
    f->GetObject("vmm",tree);
    Init(tree);
@@ -96,6 +100,10 @@ vmm::vmm(TTree *tree) : fChain(0)
       TFile *f = (TFile*)gROOT->GetListOfFiles()->FindObject(folder + file + ending);
       if (!f || !f->IsOpen()) {
          f = new TFile(folder + file + ending);
+      }
+      if(!f->IsOpen()) {
+         std::cout << "Problem with opening data file" << std::endl;
+         exit(1);
       }
       f->GetObject("vmm",tree);
 

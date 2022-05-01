@@ -132,6 +132,7 @@ void vmm::Loop()
    tdo_dir->cd();
 
    // ================================== LIMITS SEARCH ================================== //or get from file
+   try{
    ifstream myfile("../out/calibration_25_100.txt");
    int bin1 = 0;
    int bin2 = 0;
@@ -141,6 +142,10 @@ void vmm::Loop()
       limits.push_back({bin1, bin2});
       std::cout << "CH " << i << "\t L TDO: " << bin1 << "\t R TDO: " << bin2 << "\n";
       i++;
+   }
+   } catch (...){
+     std::cout << "Calibration file " << file << "not found" << std::endl;
+     exit(1);
    }
 
    // auto *gausFitF = new TF1("gausFitF", "gaus", 0, 256);
