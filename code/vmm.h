@@ -66,6 +66,7 @@ public :
    TBranch        *b_art;   //!
    TBranch        *b_art_trigger;   //!
 
+   vmm(TString);
    vmm(TTree *tree=0);
    virtual ~vmm();
    virtual Int_t    GetEntry(Long64_t entry);
@@ -78,6 +79,17 @@ public :
 #endif
 
 #ifdef vmm_cxx
+vmm::vmm(TString filename) : file(filename)
+{
+   TFile *f = (TFile*)gROOT->GetListOfFiles()->FindObject(folder + file + ending);
+   if (!f || !f->IsOpen()) {
+      f = new TFile(folder + file + ending);
+   }
+   TTree* tree = nullptr; 
+   f->GetObject("vmm",tree);
+   Init(tree);
+}
+
 vmm::vmm(TTree *tree) : fChain(0) 
 {
    if (tree == 0) {
