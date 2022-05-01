@@ -166,10 +166,11 @@ array<int, 2> vmm::getLimits(int channel, int pdo){
    int maxPDOLower = -1;
    int minPDO = -1;
    for(auto &l: limits){
-      if(l.first > maxPDOLower && l.first < pdo)
-         maxPDOLower = l.first;
-      if(minPDO < 0 || l.first < minPDO)
-         minPDO = l.first;
+     if((maxPDOLower < 0 || l.first > maxPDOLower) && l.first < pdo){
+        maxPDOLower = l.first;
+     }
+     if(minPDO < 0 || l.first < minPDO)
+        minPDO = l.first;
    }
    maxPDOLower = (maxPDOLower < 0) ? minPDO : maxPDOLower;
    return limits.at(maxPDOLower)[channel];
