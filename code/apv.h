@@ -29,12 +29,12 @@ public :
   int           fCurrentPedestal; //!current Tree number in a TChain
 
   // Event variables, signal
-  unsigned long long evt;
+  unsigned long long evt; // event id, is one of: DaqTime, SrsTimeStamp, SrsTriggerNumber
   uint error;
-  int daqTimeSec;
-  int daqTimeMicroSec;
-  int srsTimeStamp;
-  uint srsTrigger;
+  int daqTimeSec; // DaqTime (stamped by the daq)
+  int daqTimeMicroSec; // DaqTime (stamped by the daq)
+  int srsTimeStamp; // srs time stamp (counter of clock cycles)
+  uint srsTrigger; // trigger number!
   vector<uint> *srsFec;
   vector<uint> *srsChip;
   vector<uint> *srsChan;
@@ -89,6 +89,9 @@ public :
   virtual Long64_t LoadTree(Long64_t entry);
   virtual void     Init(TTree *tree, TTree *treePed);
   virtual void     Loop();
+
+  static unsigned long long unique_srs_time_stamp(int, int, int);
+
 };
 
 #endif
@@ -206,8 +209,17 @@ void apv::Init(TTree *tree, TTree *treePed){
     treePed->SetBranchAddress("ped_stdev", &ped_stdevPed);
     treePed->SetBranchAddress("ped_sigma", &ped_sigmaPed);
     treePed->GetEntry(0);
-    printf("PedEntries: %d\n", treePed->GetEntries());
+    // printf("PedEntries: %lld\n", treePed->GetEntries());
   }
 }
+
+//daq epoch timestamp in upper 32 bits, 8 bits for tenths of second, followed by srs time stamp of 25 ns clock cycles counter, bizzare
+unsigned long long apv::unique_srs_time_stamp(int daq_time_stamp_seconds, int daq_time_stamp_microseconds, int m_srs_time_stamp){
+  auto b1 = static_cast<unsigned long long>(daq_time_stamp_seconds) << 32;
+  auto b2 = static_cast<unsigned long long>(daq_time_stamp_microseconds % 100000) << 24;
+  // return (((unsigned long long)(daq_time_stamp_seconds)) << 32) | (static_cast<unsigned long long>(daq_time_stamp_microseconds % 100000)) << 24 | m_srs_time_stamp);
+  return (b1 | b2 | m_srs_time_stamp);
+}
+
 
 #endif // #ifdef apv_cxx
