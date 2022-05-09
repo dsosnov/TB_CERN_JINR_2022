@@ -33,6 +33,14 @@ void apv::Loop()
   auto hmaxQFullHistoryAll = make_shared<TH1F>("maxQFullHistory", Form("Run %s: maxQFullHistory", file.Data()), 2500, 0, 2500);
   auto hmaxQTimeFullHistoryAll = make_shared<TH1F>("maxQTimeFullHistory", Form("Run %s: maxQTimeFullHistory", file.Data()), 192, 0, 192);
 
+  /* Claster histograms */
+  vector<shared_ptr<TH1F>> clasterQ, clasterPos;
+  for(auto &i: {0, 1, 2}){
+    clasterQ.push_back(make_shared<TH1F>(Form("clasterQ%d", i), Form("Run %s: clasterQ%d", file.Data(), i), 10240, 0, 10240));
+    clasterPos.push_back(make_shared<TH1F>(Form("clasterPos%d", i), Form("Run %s: clasterPos%d", file.Data(), i), 360, 0, 360));
+  }
+  auto clasterEnergy = make_shared<TH1F>("clasterQ", Form("Run %s: clasterQ", file.Data()), 10240, 0, 10240);
+  
   // =============================== TDO & distributions ===============================
 
   // printf("Chain tree: %p\n", fChainSignal);
@@ -57,8 +65,11 @@ void apv::Loop()
     if(!notErr) continue;
     
     /* Filling entry histogram */
-    if(previousEvt == evt)
+    if(previousEvt != evt)
+      clasters.clear();
+    else
       printf("Possible second part of event! \n");
+
     hevts->Fill(evt);
     hdaqTimeSec->Fill(daqTimeSec);
     hdaqTimeMSec->Fill(daqTimeMicroSec);
@@ -80,8 +91,11 @@ void apv::Loop()
       auto strip = mmStrip->at(j);
       hHitSpot.at(layer)->Fill(strip);
       auto maxQ = max_q->at(j);
-      printf(" %d-%d (%d)", layer, strip, maxQ);
       hmaxQ.at(layer)->Fill(maxQ);
+      
+      printf(" %d-%d (%d)", layer, strip, maxQ);
+      addHitToClasters(layer, strip, maxQ);
+
       auto maxTime = t_max_q->at(j);
       hmaxQTime.at(layer)->Fill(maxTime);
       // printf("Raw q pointer: %p\n", raw_q);
@@ -103,6 +117,14 @@ void apv::Loop()
       hmaxQTimeFullHistoryAll->Fill(maxADCBin);
     }
     printf("\n");
+    
+    for(auto &c: clasters){
+      c.print();
+      clasterPos.at(c.layer)->Fill(c.center());
+      clasterQ.at(c.layer)->Fill(c.q());
+      clasterEnergy->Fill(c.q());
+    }
+
     previousEvt = evt;
     previousTimeStamp = srsTimeStamp;
   }

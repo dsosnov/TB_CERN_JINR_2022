@@ -11,10 +11,54 @@
 #include <string>
 #include <memory>
 
+#include <numeric> // accumulate
+#include <algorithm> // max_element
+
 using std::vector;
 using std::map;
 using std::string;
 using std::shared_ptr, std::make_shared;
+
+constexpr uint clasterMaxWidth = 5;
+struct claster{
+  int layer = 0;
+  vector<int> channels = {};
+  vector<int> qs = {};
+  void addHit(int channel, int maxQ){
+    channels.push_back(channel);
+    qs.push_back(maxQ);
+  }
+  bool addHitIfOnDistance(int hitlayer, int channel, int maxQ, int maxDistance = clasterMaxWidth){
+    if(hitlayer != layer)
+      return false;
+    if(std::abs(center() - channel) > maxDistance)
+      return false;
+    addHit(channel, maxQ);
+    return true;
+  }
+  float center(){
+    return (channels.empty()) ? 0 : std::accumulate(std::begin(channels), std::end(channels), 0.0) / channels.size();
+  };
+  int width(){
+    if(channels.empty())
+      return 0;
+    long c = center();
+    int distance = -1;
+    for(auto &ch: channels)
+      if(distance < 0 || std::abs(ch - c) > distance)
+        distance = std::abs(ch - c);
+    return distance;
+  };
+  int maxQ(){
+    return (channels.empty()) ? 0 : *(std::max_element(std::begin(qs), std::end(qs)));
+  };
+  long q(){
+    return std::accumulate(std::begin(qs), std::end(qs), 0);
+  };
+  void print(){
+    printf("Claster: %lu hits on layer %d, with center %f, width %d and Q %ld (maximal: %ld)\n", channels.size(), layer, center(), width(), q(), maxQ()); 
+  }
+};
 
 class apv {
 public :
@@ -91,6 +135,10 @@ public :
   virtual void     Loop();
 
   static unsigned long long unique_srs_time_stamp(int, int, int);
+
+  vector<claster> clasters;
+  bool addHitToClasters(int hitlayer, int channel, int maxQ);
+
 
 };
 
@@ -220,6 +268,17 @@ unsigned long long apv::unique_srs_time_stamp(int daq_time_stamp_seconds, int da
   // return (((unsigned long long)(daq_time_stamp_seconds)) << 32) | (static_cast<unsigned long long>(daq_time_stamp_microseconds % 100000)) << 24 | m_srs_time_stamp);
   return (b1 | b2 | m_srs_time_stamp);
 }
+
+bool apv::addHitToClasters(int hitlayer, int channel, int maxQ){
+  for(auto &c: clasters)
+    if(c.addHitIfOnDistance(hitlayer, channel, maxQ))
+      return true;
+  claster newclaster = {hitlayer};
+  newclaster.addHit(channel, maxQ);
+  clasters.push_back(newclaster);
+  return true;
+}
+
 
 
 #endif // #ifdef apv_cxx
