@@ -22,9 +22,9 @@ void vmm::Loop()
    auto straw31_vs_sci1 = new TH1D("straw31_vs_sci1", Form("%s: straw31_vs_sci1;cid_sci0; TDO", file.Data()), 1000, -500, 500);
    auto straw31_vs_sci2 = new TH1D("straw31_vs_sci2", Form("%s: straw31_vs_sci2;cid_sci0; TDO", file.Data()), 1000, -500, 500);
 
-   auto sci0_vs_sci1 = new TH1D("sci0_vs_sci1", Form("%s: sci0_vs_sci1;cid_sci0; TDO", file.Data()), 1000, -50, 50);
-   auto sci0_vs_sci2 = new TH1D("sci0_vs_sci2", Form("%s: sci0_vs_sci2;cid_sci0; TDO", file.Data()), 1000, -50, 50);
-   auto sci1_vs_sci2 = new TH1D("sci1_vs_sci2", Form("%s: sci1_vs_sci2;cid_sci0; TDO", file.Data()), 1000, -50, 50);
+   auto sci0_vs_sci1 = new TH1D("sci0_vs_sci1", Form("%s: sci0_vs_sci1;cid_sci0; TDO", file.Data()), 250, -50, 50);
+   auto sci0_vs_sci2 = new TH1D("sci0_vs_sci2", Form("%s: sci0_vs_sci2;cid_sci0; TDO", file.Data()), 250, -50, 50);
+   auto sci1_vs_sci2 = new TH1D("sci1_vs_sci2", Form("%s: sci1_vs_sci2;cid_sci0; TDO", file.Data()), 250, -50, 50);
 
    auto straw31_vs_straw30 = new TH1D("straw31_vs_straw30", Form("%s: straw31_vs_straw30;cid_sci0; TDO", file.Data()), 1000, -500, 500);
    auto straw31_vs_straw30_all = new TH1D("straw31_vs_straw30_all", Form("%s: straw31_vs_straw30_all;cid_sci0; TDO", file.Data()), 1000, -500, 500);
