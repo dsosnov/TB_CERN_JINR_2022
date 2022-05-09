@@ -74,6 +74,15 @@ public :
    virtual void     Init(TTree *tree);
    virtual void     Loop();
 
+   map<unsigned int, vector<array<int, 2>>> limits;
+
+  void addLimits(int minLimit, TString filename);
+  array<int, 2> getLimits(int channel, int pdo);
+  int getLimitLow(int channel, int pdo);
+  int getLimitUp(int channel, int pdo);
+  double getTime(int channel, int bcid, int tdo, int pdo);
+  static double getTimeByHand(int bcid, int tdo, int lowLimit, int upLimit);
+
 };
 
 #endif
@@ -135,6 +144,57 @@ Long64_t vmm::LoadTree(Long64_t entry)
    return centry;
 }
 
+void vmm::addLimits(int minLimit, TString filename){
+   vector<array<int, 2>> limitsCurrent;
+   ifstream myfile(Form("../out/%s", filename.Data()));
+   int bin1 = 0;
+   int bin2 = 0;
+   int i = 0;
+   while (myfile >> bin1 >> bin2)
+   {
+      limitsCurrent.push_back({bin1, bin2});
+      std::cout << "MinPDO "<< minLimit << "\tCH " << i << "\t L TDO: " << bin1 << "\t R TDO: " << bin2 << "\n";
+      i++;
+   }
+   if(!limitsCurrent.size()){
+      std::cout << "Problem with calibration file " << filename << std::endl;
+      exit(1);
+   }
+   limits.emplace(minLimit, limitsCurrent);
+}
+array<int, 2> vmm::getLimits(int channel, int pdo){
+   int maxPDOLower = -1;
+   int minPDO = -1;
+   for(auto &l: limits){
+     if((maxPDOLower < 0 || l.first > maxPDOLower) && l.first < pdo){
+        maxPDOLower = l.first;
+     }
+     if(minPDO < 0 || l.first < minPDO)
+        minPDO = l.first;
+   }
+   maxPDOLower = (maxPDOLower < 0) ? minPDO : maxPDOLower;
+   return limits.at(maxPDOLower)[channel];
+}
+int vmm::getLimitLow(int channel, int pdo){
+   return getLimits(channel, pdo)[0];
+}
+int vmm::getLimitUp(int channel, int pdo){
+   return getLimits(channel, pdo)[1];
+}
+double vmm::getTime(int channel, int bcid, int tdo, int pdo){
+   auto limits = getLimits(channel, pdo);
+   auto ll = getLimitLow(channel, pdo),
+        ul = getLimitUp(channel, pdo);
+   if(ll < 0 || ul < 0){
+      ul = 256;
+      ll = 0;
+   }
+   return getTimeByHand(bcid, tdo, ll, ul);
+}
+double vmm::getTimeByHand(int bcid, int tdo, int lowLimit, int upLimit){
+   return bcid * 25.0 - (tdo - lowLimit) * 25.0 / (upLimit - lowLimit);
+}
+
 void vmm::Init(TTree *tree)
 {
    triggerTimeStamp = 0;
@@ -188,6 +248,15 @@ void vmm::Init(TTree *tree)
    fChain->SetBranchAddress("art_valid", &art_valid, &b_art_valid);
    fChain->SetBranchAddress("art", &art, &b_art);
    fChain->SetBranchAddress("art_trigger", &art_trigger, &b_art_trigger);
+
+   // ================================== LIMITS SEARCH ================================== //or get from file
+   // addLimits(0, "calibration_25_100");
+
+   addLimits(100, "calibration_25_100_pdo100.txt");
+   addLimits(150, "calibration_25_100_pdo150.txt");
+   addLimits(200, "calibration_25_100_pdo200.txt");
+   addLimits(250, "calibration_25_100_pdo250.txt");
+   addLimits(300, "calibration_25_100_pdo300.txt");
 }
 
 #endif // #ifdef vmm_cxx

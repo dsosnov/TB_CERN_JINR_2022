@@ -113,28 +113,10 @@ void vmm::Loop()
    }
    // ===================================================================================
 
-   vector<array<int, 2>> limits; // vector of TDO limits for every Ch [limits.size() == 64]!
 
    TFile *out = new TFile("../out/out_" + file + ending, "RECREATE"); // PATH where to save out_*.root file
    TDirectory *tdo_dir = out->mkdir("TDO");
    tdo_dir->cd();
-
-   // ================================== LIMITS SEARCH ================================== //or get from file
-   try{
-   ifstream myfile("../out/calibration_25_100.txt");
-   int bin1 = 0;
-   int bin2 = 0;
-   int i = 0;
-   while (myfile >> bin1 >> bin2)
-   {
-      limits.push_back({bin1, bin2});
-      std::cout << "CH " << i << "\t L TDO: " << bin1 << "\t R TDO: " << bin2 << "\n";
-      i++;
-   }
-   } catch (...){
-     std::cout << "Calibration file " << file << "not found" << std::endl;
-     exit(1);
-   }
 
    // auto gausFitF = new TF1("gausFitF", "gaus", 0, 256);
    for (Int_t i = 0; i < 64; i++)
@@ -203,8 +185,8 @@ void vmm::Loop()
 
             straw_bcid_ch31 = fbcid;
             straw_pdo_ch31 = fpdo;
-            t31 = fbcid * 25.0 - (ftdo - limits[fch][0]) * 25.0 / (limits[fch][1] - limits[fch][0]); // 'auto' limits
-            // t31 = fbcid * 25.0 - (fftdo - X) * 25.0 / (Y - X); //'hand' limits
+            t31 = getTime(fch, fbcid, ftdo, fpdo); // 'auto' limits
+            // t31 = getTimeByHand(fbcid, ftdo, Y, Y); //'hand' limits
 
             Long64_t mbytes = 0, mb = 0;
             double minTsci0 = 1e3, minTsci0_ch30 = 1e3;
@@ -242,8 +224,8 @@ void vmm::Loop()
                   int ffbcid = grayDecoded->at(0).at(k);
                   // if (ffbcid < 40)
                   //    continue;
-                  double fft = ffbcid * 25.0 - (fftdo - limits[ffch][0]) * 25.0 / (limits[ffch][1] - limits[ffch][0]); // 'auto' limits
-                  // double fft = ffbcid * 25.0 - (fftdo - X) * 25.0 / (Y - X); //'hand' limits
+                  double fft = getTime(ffch, ffbcid, fftdo, ffpdo); // 'auto' limits
+                  // double fft = getTimeByHand(ffbcid, fftdo, X, Y); //'hand' limits
 
                   straw31_vs_straw30_all->Fill(t31 - fft);
                   if (fabs(t31 - fft) < minT30)
@@ -280,8 +262,8 @@ void vmm::Loop()
                   int ffbcid = grayDecoded->at(0).at(k);
                   // if (ffbcid < 40)
                   //    continue;
-                  double fft = ffbcid * 25.0 - (fftdo - 88) * 25.0 / (140 - 88); //'hand' limits
-                  // double fft = ffbcid * 25.0 - (fftdo - limits[ffch][0]) * 25.0 / (limits[ffch][1] - limits[ffch][0]); // 'auto' limits
+                  double fft = getTimeByHand(ffbcid, fftdo, 88, 140); //'hand' limits
+                  // double fft = getTime(ffch, ffbcid, fftdo, ffpdo); // 'auto' limits
 
                   straw31_vs_sci0_all->Fill(t31 - fft);
 
@@ -356,8 +338,8 @@ void vmm::Loop()
                   int ffpdo = pdo->at(0).at(k);
                   int fftdo = tdo->at(0).at(k);
                   int ffbcid = grayDecoded->at(0).at(k);
-                  double fft = ffbcid * 25.0 - (fftdo - 110) * 25.0 / (160 - 110); //'hand' limits
-                  // double fft = ffbcid * 25.0 - (fftdo - limits[ffch][0]) * 25.0 / (limits[ffch][1] - limits[ffch][0]); // 'auto' limits
+                  double fft = getTimeByHand(ffbcid, fftdo, 110, 160); //'hand' limits
+                  // double fft = getTime(ffch, ffbcid, fftdo, ffpdo); // 'auto' limits
 
                   if (fabs(t31 - fft) < minTsci1 && fabs(t30 - fft) < minTsci1_ch30)
                   {
@@ -402,8 +384,8 @@ void vmm::Loop()
                   int ffpdo = pdo->at(0).at(k);
                   int fftdo = tdo->at(0).at(k);
                   int ffbcid = grayDecoded->at(0).at(k);
-                  double fft = ffbcid * 25.0 - (fftdo - 96) * 25.0 / (148 - 96); //'hand' limits
-                  // double fft = ffbcid * 25.0 - (fftdo - limits[ffch][0]) * 25.0 / (limits[ffch][1] - limits[ffch][0]); // 'auto' limits
+                  double fft = getTimeByHand(ffbcid, fftdo, 96, 148); //'hand' limits
+                  // double fft = getTime(ffch, ffbcid, fftdo, ffpdo); // 'auto' limits
 
                   if (fabs(t31 - fft) < minTsci2 && fabs(t30 - fft) < minTsci2_ch30)
                   {
