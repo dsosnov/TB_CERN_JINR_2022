@@ -7,41 +7,41 @@
 void vmm::Loop()
 {
    // fast check plots
-  auto *tdo_sci0 = new TH1D("tdo_sci0", Form("%s: cid_sci0; TDO", file.Data()), 128, 0, 256);
-  auto *bcid_sci0 = new TH1D("bcid_sci0", Form("%s: bcid_sci0; TDO", file.Data()), 4096, 0, 4096);
-   auto *tdo_sci1 = new TH1D("tdo_sci1", Form("%s: cid_sci0; TDO", file.Data()), 128, 0, 256);
-   auto *tdo_sci2 = new TH1D("tdo_sci2", Form("%s: cid_sci0; TDO", file.Data()), 128, 0, 256);
-   auto *tdo_straw31 = new TH1D("tdo_straw31", Form("%s: tdocid_sci0; TDO", file.Data()), 128, 0, 256); // without 350 PDO counts cut
-   auto *bcid_straw31 = new TH1D("bcid_straw31", Form("%s: bcid_cid_sci0; TDO", file.Data()), 4096, 0, 4096);
-   auto *bcid_straw30 = new TH1D("bcid_straw30", Form("%s: bcid_cid_sci0; TDO", file.Data()), 4096, 0, 4096);
-   auto *tdo_vs_pdo_straw31 = new TH2D("tdo_vs_pdo_straw31", Form("%s: tdo_vs_pdocid_sci0; TDO", file.Data()), 256, 0, 1024, 128, 0, 256);
+   auto tdo_sci0 = new TH1D("tdo_sci0", Form("%s: cid_sci0; TDO", file.Data()), 128, 0, 256);
+   auto bcid_sci0 = new TH1D("bcid_sci0", Form("%s: bcid_sci0; TDO", file.Data()), 4096, 0, 4096);
+   auto tdo_sci1 = new TH1D("tdo_sci1", Form("%s: cid_sci0; TDO", file.Data()), 128, 0, 256);
+   auto tdo_sci2 = new TH1D("tdo_sci2", Form("%s: cid_sci0; TDO", file.Data()), 128, 0, 256);
+   auto tdo_straw31 = new TH1D("tdo_straw31", Form("%s: tdocid_sci0; TDO", file.Data()), 128, 0, 256); // without 350 PDO counts cut
+   auto bcid_straw31 = new TH1D("bcid_straw31", Form("%s: bcid_cid_sci0; TDO", file.Data()), 4096, 0, 4096);
+   auto bcid_straw30 = new TH1D("bcid_straw30", Form("%s: bcid_cid_sci0; TDO", file.Data()), 4096, 0, 4096);
+   auto tdo_vs_pdo_straw31 = new TH2D("tdo_vs_pdo_straw31", Form("%s: tdo_vs_pdocid_sci0; TDO", file.Data()), 256, 0, 1024, 128, 0, 256);
 
    // correlation plots
-   auto *straw31_vs_sci0 = new TH1D("straw31_vs_sci0", Form("%s: straw31_vs_sci0;cid_sci0; TDO", file.Data()), 500, -500, 500);
-   auto *straw31_vs_sci0_all = new TH1D("straw31_vs_sci0_all", Form("%s: straw31_vs_sci0_all;cid_sci0; TDO", file.Data()), 500, -500, 500);
-   auto *straw31_vs_sci1 = new TH1D("straw31_vs_sci1", Form("%s: straw31_vs_sci1;cid_sci0; TDO", file.Data()), 500, -500, 500);
-   auto *straw31_vs_sci2 = new TH1D("straw31_vs_sci2", Form("%s: straw31_vs_sci2;cid_sci0; TDO", file.Data()), 500, -500, 500);
+   auto straw31_vs_sci0 = new TH1D("straw31_vs_sci0", Form("%s: straw31_vs_sci0;cid_sci0; TDO", file.Data()), 1000, -500, 500);
+   auto straw31_vs_sci0_all = new TH1D("straw31_vs_sci0_all", Form("%s: straw31_vs_sci0_all;cid_sci0; TDO", file.Data()), 1000, -500, 500);
+   auto straw31_vs_sci1 = new TH1D("straw31_vs_sci1", Form("%s: straw31_vs_sci1;cid_sci0; TDO", file.Data()), 1000, -500, 500);
+   auto straw31_vs_sci2 = new TH1D("straw31_vs_sci2", Form("%s: straw31_vs_sci2;cid_sci0; TDO", file.Data()), 1000, -500, 500);
 
-   auto *sci0_vs_sci1 = new TH1D("sci0_vs_sci1", Form("%s: sci0_vs_sci1;cid_sci0; TDO", file.Data()), 500, -500, 500);
-   auto *sci0_vs_sci2 = new TH1D("sci0_vs_sci2", Form("%s: sci0_vs_sci2;cid_sci0; TDO", file.Data()), 500, -500, 500);
-   auto *sci1_vs_sci2 = new TH1D("sci1_vs_sci2", Form("%s: sci1_vs_sci2;cid_sci0; TDO", file.Data()), 500, -500, 500);
+   auto sci0_vs_sci1 = new TH1D("sci0_vs_sci1", Form("%s: sci0_vs_sci1;cid_sci0; TDO", file.Data()), 1000, -50, 50);
+   auto sci0_vs_sci2 = new TH1D("sci0_vs_sci2", Form("%s: sci0_vs_sci2;cid_sci0; TDO", file.Data()), 1000, -50, 50);
+   auto sci1_vs_sci2 = new TH1D("sci1_vs_sci2", Form("%s: sci1_vs_sci2;cid_sci0; TDO", file.Data()), 1000, -50, 50);
 
-   auto *straw31_vs_straw30 = new TH1D("straw31_vs_straw30", Form("%s: straw31_vs_straw30;cid_sci0; TDO", file.Data()), 500, -500, 500);
-   auto *straw31_vs_straw30_all = new TH1D("straw31_vs_straw30_all", Form("%s: straw31_vs_straw30_all;cid_sci0; TDO", file.Data()), 500, -500, 500);
+   auto straw31_vs_straw30 = new TH1D("straw31_vs_straw30", Form("%s: straw31_vs_straw30;cid_sci0; TDO", file.Data()), 1000, -500, 500);
+   auto straw31_vs_straw30_all = new TH1D("straw31_vs_straw30_all", Form("%s: straw31_vs_straw30_all;cid_sci0; TDO", file.Data()), 1000, -500, 500);
 
-   auto *straw31_vs_straw30_banana_ch0 = new TH2D("straw31_vs_straw30_banana_ch0",
+   auto straw31_vs_straw30_banana_ch0 = new TH2D("straw31_vs_straw30_banana_ch0",
                                               Form("%s: straw31_vs_straw30_banana_ch0; straw 31 #Deltat, ns; straw 3cid_sci0; TDO", file.Data()), 500, -250, 250, 500, -250, 250);
 
-   auto *straw31_vs_straw30_banana_ch1 = new TH2D("straw31_vs_straw30_banana_ch1",
+   auto straw31_vs_straw30_banana_ch1 = new TH2D("straw31_vs_straw30_banana_ch1",
                                               Form("%s: straw31_vs_straw30_banana_ch1; straw 31 #Deltat, ns; straw 3cid_sci0; TDO", file.Data()), 500, -250, 250, 500, -250, 250);
 
-   auto *straw31_vs_straw30_banana_ch2 = new TH2D("straw31_vs_straw30_banana_ch2",
+   auto straw31_vs_straw30_banana_ch2 = new TH2D("straw31_vs_straw30_banana_ch2",
                                               Form("%s: straw31_vs_straw30_banana_ch2; straw 31 #Deltat, ns; straw 3cid_sci0; TDO", file.Data()), 500, -250, 250, 500, -250, 250);
 
-   auto *straw31_vs_straw30_banana_all = new TH2D("straw31_vs_straw30_banana_all",
+   auto straw31_vs_straw30_banana_all = new TH2D("straw31_vs_straw30_banana_all",
                                                   Form("%s: straw31_vs_straw30_banana_all; straw 31 #Deltat, ns; straw 3cid_sci0; TDO", file.Data()), 500, -250, 250, 500, -250, 250);
 
-   auto *straw31_vs_straw30_banana_bcid = new TH2D("straw31_vs_straw30_banana_bcid",
+   auto straw31_vs_straw30_banana_bcid = new TH2D("straw31_vs_straw30_banana_bcid",
                                                    Form("%s: straw31_vs_straw30_banana_bcid; straw 31 #Delta BCID; straw 3cid_sci0; TDO", file.Data()), 500, -250, 250, 500, -250, 250);
 
    // TDO distribution for every Ch
@@ -136,7 +136,7 @@ void vmm::Loop()
      exit(1);
    }
 
-   // auto *gausFitF = new TF1("gausFitF", "gaus", 0, 256);
+   // auto gausFitF = new TF1("gausFitF", "gaus", 0, 256);
    for (Int_t i = 0; i < 64; i++)
    {
       // gausFitF->SetParameter(0, 0);
