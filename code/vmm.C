@@ -246,9 +246,9 @@ void vmm::Loop()
                   // double fft = ffbcid * 25.0 - (fftdo - X) * 25.0 / (Y - X); //'hand' limits
 
                   straw31_vs_straw30_all->Fill(t31 - fft);
-                  if (abs(t31 - fft) < minT30)
+                  if (fabs(t31 - fft) < minT30)
                   {
-                     minT30 = abs(t31 - fft);
+                     minT30 = fabs(t31 - fft);
                      t30 = fft;
                      straw_bcid_ch30 = ffbcid;
                      straw_pdo_ch30 = ffpdo;
@@ -290,10 +290,10 @@ void vmm::Loop()
                      straw31_vs_straw30_banana_all->Fill(t31 - fft, t30 - fft);
                   }
 
-                  if (abs(t31 - fft) < minTsci0 && abs(t30 - fft) < minTsci0_ch30)
+                  if (fabs(t31 - fft) < minTsci0 && fabs(t30 - fft) < minTsci0_ch30)
                   {
-                     minTsci0 = abs(t31 - fft);
-                     minTsci0_ch30 = abs(t30 - fft);
+                     minTsci0 = fabs(t31 - fft);
+                     minTsci0_ch30 = fabs(t30 - fft);
                      sciT_ch0 = fft;
                      sci_bcid_ch0 = ffbcid;
                   }
@@ -359,10 +359,10 @@ void vmm::Loop()
                   double fft = ffbcid * 25.0 - (fftdo - 110) * 25.0 / (160 - 110); //'hand' limits
                   // double fft = ffbcid * 25.0 - (fftdo - limits[ffch][0]) * 25.0 / (limits[ffch][1] - limits[ffch][0]); // 'auto' limits
 
-                  if (abs(t31 - fft) < minTsci1 && abs(t30 - fft) < minTsci1_ch30)
+                  if (fabs(t31 - fft) < minTsci1 && fabs(t30 - fft) < minTsci1_ch30)
                   {
-                     minTsci1 = abs(t31 - fft);
-                     minTsci1_ch30 = abs(t30 - fft);
+                     minTsci1 = fabs(t31 - fft);
+                     minTsci1_ch30 = fabs(t30 - fft);
                      sciT_ch1 = fft;
                   }
                }
@@ -405,10 +405,10 @@ void vmm::Loop()
                   double fft = ffbcid * 25.0 - (fftdo - 96) * 25.0 / (148 - 96); //'hand' limits
                   // double fft = ffbcid * 25.0 - (fftdo - limits[ffch][0]) * 25.0 / (limits[ffch][1] - limits[ffch][0]); // 'auto' limits
 
-                  if (abs(t31 - fft) < minTsci2 && abs(t30 - fft) < minTsci2_ch30)
+                  if (fabs(t31 - fft) < minTsci2 && fabs(t30 - fft) < minTsci2_ch30)
                   {
-                     minTsci2 = abs(t31 - fft);
-                     minTsci2_ch30 = abs(t30 - fft);
+                     minTsci2 = fabs(t31 - fft);
+                     minTsci2_ch30 = fabs(t30 - fft);
                      sciT_ch2 = fft;
                   }
                }
