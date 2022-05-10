@@ -416,9 +416,9 @@ void vmm::Loop()
             if(sciT_ch0 && sciT_ch1 && sciT_ch2)
             {
               auto meanTime = (sciT_ch0 + sciT_ch1 + sciT_ch2) / 3.0;
-              sci0_vs_mean_triple(sciT_ch0 - meanTime);
-              sci1_vs_mean_triple(sciT_ch1 - meanTime);
-              sci2_vs_mean_triple(sciT_ch2 - meanTime);
+              sci0_vs_mean_triple->Fill(sciT_ch0 - meanTime);
+              sci1_vs_mean_triple->Fill(sciT_ch1 - meanTime);
+              sci2_vs_mean_triple->Fill(sciT_ch2 - meanTime);
             }
 
             // ============================= end of sci 2 correlation finding =============================
