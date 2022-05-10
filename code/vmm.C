@@ -26,6 +26,10 @@ void vmm::Loop()
    auto sci0_vs_sci2 = new TH1D("sci0_vs_sci2", Form("%s: sci0_vs_sci2;cid_sci0; TDO", file.Data()), 250, -50, 50);
    auto sci1_vs_sci2 = new TH1D("sci1_vs_sci2", Form("%s: sci1_vs_sci2;cid_sci0; TDO", file.Data()), 250, -50, 50);
 
+   auto sci0_vs_mean_triple = new TH1D("sci0_vs_mean_triple", Form("%s: sci0_vs_mean_triple; #Delta t;", file.Data()), 250, -50, 50);
+   auto sci1_vs_mean_triple = new TH1D("sci1_vs_mean_triple", Form("%s: sci1_vs_mean_triple; #Delta t;", file.Data()), 250, -50, 50);
+   auto sci2_vs_mean_triple = new TH1D("sci2_vs_mean_triple", Form("%s: sci2_vs_mean_triple; #Delta t;", file.Data()), 250, -50, 50);
+
    auto straw31_vs_straw30 = new TH1D("straw31_vs_straw30", Form("%s: straw31_vs_straw30;cid_sci0; TDO", file.Data()), 1000, -500, 500);
    auto straw31_vs_straw30_all = new TH1D("straw31_vs_straw30_all", Form("%s: straw31_vs_straw30_all;cid_sci0; TDO", file.Data()), 1000, -500, 500);
 
@@ -409,6 +413,13 @@ void vmm::Loop()
               if(sciT_ch0 != 0)
                 sci0_vs_sci2->Fill(sciT_ch0 - sciT_ch2);
             }
+            if(sciT_ch0 && sciT_ch1 && sciT_ch2)
+            {
+              auto meanTime = (sciT_ch0 + sciT_ch1 + sciT_ch2) / 3.0;
+              sci0_vs_mean_triple(chiT_ch0 - meanTime);
+              sci1_vs_mean_triple(chiT_ch1 - meanTime);
+              sci2_vs_mean_triple(chiT_ch2 - meanTime);
+            }
 
             // ============================= end of sci 2 correlation finding =============================
          }
@@ -452,6 +463,9 @@ void vmm::Loop()
    sci0_vs_sci1->Write();
    sci0_vs_sci2->Write();
    sci1_vs_sci2->Write();
+   sci0_vs_mean_triple->Write();
+   sci1_vs_mean_triple->Write();
+   sci2_vs_mean_triple->Write();
    straw31_vs_straw30->Write();
    straw31_vs_straw30_banana_ch0->Write();
    straw31_vs_straw30_banana_ch1->Write();
