@@ -1,5 +1,10 @@
-/.vscode
-/_for_andrei
-/data
-/out
-/*.txt
+/.vscode/
+
+/_for_andrei/
+
+/data/
+/data-calibration/
+/out/
+
+*.txt
+*~

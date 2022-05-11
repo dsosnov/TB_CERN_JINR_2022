@@ -6,7 +6,7 @@
 #include <TFile.h>
 
 // Header file for the classes stored in the TTree if any.
-#include "c++/v1/vector"
+//#include "c++/v1/vector"
 
 class vmm {
 public :
@@ -66,6 +66,7 @@ public :
    TBranch        *b_art;   //!
    TBranch        *b_art_trigger;   //!
 
+   vmm(TString);
    vmm(TTree *tree=0);
    virtual ~vmm();
    virtual Int_t    GetEntry(Long64_t entry);
@@ -73,17 +74,48 @@ public :
    virtual void     Init(TTree *tree);
    virtual void     Loop();
 
+   map<unsigned int, vector<array<int, 2>>> TDOlimits;
+   vector<array<float, 2>> pdoCorrection;
+
+   void addLimits(int minLimit, TString filename);
+   array<int, 2> getLimits(int channel, int pdo);
+   int getLimitLow(int channel, int pdo);
+   int getLimitUp(int channel, int pdo);
+   double getTime(int channel, int bcid, int tdo, int pdo);
+   static double getTimeByHand(int bcid, int tdo, int lowLimit, int upLimit);
+
+   void addPDOCorrection(TString filename);
+   int correctPDO(int channel, int pdoIn);
 };
 
 #endif
 
 #ifdef vmm_cxx
+vmm::vmm(TString filename) : file(filename)
+{
+   TFile *f = (TFile*)gROOT->GetListOfFiles()->FindObject(folder + file + ending);
+   if (!f || !f->IsOpen()) {
+      f = new TFile(folder + file + ending);
+   }
+   if(!f->IsOpen()) {
+      std::cout << "Problem with opening data file" << std::endl;
+      exit(1);
+   }
+   TTree* tree = nullptr; 
+   f->GetObject("vmm",tree);
+   Init(tree);
+}
+
 vmm::vmm(TTree *tree) : fChain(0) 
 {
    if (tree == 0) {
       TFile *f = (TFile*)gROOT->GetListOfFiles()->FindObject(folder + file + ending);
       if (!f || !f->IsOpen()) {
          f = new TFile(folder + file + ending);
+      }
+      if(!f->IsOpen()) {
+         std::cout << "Problem with opening data file" << std::endl;
+         exit(1);
       }
       f->GetObject("vmm",tree);
 
@@ -114,6 +146,80 @@ Long64_t vmm::LoadTree(Long64_t entry)
    }
    return centry;
 }
+
+void vmm::addLimits(int minLimit, TString filename){
+   vector<array<int, 2>> limitsCurrent;
+   ifstream myfile(Form("../out/%s", filename.Data()));
+   int bin1 = 0;
+   int bin2 = 0;
+   int i = 0;
+   while (myfile >> bin1 >> bin2)
+   {
+      limitsCurrent.push_back({bin1, bin2});
+      std::cout << "MinPDO "<< minLimit << "\tCH " << i << "\t L TDO: " << bin1 << "\t R TDO: " << bin2 << "\n";
+      i++;
+   }
+   if(!limitsCurrent.size()){
+      std::cout << "Problem with TDO calibration file " << filename << std::endl;
+      exit(1);
+   }
+   TDOlimits.emplace(minLimit, limitsCurrent);
+}
+array<int, 2> vmm::getLimits(int channel, int pdo){
+   int maxPDOLower = -1;
+   int minPDO = -1;
+   for(auto &l: TDOlimits){
+     if((maxPDOLower < 0 || l.first > maxPDOLower) && l.first < pdo){
+        maxPDOLower = l.first;
+     }
+     if(minPDO < 0 || l.first < minPDO)
+        minPDO = l.first;
+   }
+   maxPDOLower = (maxPDOLower < 0) ? minPDO : maxPDOLower;
+   return TDOlimits.at(maxPDOLower)[channel];
+}
+int vmm::getLimitLow(int channel, int pdo){
+   return getLimits(channel, pdo)[0];
+}
+int vmm::getLimitUp(int channel, int pdo){
+   return getLimits(channel, pdo)[1];
+}
+double vmm::getTime(int channel, int bcid, int tdo, int pdo){
+   auto TDOlimits = getLimits(channel, pdo);
+   auto ll = getLimitLow(channel, pdo),
+        ul = getLimitUp(channel, pdo);
+   if(ll < 0 || ul < 0){
+      ul = 256;
+      ll = 0;
+   }
+   return getTimeByHand(bcid, tdo, ll, ul);
+}
+double vmm::getTimeByHand(int bcid, int tdo, int lowLimit, int upLimit){
+   return bcid * 25.0 - (tdo - lowLimit) * 25.0 / (upLimit - lowLimit);
+}
+
+void vmm::addPDOCorrection(TString filename){
+   ifstream myfile(Form("../out/%s", filename.Data()));
+   float p0, p1;
+   int i = 0;
+   uint sizeBefore = pdoCorrection.size();
+   while (myfile >> p0 >> p1)
+   {
+      pdoCorrection.push_back({p0, p1});
+      std::cout << "PDO Corrections: CH " << i << "\t [0]: " << p0 << "\t [1]: " << p1 << "\n";
+      i++;
+   }
+   if(sizeBefore == pdoCorrection.size()){
+      std::cout << "Problem with PDO calibration file " << filename << std::endl;
+      exit(1);
+   }
+}
+int vmm::correctPDO(int channel, int pdoIn){
+  auto p0 = pdoCorrection.at(channel)[0];
+  auto p1 = pdoCorrection.at(channel)[1];
+  return static_cast<int>(p0 + pdoIn * p1);
+}
+
 
 void vmm::Init(TTree *tree)
 {
@@ -168,6 +274,17 @@ void vmm::Init(TTree *tree)
    fChain->SetBranchAddress("art_valid", &art_valid, &b_art_valid);
    fChain->SetBranchAddress("art", &art, &b_art);
    fChain->SetBranchAddress("art_trigger", &art_trigger, &b_art_trigger);
+
+   // ================================== LIMITS SEARCH ================================== //or get from file
+   // addLimits(0, "calibration_25_100");
+
+   addLimits(100, "calibration_25_100_pdo100.txt");
+   addLimits(150, "calibration_25_100_pdo150.txt");
+   addLimits(200, "calibration_25_100_pdo200.txt");
+   addLimits(250, "calibration_25_100_pdo250.txt");
+   addLimits(300, "calibration_25_100_pdo300.txt");
+
+   addPDOCorrection("calibration_pdo_t@t_g1_p25_s100.txt");
 }
 
 #endif // #ifdef vmm_cxx
