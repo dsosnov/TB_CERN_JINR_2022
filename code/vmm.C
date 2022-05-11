@@ -179,7 +179,8 @@ void vmm::Loop()
 
          if (fch == 31)
          {
-            int fpdo = pdo->at(0).at(j);
+            int fpdoUC = pdo->at(0).at(j); // Uncorrected PDO, used at time calibration
+            int fpdo = correctPDO(fch, fpdoUC);
             // if (fpdo < 100 || fpdo > 900)
             //    continue;
             int ftdo = tdo->at(0).at(j);
@@ -189,7 +190,7 @@ void vmm::Loop()
 
             straw_bcid_ch31 = fbcid;
             straw_pdo_ch31 = fpdo;
-            t31 = getTime(fch, fbcid, ftdo, fpdo); // 'auto' limits
+            t31 = getTime(fch, fbcid, ftdo, fpdoUC); // 'auto' limits
             // t31 = getTimeByHand(fbcid, ftdo, Y, Y); //'hand' limits
 
             Long64_t mbytes = 0, mb = 0;
@@ -221,14 +222,15 @@ void vmm::Loop()
                   if (ffch != 30)
                      continue;
 
-                  int ffpdo = pdo->at(0).at(k);
+                  int ffpdoUC = pdo->at(0).at(k); // Uncorrected PDO, used at time calibration
+                  int ffpdo = correctPDO(ffch, ffpdoUC);
                   // if (ffpdo < 100 || ffpdo > 900)
                   //    continue;
                   int fftdo = tdo->at(0).at(k);
                   int ffbcid = grayDecoded->at(0).at(k);
                   // if (ffbcid < 40)
                   //    continue;
-                  double fft = getTime(ffch, ffbcid, fftdo, ffpdo); // 'auto' limits
+                  double fft = getTime(ffch, ffbcid, fftdo, ffpdoUC); // 'auto' limits
                   // double fft = getTimeByHand(ffbcid, fftdo, X, Y); //'hand' limits
 
                   straw31_vs_straw30_all->Fill(t31 - fft);
@@ -261,13 +263,14 @@ void vmm::Loop()
                   if (ffch != 0)
                      continue;
 
-                  int ffpdo = pdo->at(0).at(k);
+                  int ffpdoUC = pdo->at(0).at(k); // Uncorrected PDO, used at time calibration
+                  int ffpdo = correctPDO(ffch, ffpdoUC);
                   int fftdo = tdo->at(0).at(k);
                   int ffbcid = grayDecoded->at(0).at(k);
                   // if (ffbcid < 40)
                   //    continue;
                   double fft = getTimeByHand(ffbcid, fftdo, 88, 140); //'hand' limits
-                  // double fft = getTime(ffch, ffbcid, fftdo, ffpdo); // 'auto' limits
+                  // double fft = getTime(ffch, ffbcid, fftdo, ffpdoUC); // 'auto' limits
 
                   straw31_vs_sci0_all->Fill(t31 - fft);
 
@@ -339,11 +342,12 @@ void vmm::Loop()
                   if (ffch != 1)
                      continue;
 
-                  int ffpdo = pdo->at(0).at(k);
+                  int ffpdoUC = pdo->at(0).at(k); // Uncorrected PDO, used at time calibration
+                  int ffpdo = correctPDO(ffch, ffpdoUC);
                   int fftdo = tdo->at(0).at(k);
                   int ffbcid = grayDecoded->at(0).at(k);
                   double fft = getTimeByHand(ffbcid, fftdo, 110, 160); //'hand' limits
-                  // double fft = getTime(ffch, ffbcid, fftdo, ffpdo); // 'auto' limits
+                  // double fft = getTime(ffch, ffbcid, fftdo, ffpdoUC); // 'auto' limits
 
                   if (fabs(t31 - fft) < minTsci1 && fabs(t30 - fft) < minTsci1_ch30)
                   {
@@ -385,11 +389,12 @@ void vmm::Loop()
                   if (ffch != 2)
                      continue;
 
-                  int ffpdo = pdo->at(0).at(k);
+                  int ffpdoUC = pdo->at(0).at(k); // Uncorrected PDO, used at time calibration
+                  int ffpdo = correctPDO(ffch, ffpdoUC);
                   int fftdo = tdo->at(0).at(k);
                   int ffbcid = grayDecoded->at(0).at(k);
                   double fft = getTimeByHand(ffbcid, fftdo, 96, 148); //'hand' limits
-                  // double fft = getTime(ffch, ffbcid, fftdo, ffpdo); // 'auto' limits
+                  // double fft = getTime(ffch, ffbcid, fftdo, ffpdoUC); // 'auto' limits
 
                   if (fabs(t31 - fft) < minTsci2 && fabs(t30 - fft) < minTsci2_ch30)
                   {

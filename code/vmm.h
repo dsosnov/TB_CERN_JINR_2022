@@ -74,15 +74,18 @@ public :
    virtual void     Init(TTree *tree);
    virtual void     Loop();
 
-   map<unsigned int, vector<array<int, 2>>> limits;
+   map<unsigned int, vector<array<int, 2>>> TDOlimits;
+   vector<array<float, 2>> pdoCorrection;
 
-  void addLimits(int minLimit, TString filename);
-  array<int, 2> getLimits(int channel, int pdo);
-  int getLimitLow(int channel, int pdo);
-  int getLimitUp(int channel, int pdo);
-  double getTime(int channel, int bcid, int tdo, int pdo);
-  static double getTimeByHand(int bcid, int tdo, int lowLimit, int upLimit);
+   void addLimits(int minLimit, TString filename);
+   array<int, 2> getLimits(int channel, int pdo);
+   int getLimitLow(int channel, int pdo);
+   int getLimitUp(int channel, int pdo);
+   double getTime(int channel, int bcid, int tdo, int pdo);
+   static double getTimeByHand(int bcid, int tdo, int lowLimit, int upLimit);
 
+   void addPDOCorrection(TString filename);
+   int correctPDO(int channel, int pdoIn);
 };
 
 #endif
@@ -157,15 +160,15 @@ void vmm::addLimits(int minLimit, TString filename){
       i++;
    }
    if(!limitsCurrent.size()){
-      std::cout << "Problem with calibration file " << filename << std::endl;
+      std::cout << "Problem with TDO calibration file " << filename << std::endl;
       exit(1);
    }
-   limits.emplace(minLimit, limitsCurrent);
+   TDOlimits.emplace(minLimit, limitsCurrent);
 }
 array<int, 2> vmm::getLimits(int channel, int pdo){
    int maxPDOLower = -1;
    int minPDO = -1;
-   for(auto &l: limits){
+   for(auto &l: TDOlimits){
      if((maxPDOLower < 0 || l.first > maxPDOLower) && l.first < pdo){
         maxPDOLower = l.first;
      }
@@ -173,7 +176,7 @@ array<int, 2> vmm::getLimits(int channel, int pdo){
         minPDO = l.first;
    }
    maxPDOLower = (maxPDOLower < 0) ? minPDO : maxPDOLower;
-   return limits.at(maxPDOLower)[channel];
+   return TDOlimits.at(maxPDOLower)[channel];
 }
 int vmm::getLimitLow(int channel, int pdo){
    return getLimits(channel, pdo)[0];
@@ -182,7 +185,7 @@ int vmm::getLimitUp(int channel, int pdo){
    return getLimits(channel, pdo)[1];
 }
 double vmm::getTime(int channel, int bcid, int tdo, int pdo){
-   auto limits = getLimits(channel, pdo);
+   auto TDOlimits = getLimits(channel, pdo);
    auto ll = getLimitLow(channel, pdo),
         ul = getLimitUp(channel, pdo);
    if(ll < 0 || ul < 0){
@@ -194,6 +197,29 @@ double vmm::getTime(int channel, int bcid, int tdo, int pdo){
 double vmm::getTimeByHand(int bcid, int tdo, int lowLimit, int upLimit){
    return bcid * 25.0 - (tdo - lowLimit) * 25.0 / (upLimit - lowLimit);
 }
+
+void vmm::addPDOCorrection(TString filename){
+   ifstream myfile(Form("../out/%s", filename.Data()));
+   float p0, p1;
+   int i = 0;
+   uint sizeBefore = pdoCorrection.size();
+   while (myfile >> p0 >> p1)
+   {
+      pdoCorrection.push_back({p0, p1});
+      std::cout << "PDO Corrections: CH " << i << "\t [0]: " << p0 << "\t [1]: " << p1 << "\n";
+      i++;
+   }
+   if(sizeBefore == pdoCorrection.size()){
+      std::cout << "Problem with PDO calibration file " << filename << std::endl;
+      exit(1);
+   }
+}
+int vmm::correctPDO(int channel, int pdoIn){
+  auto p0 = pdoCorrection.at(channel)[0];
+  auto p1 = pdoCorrection.at(channel)[1];
+  return static_cast<int>(p0 + pdoIn * p1);
+}
+
 
 void vmm::Init(TTree *tree)
 {
@@ -257,6 +283,8 @@ void vmm::Init(TTree *tree)
    addLimits(200, "calibration_25_100_pdo200.txt");
    addLimits(250, "calibration_25_100_pdo250.txt");
    addLimits(300, "calibration_25_100_pdo300.txt");
+
+   addPDOCorrection("calibration_pdo_t@t_g1_p25_s100.txt");
 }
 
 #endif // #ifdef vmm_cxx
