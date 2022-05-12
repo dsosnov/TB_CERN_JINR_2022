@@ -44,6 +44,11 @@ void vmm::Loop()
    auto *straw31_vs_straw30_banana_bcid = new TH2D("straw31_vs_straw30_banana_bcid",
                                                    Form("%s: straw31_vs_straw30_banana_bcid; straw 31 #Delta BCID; straw 3cid_sci0; TDO", file.Data()), 500, -250, 250, 500, -250, 250);
 
+   auto *sci0_multiplicity = new TH1D("sci0_multiplicity", Form("%s: sci0_multiplicity", file.Data()), 64, 0, 64);
+   auto *sci1_multiplicity = new TH1D("sci1_multiplicity", Form("%s: sci1sci0_multiplicity", file.Data()), 64, 0, 64);
+   auto *sci2_multiplicity = new TH1D("sci2_multiplicity", Form("%s: sci2sci0_multiplicity", file.Data()), 64, 0, 64);
+
+
    // TDO distribution for every Ch
    TH1D *h[64];
    for (Int_t i = 0; i < 64; i++)
@@ -71,7 +76,7 @@ void vmm::Loop()
    if (fChain == 0)
       return;
 
-   Long64_t nentries = fChain->GetEntriesFast();
+   Long64_t nentries = fChain->GetEntriesFast() / 100;
 
    Long64_t nbytes = 0, nb = 0;
    for (Long64_t jentry = 0; jentry < nentries; jentry++)
@@ -167,256 +172,343 @@ void vmm::Loop()
       int ch1_max_pdo = 0;
       int ch2_max_pdo = 0;
 
+      map<int, set<int>> channelsHitted;
+         
       for (int j = 0; j < channel->at(0).size(); j++)
       {
          int fch = channel->at(0).at(j);
          if (fch == 35 || fch == 63)
             continue; // remove 'bad' ch for future tasks
 
+
          if (fch == 31)
-         {
-            int fpdo = pdo->at(0).at(j);
-            // if (fpdo < 100 || fpdo > 900)
-            //    continue;
-            int ftdo = tdo->at(0).at(j);
-            int fbcid = grayDecoded->at(0).at(j);
-            // if (fbcid < 40)
-            //          continue;
+         {}
+         // {
+         //    int fpdo = pdo->at(0).at(j);
+         //    // if (fpdo < 100 || fpdo > 900)
+         //    //    continue;
+         //    int ftdo = tdo->at(0).at(j);
+         //    int fbcid = grayDecoded->at(0).at(j);
+         //    // if (fbcid < 40)
+         //    //          continue;
 
-            straw_bcid_ch31 = fbcid;
-            straw_pdo_ch31 = fpdo;
-            t31 = getTime(fch, fbcid, ftdo, fpdo); // 'auto' limits
-            // t31 = getTimeByHand(fbcid, ftdo, Y, Y); //'hand' limits
+         //    straw_bcid_ch31 = fbcid;
+         //    straw_pdo_ch31 = fpdo;
+         //    t31 = getTime(fch, fbcid, ftdo, fpdo); // 'auto' limits
+         //    // t31 = getTimeByHand(fbcid, ftdo, Y, Y); //'hand' limits
 
-            Long64_t mbytes = 0, mb = 0;
-            double minTsci0 = 1e3, minTsci0_ch30 = 1e3;
-            double minTsci1 = 1e3, minTsci1_ch30 = 1e3;;
-            double minTsci2 = 1e3, minTsci2_ch30 = 1e3;;
-            double minT30 = 1e3;
+         //    Long64_t mbytes = 0, mb = 0;
+         //    double minTsci0 = 1e3, minTsci0_ch30 = 1e3;
+         //    double minTsci1 = 1e3, minTsci1_ch30 = 1e3;;
+         //    double minTsci2 = 1e3, minTsci2_ch30 = 1e3;;
+         //    double minT30 = 1e3;
 
-            double sciT_ch0 = 0, sciT_ch1 = 0, sciT_ch2 = 0;
-            double t30 = 0;
+         //    double sciT_ch0 = 0, sciT_ch1 = 0, sciT_ch2 = 0;
+         //    double t30 = 0;
 
-            int sci_bcid_ch0 = 0, straw_bcid_ch30 = 0;
-            int sci_pdo_ch0 = 0, straw_pdo_ch30 = 0;
+         //    int sci_bcid_ch0 = 0, straw_bcid_ch30 = 0;
+         //    int sci_pdo_ch0 = 0, straw_pdo_ch30 = 0;
 
-            // ========================         LOOP OVER 40 events around         ========================
-            //                           jentry to find correlation with straw 30
+         //    // ========================         LOOP OVER 40 events around         ========================
+         //    //                           jentry to find correlation with straw 30
 
-            for (Long64_t kentry = jentry - 20; kentry < jentry + 20; kentry++)
-            {
-               Long64_t iientry = LoadTree(kentry);
-               if (iientry < 0)
-                  continue;
-               mb = fChain->GetEntry(kentry);
-               mbytes += mb;
+         //    for (Long64_t kentry = jentry - 20; kentry < jentry + 20; kentry++)
+         //    {
+         //       Long64_t iientry = LoadTree(kentry);
+         //       if (iientry < 0)
+         //          continue;
+         //       mb = fChain->GetEntry(kentry);
+         //       mbytes += mb;
 
-               for (int k = 0; k < channel->at(0).size(); k++)
-               {
-                  int ffch = channel->at(0).at(k);
-                  if (ffch != 30)
-                     continue;
+         //       for (int k = 0; k < channel->at(0).size(); k++)
+         //       {
+         //          int ffch = channel->at(0).at(k);
+         //          if (ffch != 30)
+         //             continue;
 
-                  int ffpdo = pdo->at(0).at(k);
-                  // if (ffpdo < 100 || ffpdo > 900)
-                  //    continue;
-                  int fftdo = tdo->at(0).at(k);
-                  int ffbcid = grayDecoded->at(0).at(k);
-                  // if (ffbcid < 40)
-                  //    continue;
-                  double fft = getTime(ffch, ffbcid, fftdo, ffpdo); // 'auto' limits
-                  // double fft = getTimeByHand(ffbcid, fftdo, X, Y); //'hand' limits
+         //          int ffpdo = pdo->at(0).at(k);
+         //          // if (ffpdo < 100 || ffpdo > 900)
+         //          //    continue;
+         //          int fftdo = tdo->at(0).at(k);
+         //          int ffbcid = grayDecoded->at(0).at(k);
+         //          // if (ffbcid < 40)
+         //          //    continue;
+         //          double fft = getTime(ffch, ffbcid, fftdo, ffpdo); // 'auto' limits
+         //          // double fft = getTimeByHand(ffbcid, fftdo, X, Y); //'hand' limits
 
-                  straw31_vs_straw30_all->Fill(t31 - fft);
-                  if (abs(t31 - fft) < minT30)
-                  {
-                     minT30 = abs(t31 - fft);
-                     t30 = fft;
-                     straw_bcid_ch30 = ffbcid;
-                     straw_pdo_ch30 = ffpdo;
-                  }
-               }
-            }
-            // ============================ end of straw 30 correlation finding ===========================
+         //          straw31_vs_straw30_all->Fill(t31 - fft);
+         //          if (fabs(t31 - fft) < minT30)
+         //          {
+         //             minT30 = fabs(t31 - fft);
+         //             t30 = fft;
+         //             straw_bcid_ch30 = ffbcid;
+         //             straw_pdo_ch30 = ffpdo;
+         //          }
+         //       }
+         //    }
+         //    // ============================ end of straw 30 correlation finding ===========================
 
-            // ========================         LOOP OVER 40 events around         ========================
-            //                           jentry to find correlation with sci 0
+         //    // ========================         LOOP OVER 40 events around         ========================
+         //    //                           jentry to find correlation with sci 0
 
-            mbytes = 0, mb = 0;
-            for (Long64_t kentry = jentry - 20; kentry < jentry + 20; kentry++)
-            {
-               Long64_t iientry = LoadTree(kentry);
-               if (iientry < 0)
-                  continue;
-               mb = fChain->GetEntry(kentry);
-               mbytes += mb;
+         //    mbytes = 0, mb = 0;
+         //    for (Long64_t kentry = jentry - 20; kentry < jentry + 20; kentry++)
+         //    {
+         //       Long64_t iientry = LoadTree(kentry);
+         //       if (iientry < 0)
+         //          continue;
+         //       mb = fChain->GetEntry(kentry);
+         //       mbytes += mb;
 
-               for (int k = 0; k < channel->at(0).size(); k++)
-               {
-                  int ffch = channel->at(0).at(k);
-                  if (ffch != 0)
-                     continue;
+         //       for (int k = 0; k < channel->at(0).size(); k++)
+         //       {
+         //          int ffch = channel->at(0).at(k);
+         //          if (ffch != 0)
+         //             continue;
 
-                  int ffpdo = pdo->at(0).at(k);
-                  int fftdo = tdo->at(0).at(k);
-                  int ffbcid = grayDecoded->at(0).at(k);
-                  // if (ffbcid < 40)
-                  //    continue;
-                  double fft = getTimeByHand(ffbcid, fftdo, 88, 140); //'hand' limits
-                  // double fft = getTime(ffch, ffbcid, fftdo, ffpdo); // 'auto' limits
+         //          int ffpdo = pdo->at(0).at(k);
+         //          int fftdo = tdo->at(0).at(k);
+         //          int ffbcid = grayDecoded->at(0).at(k);
+         //          // if (ffbcid < 40)
+         //          //    continue;
+         //          double fft = getTimeByHand(ffbcid, fftdo, 88, 140); //'hand' limits
+         //          // double fft = getTime(ffch, ffbcid, fftdo, ffpdo); // 'auto' limits
 
-                  straw31_vs_sci0_all->Fill(t31 - fft);
+         //          straw31_vs_sci0_all->Fill(t31 - fft);
 
-                  if (t30 != 0)
-                  {
-                     straw31_vs_straw30_banana_all->Fill(t31 - fft, t30 - fft);
-                  }
+         //          if (t30 != 0)
+         //          {
+         //             straw31_vs_straw30_banana_all->Fill(t31 - fft, t30 - fft);
+         //          }
 
-                  if (abs(t31 - fft) < minTsci0 && abs(t30 - fft) < minTsci0_ch30)
-                  {
-                     minTsci0 = abs(t31 - fft);
-                     minTsci0_ch30 = abs(t30 - fft);
-                     sciT_ch0 = fft;
-                     sci_bcid_ch0 = ffbcid;
-                  }
-               }
-            }
+         //          if (fabs(t31 - fft) < minTsci0 && fabs(t30 - fft) < minTsci0_ch30)
+         //          {
+         //             minTsci0 = fabs(t31 - fft);
+         //             minTsci0_ch30 = fabs(t30 - fft);
+         //             sciT_ch0 = fft;
+         //             sci_bcid_ch0 = ffbcid;
+         //          }
+         //       }
+         //    }
 
-            if (sciT_ch0 != 0)
-            {
-               straw31_vs_sci0->Fill(t31 - sciT_ch0);
-               bcid_sci0->Fill(sci_bcid_ch0);
-               bcid_straw31->Fill(straw_bcid_ch31);
-               bcid_straw30->Fill(straw_bcid_ch30);
-            }
+         //    if (sciT_ch0 != 0)
+         //    {
+         //       straw31_vs_sci0->Fill(t31 - sciT_ch0);
+         //       bcid_sci0->Fill(sci_bcid_ch0);
+         //       bcid_straw31->Fill(straw_bcid_ch31);
+         //       bcid_straw30->Fill(straw_bcid_ch30);
+         //    }
 
-            if (t30 != 0 && sciT_ch0 != 0)
-            {
-               straw31_vs_straw30_banana_ch0->Fill(t31 - sciT_ch0, t30 - sciT_ch0);
-               straw31_vs_straw30_banana_bcid->Fill(straw_bcid_ch31 - sci_bcid_ch0, straw_bcid_ch30 - sci_bcid_ch0);
-               straw31_vs_sci0->Fill(t31 - sciT_ch0);
-               bcid_sci0->Fill(sci_bcid_ch0);
-               bcid_straw31->Fill(straw_bcid_ch31);
-               bcid_straw30->Fill(straw_bcid_ch30);
-               straw31_vs_straw30->Fill(t30 - t31);
+         //    if (t30 != 0 && sciT_ch0 != 0)
+         //    {
+         //       straw31_vs_straw30_banana_ch0->Fill(t31 - sciT_ch0, t30 - sciT_ch0);
+         //       straw31_vs_straw30_banana_bcid->Fill(straw_bcid_ch31 - sci_bcid_ch0, straw_bcid_ch30 - sci_bcid_ch0);
+         //       straw31_vs_sci0->Fill(t31 - sciT_ch0);
+         //       bcid_sci0->Fill(sci_bcid_ch0);
+         //       bcid_straw31->Fill(straw_bcid_ch31);
+         //       bcid_straw30->Fill(straw_bcid_ch30);
+         //       straw31_vs_straw30->Fill(t30 - t31);
 
-               int findex = 0;
-               for (int ii = -5; ii < 6; ii++)
-               {
-                  for (int jj = -5; jj < 6; jj++)
-                  {
-                     if (straw_bcid_ch30 - sci_bcid_ch0 == ii && straw_bcid_ch31 - sci_bcid_ch0 == jj)
-                     {
-                        h_bcid_31[findex]->Fill(straw_pdo_ch31);
-                        h_bcid_30[findex]->Fill(straw_pdo_ch30);
-                     }
-                     findex++;
-                  }
-               }
-            }
+         //       int findex = 0;
+         //       for (int ii = -5; ii < 6; ii++)
+         //       {
+         //          for (int jj = -5; jj < 6; jj++)
+         //          {
+         //             if (straw_bcid_ch30 - sci_bcid_ch0 == ii && straw_bcid_ch31 - sci_bcid_ch0 == jj)
+         //             {
+         //                h_bcid_31[findex]->Fill(straw_pdo_ch31);
+         //                h_bcid_30[findex]->Fill(straw_pdo_ch30);
+         //             }
+         //             findex++;
+         //          }
+         //       }
+         //    }
 
-            // ============================= end of sci 0 correlation finding =============================
+         //    // ============================= end of sci 0 correlation finding =============================
 
-            // ========================         LOOP OVER 40 events around         ========================
-            //                           jentry to find correlation with sci 1
+         //    // ========================         LOOP OVER 40 events around         ========================
+         //    //                           jentry to find correlation with sci 1
 
-            mbytes = 0, mb = 0;
-            for (Long64_t kentry = jentry - 20; kentry < jentry + 20; kentry++)
-            {
-               Long64_t iientry = LoadTree(kentry);
-               if (iientry < 0)
-                  continue;
-               mb = fChain->GetEntry(kentry);
-               mbytes += mb;
+         //    mbytes = 0, mb = 0;
+         //    for (Long64_t kentry = jentry - 20; kentry < jentry + 20; kentry++)
+         //    {
+         //       Long64_t iientry = LoadTree(kentry);
+         //       if (iientry < 0)
+         //          continue;
+         //       mb = fChain->GetEntry(kentry);
+         //       mbytes += mb;
 
-               for (int k = 0; k < channel->at(0).size(); k++)
-               {
-                  int ffch = channel->at(0).at(k);
-                  if (ffch != 1)
-                     continue;
+         //       for (int k = 0; k < channel->at(0).size(); k++)
+         //       {
+         //          int ffch = channel->at(0).at(k);
+         //          if (ffch != 1)
+         //             continue;
 
-                  int ffpdo = pdo->at(0).at(k);
-                  int fftdo = tdo->at(0).at(k);
-                  int ffbcid = grayDecoded->at(0).at(k);
-                  double fft = getTimeByHand(ffbcid, fftdo, 110, 160); //'hand' limits
-                  // double fft = getTime(ffch, ffbcid, fftdo, ffpdo); // 'auto' limits
+         //          int ffpdo = pdo->at(0).at(k);
+         //          int fftdo = tdo->at(0).at(k);
+         //          int ffbcid = grayDecoded->at(0).at(k);
+         //          double fft = getTimeByHand(ffbcid, fftdo, 110, 160); //'hand' limits
+         //          // double fft = getTime(ffch, ffbcid, fftdo, ffpdo); // 'auto' limits
 
-                  if (abs(t31 - fft) < minTsci1 && abs(t30 - fft) < minTsci1_ch30)
-                  {
-                     minTsci1 = abs(t31 - fft);
-                     minTsci1_ch30 = abs(t30 - fft);
-                     sciT_ch1 = fft;
-                  }
-               }
-            }
+         //          if (fabs(t31 - fft) < minTsci1 && fabs(t30 - fft) < minTsci1_ch30)
+         //          {
+         //             minTsci1 = fabs(t31 - fft);
+         //             minTsci1_ch30 = fabs(t30 - fft);
+         //             sciT_ch1 = fft;
+         //          }
+         //       }
+         //    }
 
-            if (sciT_ch1 != 0 && t30 != 0)
-            {
-               straw31_vs_sci1->Fill(t31 - sciT_ch1);
-               straw31_vs_straw30_banana_ch1->Fill(t31 - sciT_ch1, t30 - sciT_ch1);
-            }
+         //    if (sciT_ch1 != 0 && t30 != 0)
+         //    {
+         //       straw31_vs_sci1->Fill(t31 - sciT_ch1);
+         //       straw31_vs_straw30_banana_ch1->Fill(t31 - sciT_ch1, t30 - sciT_ch1);
+         //    }
 
-            if (sciT_ch1 != 0 && sciT_ch0 != 0)
-            {
-               sci0_vs_sci1->Fill(sciT_ch0 - sciT_ch1);
-            }
+         //    if (sciT_ch1 != 0 && sciT_ch0 != 0)
+         //    {
+         //       sci0_vs_sci1->Fill(sciT_ch0 - sciT_ch1);
+         //    }
 
-            // ============================= end of sci 1 correlation finding =============================
+         //    // ============================= end of sci 1 correlation finding =============================
 
-            // ========================         LOOP OVER 40 events around         ========================
-            //                           jentry to find correlation with sci 2
+         //    // ========================         LOOP OVER 40 events around         ========================
+         //    //                           jentry to find correlation with sci 2
 
-            mbytes = 0, mb = 0;
-            for (Long64_t kentry = jentry - 20; kentry < jentry + 20; kentry++)
-            {
-               Long64_t iientry = LoadTree(kentry);
-               if (iientry < 0)
-                  continue;
-               mb = fChain->GetEntry(kentry);
-               mbytes += mb;
+         //    mbytes = 0, mb = 0;
+         //    for (Long64_t kentry = jentry - 20; kentry < jentry + 20; kentry++)
+         //    {
+         //       Long64_t iientry = LoadTree(kentry);
+         //       if (iientry < 0)
+         //          continue;
+         //       mb = fChain->GetEntry(kentry);
+         //       mbytes += mb;
 
-               for (int k = 0; k < channel->at(0).size(); k++)
-               {
-                  int ffch = channel->at(0).at(k);
-                  if (ffch != 2)
-                     continue;
+         //       for (int k = 0; k < channel->at(0).size(); k++)
+         //       {
+         //          int ffch = channel->at(0).at(k);
+         //          if (ffch != 2)
+         //             continue;
 
-                  int ffpdo = pdo->at(0).at(k);
-                  int fftdo = tdo->at(0).at(k);
-                  int ffbcid = grayDecoded->at(0).at(k);
-                  double fft = getTimeByHand(ffbcid, fftdo, 96, 148); //'hand' limits
-                  // double fft = getTime(ffch, ffbcid, fftdo, ffpdo); // 'auto' limits
+         //          int ffpdo = pdo->at(0).at(k);
+         //          int fftdo = tdo->at(0).at(k);
+         //          int ffbcid = grayDecoded->at(0).at(k);
+         //          double fft = getTimeByHand(ffbcid, fftdo, 96, 148); //'hand' limits
+         //          // double fft = getTime(ffch, ffbcid, fftdo, ffpdo); // 'auto' limits
 
-                  if (abs(t31 - fft) < minTsci2 && abs(t30 - fft) < minTsci2_ch30)
-                  {
-                     minTsci2 = abs(t31 - fft);
-                     minTsci2_ch30 = abs(t30 - fft);
-                     sciT_ch2 = fft;
-                  }
-               }
-            }
+         //          if (fabs(t31 - fft) < minTsci2 && fabs(t30 - fft) < minTsci2_ch30)
+         //          {
+         //             minTsci2 = fabs(t31 - fft);
+         //             minTsci2_ch30 = fabs(t30 - fft);
+         //             sciT_ch2 = fft;
+         //          }
+         //       }
+         //    }
 
-            if (sciT_ch2 != 0 && t30 != 0)
-            {
-               straw31_vs_sci2->Fill(t31 - sciT_ch2);
-               straw31_vs_straw30_banana_ch2->Fill(t31 - sciT_ch2, t30 - sciT_ch2);
-            }
+         //    if (sciT_ch2 != 0 && t30 != 0)
+         //    {
+         //       straw31_vs_sci2->Fill(t31 - sciT_ch2);
+         //       straw31_vs_straw30_banana_ch2->Fill(t31 - sciT_ch2, t30 - sciT_ch2);
+         //    }
 
-            if (sciT_ch2 != 0)
-            {
-              if(sciT_ch1 != 0)
-                sci1_vs_sci2->Fill(sciT_ch1 - sciT_ch2);
-              if(sciT_ch0 != 0)
-                sci0_vs_sci2->Fill(sciT_ch0 - sciT_ch2);
-            }
+         //    if (sciT_ch2 != 0)
+         //    {
+         //      if(sciT_ch1 != 0)
+         //        sci1_vs_sci2->Fill(sciT_ch1 - sciT_ch2);
+         //      if(sciT_ch0 != 0)
+         //        sci0_vs_sci2->Fill(sciT_ch0 - sciT_ch2);
+         //    }
 
-            // ============================= end of sci 2 correlation finding =============================
+         //    // ============================= end of sci 2 correlation finding =============================
+         // }
+         else if (fch < 3) {
+           double minTsci0 = 1e2 /*3*/;
+
+           int fpdo = pdo->at(0).at(j);
+           // if (fpdo < 100 || fpdo > 900)
+           //    continue;
+           int ftdo = tdo->at(0).at(j);
+           int fbcid = grayDecoded->at(0).at(j);
+           // if (fbcid < 40)
+           //          continue;
+
+           // auto tch = getTime(fch, fbcid, ftdo, fpdo); // 'auto' limits
+           auto tch = getTimeByHand(fbcid, ftdo, 100, 150); // 'auto' limits
+
+           // ========================         LOOP OVER 40 events around         ========================
+           //                           jentry to find correlation with straw 30
+
+           for (Long64_t kentry = jentry - 20; kentry < jentry + 20; kentry++)
+           {
+             Long64_t iientry = LoadTree(kentry);
+             if (iientry < 0)
+               continue;
+             fChain->GetEntry(kentry);
+
+             for (int k = 0; k < channel->at(0).size(); k++)
+             {
+               int ffch = channel->at(0).at(k);
+               if (ffch < 3)
+                 continue;
+               if (ffch == 35 || ffch == 63)
+                 continue; // remove 'bad' ch for future tasks
+
+               int ffpdo = pdo->at(0).at(k);
+               int fftdo = tdo->at(0).at(k);
+               int ffbcid = grayDecoded->at(0).at(k);
+
+               double fft = getTime(ffch, ffbcid, fftdo, ffpdo); // 'auto' limits
+               // double fft = getTimeByHand(ffbcid, fftdo, X, Y); //'hand' limits
+               
+               // printf("Time diff: %g\n", tch - fft);
+
+               if (fabs(tch - fft) > minTsci0)
+                 continue;
+
+               // printf("Less then 1E3\n");
+
+               if(!channelsHitted.count(fch))
+                 channelsHitted.emplace(fch, set<int>());
+               channelsHitted.at(fch).emplace(ffch);
+
+               // printf("Channels: %d, %d\n", fch, ffch);
+             }
+           }
+
+           
          }
          else
          {
             continue;
          }
+
+
       }
+      if(channelsHitted.count(0)){
+        sci0_multiplicity->Fill(channelsHitted.at(0).size());
+        printf("for ch 0 (%d):", channelsHitted.at(0).size());
+        for(auto &h: channelsHitted.at(0))
+          printf(" %d", h);
+        printf("\n");
+        channelsHitted.at(0).clear();
+      }
+      if(channelsHitted.count(1)){
+        sci1_multiplicity->Fill(channelsHitted.at(1).size());
+        printf("for ch 1 (%d):", channelsHitted.at(1).size());
+        for(auto &h: channelsHitted.at(1))
+          printf(" %d", h);
+        printf("\n");
+        channelsHitted.at(1).clear();
+      }
+      if(channelsHitted.count(2)){
+        sci2_multiplicity->Fill(channelsHitted.at(2).size());
+        printf("for ch 2 (%d):", channelsHitted.at(2).size());
+        for(auto &h: channelsHitted.at(2))
+          printf(" %d", h);
+        printf("\n");
+        channelsHitted.at(2).clear();
+      }
+         
    }
 
    TDirectory *pdo_dir = out->mkdir("PDO");
@@ -460,5 +552,10 @@ void vmm::Loop()
    straw31_vs_straw30_all->Write();
    straw31_vs_straw30_banana_all->Write();
    straw31_vs_straw30_banana_bcid->Write();
+
+   sci0_multiplicity->Write();
+   sci1_multiplicity->Write();
+   sci2_multiplicity->Write();
+
    out->Close();
 }
