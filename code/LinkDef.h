@@ -19,4 +19,9 @@
 #pragma link C++ class vector<string>+;
 #pragma link C++ class vector<vector<string>>+;
 
+#pragma link C++ class vector<apvHit>+;
+#pragma link C++ class vector<vector<apvHit>>+;
+#pragma link C++ class vector<apvClaster>+;
+#pragma link C++ class vector<vector<apvClaster>>+;
+
 #endif

@@ -33,6 +33,10 @@ void apv::Loop()
   auto hmaxQFullHistoryAll = make_shared<TH1F>("maxQFullHistory", Form("Run %s: maxQFullHistory", file.Data()), 2500, 0, 2500);
   auto hmaxQTimeFullHistoryAll = make_shared<TH1F>("maxQTimeFullHistory", Form("Run %s: maxQTimeFullHistory", file.Data()), 192, 0, 192);
 
+  auto hClasterShiftBetweenLayers01 = make_shared<TH1F>("hClasterShiftBetweenLayers01", Form("Run %s: hClasterShiftBetweenLayers01", file.Data()), 200, -100, 100);
+  auto hClasterShiftBetweenLayers02 = make_shared<TH1F>("hClasterShiftBetweenLayers02", Form("Run %s: hClasterShiftBetweenLayers02", file.Data()), 200, -100, 100);
+  auto hClasterShiftBetweenLayers12 = make_shared<TH1F>("hClasterShiftBetweenLayers12", Form("Run %s: hClasterShiftBetweenLayers12", file.Data()), 200, -100, 100);
+
   /* Claster histograms */
   vector<shared_ptr<TH1F>> clasterQ, clasterPos;
   for(auto &i: {0, 1, 2}){
@@ -48,8 +52,6 @@ void apv::Loop()
   Long64_t nentries = fChainSignal->GetEntries();
 
   // nentries = 200;
-  int previousEvt = -1;
-  int previousTimeStamp = -1;
   for (Long64_t event = 0; event < nentries; event++){
     Long64_t ientry = LoadTree(event);
     if (ientry < 0) break;
@@ -65,23 +67,18 @@ void apv::Loop()
     if(!notErr) continue;
     
     /* Filling entry histogram */
-    if(previousEvt != evt)
-      clasters.clear();
-    else
-      printf("Possible second part of event! \n");
-
     hevts->Fill(evt);
     hdaqTimeSec->Fill(daqTimeSec);
     hdaqTimeMSec->Fill(daqTimeMicroSec);
     hsrsTrigger->Fill(srsTrigger);
 
     printf("Evevt parameters: evt %lld, time: %d & %d, timestamp: %d, trigger: %d;", evt, daqTimeSec, daqTimeMicroSec, srsTimeStamp, srsTrigger);
-    printf(" Timestamp difference: %d;", srsTimeStamp-previousTimeStamp);
     printf(" Unique timestamp: %llu;", unique_srs_time_stamp(daqTimeSec, daqTimeMicroSec, srsTimeStamp));
     printf("\n");
 
     printf("  Channels (%lu):", max_q->size());
     /* Per-channel */
+    vector<apvHit> hits;
     for (int j = 0; j < max_q->size(); j++){
     // printf("Record inside entry: %d\n", j);
       auto readout = mmReadout->at(j);
@@ -94,10 +91,12 @@ void apv::Loop()
       hmaxQ.at(layer)->Fill(maxQ);
       
       printf(" %d-%d (%d)", layer, strip, maxQ);
-      addHitToClasters(layer, strip, maxQ);
 
       auto maxTime = t_max_q->at(j);
       hmaxQTime.at(layer)->Fill(maxTime);
+      
+      hits.push_back({layer, strip, maxQ, maxTime, raw_q->at(j)});
+      
       // printf("Raw q pointer: %p\n", raw_q);
       int maxADCBin = -1;
       // printf("raw_q->at(%d).size(): %d\n", j, raw_q->at(j).size());
@@ -117,7 +116,25 @@ void apv::Loop()
       hmaxQTimeFullHistoryAll->Fill(maxADCBin);
     }
     printf("\n");
+
+    /* Constructing clasters */
+    clasters.clear();
+    std::sort(hits.begin(), hits.end(), [](auto h1, auto h2){return h1.strip < h2.strip;});
+    for(auto &hit: hits)
+      addHitToClasters(hit);
+
+    /* Remove small clasters or clasters with small energy*/
+    clasters.erase(std::remove_if(clasters.begin(), 
+                                  clasters.end(),
+                                  [](auto c){return c.nHits() < 3;}),
+                   clasters.end());
+    clasters.erase(std::remove_if(clasters.begin(), 
+                                  clasters.end(),
+                                  [](auto c){return c.maxQ() < 300;}),
+                   clasters.end());
     
+    std::sort(clasters.begin(), clasters.end(), [](auto c1, auto c2){return (c1.layer < c2.layer) || (c1.center() < c2.center());});
+
     for(auto &c: clasters){
       c.print();
       clasterPos.at(c.layer)->Fill(c.center());
@@ -125,8 +142,16 @@ void apv::Loop()
       clasterEnergy->Fill(c.q());
     }
 
-    previousEvt = evt;
-    previousTimeStamp = srsTimeStamp;
+    if(clasters.size() == 3){
+      if(clasters.at(0).layer == 0 &&
+         clasters.at(1).layer == 1 &&
+         clasters.at(2).layer == 2){
+        hClasterShiftBetweenLayers01->Fill(clasters.at(0).center() - clasters.at(1).center());
+        hClasterShiftBetweenLayers02->Fill(clasters.at(0).center() - clasters.at(2).center());
+        hClasterShiftBetweenLayers12->Fill(clasters.at(1).center() - clasters.at(2).center());
+      }
+    }
+
   }
   
   // straw31_vs_straw30_banana_bcid->Write();

@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <string>
+#include "apv.h"
 namespace {
   std::vector<int> vector_int;
   std::vector<std::vector<int>> vector_vector_int;
@@ -20,5 +21,9 @@ namespace {
   std::vector<std::string> vector_string;
   std::vector<std::vector<std::string>> vector_vector_string;
 
+  std::vector<apvHit> vector_apvHit;
+  std::vector<std::vector<apvHit>> vector_vector_apvHit;
+  std::vector<apvClaster> vector_apvClaster;
+  std::vector<std::vector<apvClaster>> vector_vector_apvClaster;
 
 };

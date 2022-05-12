@@ -12,51 +12,76 @@
 #include <memory>
 
 #include <numeric> // accumulate
-#include <algorithm> // max_element
+#include <algorithm> // max_element, sort
 
 using std::vector;
 using std::map;
 using std::string;
 using std::shared_ptr, std::make_shared;
 
-constexpr uint clasterMaxWidth = 5;
-struct claster{
+struct apvHit{
   int layer = 0;
-  vector<int> channels = {};
-  vector<int> qs = {};
-  void addHit(int channel, int maxQ){
-    channels.push_back(channel);
-    qs.push_back(maxQ);
+  int strip = 0;
+  short max_q;
+  int t_max_q;
+  vector<short> raw_q;
+};
+
+// TODO convert to class, save max q, borders, width and other element with the size 
+struct apvClaster{
+  int layer = 0;
+  vector<apvHit> hits = {};
+  bool addHit(apvHit hit){
+    if(hit.layer != layer)
+      return false;
+    hits.push_back(hit);
+    sortHits();
+    return true;
   }
-  bool addHitIfOnDistance(int hitlayer, int channel, int maxQ, int maxDistance = clasterMaxWidth){
-    if(hitlayer != layer)
+  bool addHitAdjacent(apvHit hit){
+    if(hit.layer != layer)
       return false;
-    if(std::abs(center() - channel) > maxDistance)
+    if(hit.strip != hits.at(0).strip - 1 && hit.strip != hits.back().strip + 1)
       return false;
-    addHit(channel, maxQ);
+    addHit(hit);
     return true;
   }
   float center(){
-    return (channels.empty()) ? 0 : std::accumulate(std::begin(channels), std::end(channels), 0.0) / channels.size();
-  };
+    return (hits.at(0).strip + hits.back().strip)/2.0;
+  }
   int width(){
-    if(channels.empty())
-      return 0;
-    long c = center();
-    int distance = -1;
-    for(auto &ch: channels)
-      if(distance < 0 || std::abs(ch - c) > distance)
-        distance = std::abs(ch - c);
-    return distance;
-  };
+    return hits.back().strip - hits.at(0).strip + 1;
+  }
+  int firstStrip(){ return hits.at(0).strip; }
+  int lastStrip(){ return hits.back().strip; }
   int maxQ(){
-    return (channels.empty()) ? 0 : *(std::max_element(std::begin(qs), std::end(qs)));
-  };
+    short maxq = -1;
+    for(auto &hit: hits)
+      if(hit.max_q > maxq)
+        maxq = hit.max_q;
+    return maxq;
+  }
   long q(){
-    return std::accumulate(std::begin(qs), std::end(qs), 0);
-  };
+    unsigned int qsum = 0;
+    for(auto &hit: hits)
+      qsum += hit.max_q;
+    return qsum;
+  }
+  unsigned long nHits(){ return hits.size(); }
   void print(){
-    printf("Claster: %lu hits on layer %d, with center %f, width %d and Q %ld (maximal: %ld)\n", channels.size(), layer, center(), width(), q(), maxQ()); 
+    printf("Claster: %lu hits on layer %d, with center %.2f, width %d and Q %ld (maximal: %d)\n", nHits(), layer, center(), width(), q(), maxQ()); 
+  }
+  void sortHits(){
+    std::sort(hits.begin(), hits.end(), [](const apvHit h1, const apvHit h2){return (h1.strip < h2.strip);});
+  }
+  bool merge(apvClaster claster){
+    if(claster.layer != layer)
+      return false;
+    if(claster.lastStrip() != hits.at(0).strip - 1 && claster.firstStrip() != hits.back().strip + 1)
+      return false;
+    hits.insert(hits.end(), claster.hits.begin(), claster.hits.end());
+    sortHits();
+    return true;
   }
 };
 
@@ -136,9 +161,9 @@ public :
 
   static unsigned long long unique_srs_time_stamp(int, int, int);
 
-  vector<claster> clasters;
-  bool addHitToClasters(int hitlayer, int channel, int maxQ);
-
+  vector<apvClaster> clasters;
+  bool addHitToClasters(int layer, int strip, short max_q, int t_max_q, vector<short> raw_q);
+  bool addHitToClasters(apvHit hit);
 
 };
 
@@ -269,12 +294,16 @@ unsigned long long apv::unique_srs_time_stamp(int daq_time_stamp_seconds, int da
   return (b1 | b2 | m_srs_time_stamp);
 }
 
-bool apv::addHitToClasters(int hitlayer, int channel, int maxQ){
+bool apv::addHitToClasters(int layer, int strip, short max_q, int t_max_q, vector<short> raw_q){
+  return addHitToClasters({layer, strip, max_q, t_max_q, raw_q});
+}
+
+bool apv::addHitToClasters(apvHit hit){
   for(auto &c: clasters)
-    if(c.addHitIfOnDistance(hitlayer, channel, maxQ))
+    if(c.addHitAdjacent(hit))
       return true;
-  claster newclaster = {hitlayer};
-  newclaster.addHit(channel, maxQ);
+  apvClaster newclaster = {hit.layer};
+  newclaster.addHit(hit);
   clasters.push_back(newclaster);
   return true;
 }
