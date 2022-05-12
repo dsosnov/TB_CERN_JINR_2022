@@ -1,6 +1,11 @@
-/.vscode
-/_for_andrei
-/data
-/data-apv
-/out
-/*.txt
+/.vscode/
+
+/_for_andrei/
+
+/data/
+/data-calibration/
+/data-apv/
+/out/
+
+*.txt
+*~

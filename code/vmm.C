@@ -7,41 +7,45 @@
 void vmm::Loop()
 {
    // fast check plots
-  auto *tdo_sci0 = new TH1D("tdo_sci0", Form("%s: cid_sci0; TDO", file.Data()), 128, 0, 256);
-  auto *bcid_sci0 = new TH1D("bcid_sci0", Form("%s: bcid_sci0; TDO", file.Data()), 4096, 0, 4096);
-   auto *tdo_sci1 = new TH1D("tdo_sci1", Form("%s: cid_sci0; TDO", file.Data()), 128, 0, 256);
-   auto *tdo_sci2 = new TH1D("tdo_sci2", Form("%s: cid_sci0; TDO", file.Data()), 128, 0, 256);
-   auto *tdo_straw31 = new TH1D("tdo_straw31", Form("%s: tdocid_sci0; TDO", file.Data()), 128, 0, 256); // without 350 PDO counts cut
-   auto *bcid_straw31 = new TH1D("bcid_straw31", Form("%s: bcid_cid_sci0; TDO", file.Data()), 4096, 0, 4096);
-   auto *bcid_straw30 = new TH1D("bcid_straw30", Form("%s: bcid_cid_sci0; TDO", file.Data()), 4096, 0, 4096);
-   auto *tdo_vs_pdo_straw31 = new TH2D("tdo_vs_pdo_straw31", Form("%s: tdo_vs_pdocid_sci0; TDO", file.Data()), 256, 0, 1024, 128, 0, 256);
+   auto tdo_sci0 = new TH1D("tdo_sci0", Form("%s: cid_sci0; TDO", file.Data()), 128, 0, 256);
+   auto bcid_sci0 = new TH1D("bcid_sci0", Form("%s: bcid_sci0; TDO", file.Data()), 4096, 0, 4096);
+   auto tdo_sci1 = new TH1D("tdo_sci1", Form("%s: cid_sci0; TDO", file.Data()), 128, 0, 256);
+   auto tdo_sci2 = new TH1D("tdo_sci2", Form("%s: cid_sci0; TDO", file.Data()), 128, 0, 256);
+   auto tdo_straw31 = new TH1D("tdo_straw31", Form("%s: tdocid_sci0; TDO", file.Data()), 128, 0, 256); // without 350 PDO counts cut
+   auto bcid_straw31 = new TH1D("bcid_straw31", Form("%s: bcid_cid_sci0; TDO", file.Data()), 4096, 0, 4096);
+   auto bcid_straw30 = new TH1D("bcid_straw30", Form("%s: bcid_cid_sci0; TDO", file.Data()), 4096, 0, 4096);
+   auto tdo_vs_pdo_straw31 = new TH2D("tdo_vs_pdo_straw31", Form("%s: tdo_vs_pdocid_sci0; TDO", file.Data()), 256, 0, 1024, 128, 0, 256);
 
    // correlation plots
-   auto *straw31_vs_sci0 = new TH1D("straw31_vs_sci0", Form("%s: straw31_vs_sci0;cid_sci0; TDO", file.Data()), 500, -500, 500);
-   auto *straw31_vs_sci0_all = new TH1D("straw31_vs_sci0_all", Form("%s: straw31_vs_sci0_all;cid_sci0; TDO", file.Data()), 500, -500, 500);
-   auto *straw31_vs_sci1 = new TH1D("straw31_vs_sci1", Form("%s: straw31_vs_sci1;cid_sci0; TDO", file.Data()), 500, -500, 500);
-   auto *straw31_vs_sci2 = new TH1D("straw31_vs_sci2", Form("%s: straw31_vs_sci2;cid_sci0; TDO", file.Data()), 500, -500, 500);
+   auto straw31_vs_sci0 = new TH1D("straw31_vs_sci0", Form("%s: straw31_vs_sci0;cid_sci0; TDO", file.Data()), 1000, -500, 500);
+   auto straw31_vs_sci0_all = new TH1D("straw31_vs_sci0_all", Form("%s: straw31_vs_sci0_all;cid_sci0; TDO", file.Data()), 1000, -500, 500);
+   auto straw31_vs_sci1 = new TH1D("straw31_vs_sci1", Form("%s: straw31_vs_sci1;cid_sci0; TDO", file.Data()), 1000, -500, 500);
+   auto straw31_vs_sci2 = new TH1D("straw31_vs_sci2", Form("%s: straw31_vs_sci2;cid_sci0; TDO", file.Data()), 1000, -500, 500);
 
-   auto *sci0_vs_sci1 = new TH1D("sci0_vs_sci1", Form("%s: sci0_vs_sci1;cid_sci0; TDO", file.Data()), 500, -500, 500);
-   auto *sci0_vs_sci2 = new TH1D("sci0_vs_sci2", Form("%s: sci0_vs_sci2;cid_sci0; TDO", file.Data()), 500, -500, 500);
-   auto *sci1_vs_sci2 = new TH1D("sci1_vs_sci2", Form("%s: sci1_vs_sci2;cid_sci0; TDO", file.Data()), 500, -500, 500);
+   auto sci0_vs_sci1 = new TH1D("sci0_vs_sci1", Form("%s: sci0_vs_sci1;cid_sci0; TDO", file.Data()), 250, -50, 50);
+   auto sci0_vs_sci2 = new TH1D("sci0_vs_sci2", Form("%s: sci0_vs_sci2;cid_sci0; TDO", file.Data()), 250, -50, 50);
+   auto sci1_vs_sci2 = new TH1D("sci1_vs_sci2", Form("%s: sci1_vs_sci2;cid_sci0; TDO", file.Data()), 250, -50, 50);
 
-   auto *straw31_vs_straw30 = new TH1D("straw31_vs_straw30", Form("%s: straw31_vs_straw30;cid_sci0; TDO", file.Data()), 500, -500, 500);
-   auto *straw31_vs_straw30_all = new TH1D("straw31_vs_straw30_all", Form("%s: straw31_vs_straw30_all;cid_sci0; TDO", file.Data()), 500, -500, 500);
+   auto sci0_vs_mean_triple = new TH1D("sci0_vs_mean_triple", Form("%s: sci0_vs_mean_triple; #Delta t;", file.Data()), 250, -50, 50);
+   auto sci1_vs_mean_triple = new TH1D("sci1_vs_mean_triple", Form("%s: sci1_vs_mean_triple; #Delta t;", file.Data()), 250, -50, 50);
+   auto sci2_vs_mean_triple = new TH1D("sci2_vs_mean_triple", Form("%s: sci2_vs_mean_triple; #Delta t;", file.Data()), 250, -50, 50);
 
-   auto *straw31_vs_straw30_banana_ch0 = new TH2D("straw31_vs_straw30_banana_ch0",
+   auto straw31_vs_straw30 = new TH1D("straw31_vs_straw30", Form("%s: straw31_vs_straw30;cid_sci0; TDO", file.Data()), 1000, -500, 500);
+   auto straw31_vs_straw30_all = new TH1D("straw31_vs_straw30_all", Form("%s: straw31_vs_straw30_all;cid_sci0; TDO", file.Data()), 1000, -500, 500);
+
+   auto straw31_vs_straw30_banana_ch0 = new TH2D("straw31_vs_straw30_banana_ch0",
                                               Form("%s: straw31_vs_straw30_banana_ch0; straw 31 #Deltat, ns; straw 3cid_sci0; TDO", file.Data()), 500, -250, 250, 500, -250, 250);
 
-   auto *straw31_vs_straw30_banana_ch1 = new TH2D("straw31_vs_straw30_banana_ch1",
+   auto straw31_vs_straw30_banana_ch1 = new TH2D("straw31_vs_straw30_banana_ch1",
                                               Form("%s: straw31_vs_straw30_banana_ch1; straw 31 #Deltat, ns; straw 3cid_sci0; TDO", file.Data()), 500, -250, 250, 500, -250, 250);
 
-   auto *straw31_vs_straw30_banana_ch2 = new TH2D("straw31_vs_straw30_banana_ch2",
+   auto straw31_vs_straw30_banana_ch2 = new TH2D("straw31_vs_straw30_banana_ch2",
                                               Form("%s: straw31_vs_straw30_banana_ch2; straw 31 #Deltat, ns; straw 3cid_sci0; TDO", file.Data()), 500, -250, 250, 500, -250, 250);
 
-   auto *straw31_vs_straw30_banana_all = new TH2D("straw31_vs_straw30_banana_all",
+   auto straw31_vs_straw30_banana_all = new TH2D("straw31_vs_straw30_banana_all",
                                                   Form("%s: straw31_vs_straw30_banana_all; straw 31 #Deltat, ns; straw 3cid_sci0; TDO", file.Data()), 500, -250, 250, 500, -250, 250);
 
-   auto *straw31_vs_straw30_banana_bcid = new TH2D("straw31_vs_straw30_banana_bcid",
+   auto straw31_vs_straw30_banana_bcid = new TH2D("straw31_vs_straw30_banana_bcid",
                                                    Form("%s: straw31_vs_straw30_banana_bcid; straw 31 #Delta BCID; straw 3cid_sci0; TDO", file.Data()), 500, -250, 250, 500, -250, 250);
 
    // TDO distribution for every Ch
@@ -113,30 +117,12 @@ void vmm::Loop()
    }
    // ===================================================================================
 
-   vector<array<int, 2>> limits; // vector of TDO limits for every Ch [limits.size() == 64]!
 
    TFile *out = new TFile("../out/out_" + file + ending, "RECREATE"); // PATH where to save out_*.root file
    TDirectory *tdo_dir = out->mkdir("TDO");
    tdo_dir->cd();
 
-   // ================================== LIMITS SEARCH ================================== //or get from file
-   try{
-   ifstream myfile("../out/calibration_25_100.txt");
-   int bin1 = 0;
-   int bin2 = 0;
-   int i = 0;
-   while (myfile >> bin1 >> bin2)
-   {
-      limits.push_back({bin1, bin2});
-      std::cout << "CH " << i << "\t L TDO: " << bin1 << "\t R TDO: " << bin2 << "\n";
-      i++;
-   }
-   } catch (...){
-     std::cout << "Calibration file " << file << "not found" << std::endl;
-     exit(1);
-   }
-
-   // auto *gausFitF = new TF1("gausFitF", "gaus", 0, 256);
+   // auto gausFitF = new TF1("gausFitF", "gaus", 0, 256);
    for (Int_t i = 0; i < 64; i++)
    {
       // gausFitF->SetParameter(0, 0);
@@ -193,7 +179,8 @@ void vmm::Loop()
 
          if (fch == 31)
          {
-            int fpdo = pdo->at(0).at(j);
+            int fpdoUC = pdo->at(0).at(j); // Uncorrected PDO, used at time calibration
+            int fpdo = correctPDO(fch, fpdoUC);
             // if (fpdo < 100 || fpdo > 900)
             //    continue;
             int ftdo = tdo->at(0).at(j);
@@ -203,8 +190,8 @@ void vmm::Loop()
 
             straw_bcid_ch31 = fbcid;
             straw_pdo_ch31 = fpdo;
-            t31 = fbcid * 25.0 - (ftdo - limits[fch][0]) * 25.0 / (limits[fch][1] - limits[fch][0]); // 'auto' limits
-            // t31 = fbcid * 25.0 - (fftdo - X) * 25.0 / (Y - X); //'hand' limits
+            t31 = getTime(fch, fbcid, ftdo, fpdoUC); // 'auto' limits
+            // t31 = getTimeByHand(fbcid, ftdo, Y, Y); //'hand' limits
 
             Long64_t mbytes = 0, mb = 0;
             double minTsci0 = 1e3, minTsci0_ch30 = 1e3;
@@ -235,20 +222,21 @@ void vmm::Loop()
                   if (ffch != 30)
                      continue;
 
-                  int ffpdo = pdo->at(0).at(k);
+                  int ffpdoUC = pdo->at(0).at(k); // Uncorrected PDO, used at time calibration
+                  int ffpdo = correctPDO(ffch, ffpdoUC);
                   // if (ffpdo < 100 || ffpdo > 900)
                   //    continue;
                   int fftdo = tdo->at(0).at(k);
                   int ffbcid = grayDecoded->at(0).at(k);
                   // if (ffbcid < 40)
                   //    continue;
-                  double fft = ffbcid * 25.0 - (fftdo - limits[ffch][0]) * 25.0 / (limits[ffch][1] - limits[ffch][0]); // 'auto' limits
-                  // double fft = ffbcid * 25.0 - (fftdo - X) * 25.0 / (Y - X); //'hand' limits
+                  double fft = getTime(ffch, ffbcid, fftdo, ffpdoUC); // 'auto' limits
+                  // double fft = getTimeByHand(ffbcid, fftdo, X, Y); //'hand' limits
 
                   straw31_vs_straw30_all->Fill(t31 - fft);
-                  if (abs(t31 - fft) < minT30)
+                  if (fabs(t31 - fft) < minT30)
                   {
-                     minT30 = abs(t31 - fft);
+                     minT30 = fabs(t31 - fft);
                      t30 = fft;
                      straw_bcid_ch30 = ffbcid;
                      straw_pdo_ch30 = ffpdo;
@@ -275,13 +263,14 @@ void vmm::Loop()
                   if (ffch != 0)
                      continue;
 
-                  int ffpdo = pdo->at(0).at(k);
+                  int ffpdoUC = pdo->at(0).at(k); // Uncorrected PDO, used at time calibration
+                  int ffpdo = correctPDO(ffch, ffpdoUC);
                   int fftdo = tdo->at(0).at(k);
                   int ffbcid = grayDecoded->at(0).at(k);
                   // if (ffbcid < 40)
                   //    continue;
-                  double fft = ffbcid * 25.0 - (fftdo - 88) * 25.0 / (140 - 88); //'hand' limits
-                  // double fft = ffbcid * 25.0 - (fftdo - limits[ffch][0]) * 25.0 / (limits[ffch][1] - limits[ffch][0]); // 'auto' limits
+                  double fft = getTimeByHand(ffbcid, fftdo, 88, 140); //'hand' limits
+                  // double fft = getTime(ffch, ffbcid, fftdo, ffpdoUC); // 'auto' limits
 
                   straw31_vs_sci0_all->Fill(t31 - fft);
 
@@ -290,10 +279,10 @@ void vmm::Loop()
                      straw31_vs_straw30_banana_all->Fill(t31 - fft, t30 - fft);
                   }
 
-                  if (abs(t31 - fft) < minTsci0 && abs(t30 - fft) < minTsci0_ch30)
+                  if (fabs(t31 - fft) < minTsci0 && fabs(t30 - fft) < minTsci0_ch30)
                   {
-                     minTsci0 = abs(t31 - fft);
-                     minTsci0_ch30 = abs(t30 - fft);
+                     minTsci0 = fabs(t31 - fft);
+                     minTsci0_ch30 = fabs(t30 - fft);
                      sciT_ch0 = fft;
                      sci_bcid_ch0 = ffbcid;
                   }
@@ -353,16 +342,17 @@ void vmm::Loop()
                   if (ffch != 1)
                      continue;
 
-                  int ffpdo = pdo->at(0).at(k);
+                  int ffpdoUC = pdo->at(0).at(k); // Uncorrected PDO, used at time calibration
+                  int ffpdo = correctPDO(ffch, ffpdoUC);
                   int fftdo = tdo->at(0).at(k);
                   int ffbcid = grayDecoded->at(0).at(k);
-                  double fft = ffbcid * 25.0 - (fftdo - 110) * 25.0 / (160 - 110); //'hand' limits
-                  // double fft = ffbcid * 25.0 - (fftdo - limits[ffch][0]) * 25.0 / (limits[ffch][1] - limits[ffch][0]); // 'auto' limits
+                  double fft = getTimeByHand(ffbcid, fftdo, 110, 160); //'hand' limits
+                  // double fft = getTime(ffch, ffbcid, fftdo, ffpdoUC); // 'auto' limits
 
-                  if (abs(t31 - fft) < minTsci1 && abs(t30 - fft) < minTsci1_ch30)
+                  if (fabs(t31 - fft) < minTsci1 && fabs(t30 - fft) < minTsci1_ch30)
                   {
-                     minTsci1 = abs(t31 - fft);
-                     minTsci1_ch30 = abs(t30 - fft);
+                     minTsci1 = fabs(t31 - fft);
+                     minTsci1_ch30 = fabs(t30 - fft);
                      sciT_ch1 = fft;
                   }
                }
@@ -399,16 +389,17 @@ void vmm::Loop()
                   if (ffch != 2)
                      continue;
 
-                  int ffpdo = pdo->at(0).at(k);
+                  int ffpdoUC = pdo->at(0).at(k); // Uncorrected PDO, used at time calibration
+                  int ffpdo = correctPDO(ffch, ffpdoUC);
                   int fftdo = tdo->at(0).at(k);
                   int ffbcid = grayDecoded->at(0).at(k);
-                  double fft = ffbcid * 25.0 - (fftdo - 96) * 25.0 / (148 - 96); //'hand' limits
-                  // double fft = ffbcid * 25.0 - (fftdo - limits[ffch][0]) * 25.0 / (limits[ffch][1] - limits[ffch][0]); // 'auto' limits
+                  double fft = getTimeByHand(ffbcid, fftdo, 96, 148); //'hand' limits
+                  // double fft = getTime(ffch, ffbcid, fftdo, ffpdoUC); // 'auto' limits
 
-                  if (abs(t31 - fft) < minTsci2 && abs(t30 - fft) < minTsci2_ch30)
+                  if (fabs(t31 - fft) < minTsci2 && fabs(t30 - fft) < minTsci2_ch30)
                   {
-                     minTsci2 = abs(t31 - fft);
-                     minTsci2_ch30 = abs(t30 - fft);
+                     minTsci2 = fabs(t31 - fft);
+                     minTsci2_ch30 = fabs(t30 - fft);
                      sciT_ch2 = fft;
                   }
                }
@@ -426,6 +417,13 @@ void vmm::Loop()
                 sci1_vs_sci2->Fill(sciT_ch1 - sciT_ch2);
               if(sciT_ch0 != 0)
                 sci0_vs_sci2->Fill(sciT_ch0 - sciT_ch2);
+            }
+            if(sciT_ch0 && sciT_ch1 && sciT_ch2)
+            {
+              auto meanTime = (sciT_ch0 + sciT_ch1 + sciT_ch2) / 3.0;
+              sci0_vs_mean_triple->Fill(sciT_ch0 - meanTime);
+              sci1_vs_mean_triple->Fill(sciT_ch1 - meanTime);
+              sci2_vs_mean_triple->Fill(sciT_ch2 - meanTime);
             }
 
             // ============================= end of sci 2 correlation finding =============================
@@ -470,6 +468,9 @@ void vmm::Loop()
    sci0_vs_sci1->Write();
    sci0_vs_sci2->Write();
    sci1_vs_sci2->Write();
+   sci0_vs_mean_triple->Write();
+   sci1_vs_mean_triple->Write();
+   sci2_vs_mean_triple->Write();
    straw31_vs_straw30->Write();
    straw31_vs_straw30_banana_ch0->Write();
    straw31_vs_straw30_banana_ch1->Write();
