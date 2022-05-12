@@ -27,10 +27,28 @@ struct apvHit{
   vector<short> raw_q;
 };
 
-// TODO convert to class, save max q, borders, width and other element with the size 
-struct apvClaster{
-  int layer = 0;
-  vector<apvHit> hits = {};
+class apvClaster{
+private:
+  int layer;
+  vector<apvHit> hits;
+  unsigned long sizeOnLastUpdate;
+  // float center_;
+  // int width_;
+  int maxq_;
+  long qsum_;
+public:
+  apvClaster(int clasterLayer = 0):
+    layer(clasterLayer), hits({}), sizeOnLastUpdate(-1){
+  }
+  apvClaster(apvHit hit):
+    layer(hit.layer), hits({}), sizeOnLastUpdate(-1){
+    addHit(hit);
+  }
+  ~apvClaster(){
+    hits.clear();
+  }
+  int getLayer(){return layer;}
+  vector<apvHit> getHits(){return hits;}
   bool addHit(apvHit hit){
     if(hit.layer != layer)
       return false;
@@ -47,32 +65,41 @@ struct apvClaster{
     return true;
   }
   float center(){
+    sortHits();
     return (hits.at(0).strip + hits.back().strip)/2.0;
   }
   int width(){
+    sortHits();
     return hits.back().strip - hits.at(0).strip + 1;
   }
-  int firstStrip(){ return hits.at(0).strip; }
-  int lastStrip(){ return hits.back().strip; }
+  int firstStrip(){ sortHits(); return hits.at(0).strip; }
+  int lastStrip(){ sortHits(); return hits.back().strip; }
   int maxQ(){
-    short maxq = -1;
+    if(!sizeOnLastUpdate && sizeOnLastUpdate == nHits())
+      return maxq_;
+    maxq_ = -1;
     for(auto &hit: hits)
-      if(hit.max_q > maxq)
-        maxq = hit.max_q;
-    return maxq;
+      if(hit.max_q > maxq_)
+        maxq_ = hit.max_q;
+    return maxq_;
   }
   long q(){
-    unsigned int qsum = 0;
+    if(!sizeOnLastUpdate && sizeOnLastUpdate == nHits())
+      return qsum_;    
+    qsum_ = 0;
     for(auto &hit: hits)
-      qsum += hit.max_q;
-    return qsum;
+      qsum_ += hit.max_q;
+    return qsum_;
   }
   unsigned long nHits(){ return hits.size(); }
   void print(){
     printf("Claster: %lu hits on layer %d, with center %.2f, width %d and Q %ld (maximal: %d)\n", nHits(), layer, center(), width(), q(), maxQ()); 
   }
   void sortHits(){
+    if(!sizeOnLastUpdate && sizeOnLastUpdate == nHits())
+      return;
     std::sort(hits.begin(), hits.end(), [](const apvHit h1, const apvHit h2){return (h1.strip < h2.strip);});
+    sizeOnLastUpdate = nHits();
   }
   bool merge(apvClaster claster){
     if(claster.layer != layer)
@@ -302,9 +329,7 @@ bool apv::addHitToClasters(apvHit hit){
   for(auto &c: clasters)
     if(c.addHitAdjacent(hit))
       return true;
-  apvClaster newclaster = {hit.layer};
-  newclaster.addHit(hit);
-  clasters.push_back(newclaster);
+  clasters.push_back(apvClaster(hit));
   return true;
 }
 

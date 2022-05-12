@@ -133,19 +133,19 @@ void apv::Loop()
                                   [](auto c){return c.maxQ() < 300;}),
                    clasters.end());
     
-    std::sort(clasters.begin(), clasters.end(), [](auto c1, auto c2){return (c1.layer < c2.layer) || (c1.center() < c2.center());});
+    std::sort(clasters.begin(), clasters.end(), [](auto c1, auto c2){return (c1.getLayer() < c2.getLayer()) || (c1.center() < c2.center());});
 
     for(auto &c: clasters){
       c.print();
-      clasterPos.at(c.layer)->Fill(c.center());
-      clasterQ.at(c.layer)->Fill(c.q());
+      clasterPos.at(c.getLayer())->Fill(c.center());
+      clasterQ.at(c.getLayer())->Fill(c.q());
       clasterEnergy->Fill(c.q());
     }
 
     if(clasters.size() == 3){
-      if(clasters.at(0).layer == 0 &&
-         clasters.at(1).layer == 1 &&
-         clasters.at(2).layer == 2){
+      if(clasters.at(0).getLayer() == 0 &&
+         clasters.at(1).getLayer() == 1 &&
+         clasters.at(2).getLayer() == 2){
         hClasterShiftBetweenLayers01->Fill(clasters.at(0).center() - clasters.at(1).center());
         hClasterShiftBetweenLayers02->Fill(clasters.at(0).center() - clasters.at(2).center());
         hClasterShiftBetweenLayers12->Fill(clasters.at(1).center() - clasters.at(2).center());
