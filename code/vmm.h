@@ -86,6 +86,12 @@ public :
 
    void addPDOCorrection(TString filename);
    int correctPDO(int channel, int pdoIn);
+
+   map<int, pair<int, int>> channelMap;
+   void addMap(TString filename);
+   pair<int,int> getMapped(int channel);
+   int getMappedDetector(int channel);
+   int getMappedChannel(int channel);
 };
 
 #endif
@@ -220,6 +226,32 @@ int vmm::correctPDO(int channel, int pdoIn){
   return static_cast<int>(p0 + pdoIn * p1);
 }
 
+void vmm::addMap(TString filename){
+   ifstream infile(Form("../out/%s", filename.Data()));
+   std::string line;
+   int ch, d, dch;
+   while (std::getline(infile, line))
+   {
+     std::istringstream iss(line);
+     if(iss.str().substr(0, 1) == string("#")) // in c++20 there is starts_with("#")
+       continue;
+     if (!(iss >> ch >> d >> dch))
+       break; // error
+     channelMap.emplace(ch, make_pair(d, dch));
+   }
+}
+pair<int,int> vmm::getMapped(int channel){
+  if(!channelMap.count(channel))
+    return {-1, -1};
+  return channelMap.at(channel);
+}
+int vmm::getMappedDetector(int channel){
+  return getMapped(channel).first;
+}
+int vmm::getMappedChannel(int channel){
+  return getMapped(channel).second;
+}
+
 
 void vmm::Init(TTree *tree)
 {
@@ -285,6 +317,8 @@ void vmm::Init(TTree *tree)
    addLimits(300, "calibration_25_100_pdo300.txt");
 
    addPDOCorrection("calibration_pdo_t@t_g1_p25_s100.txt");
+
+   addMap("map.txt");
 }
 
 #endif // #ifdef vmm_cxx
