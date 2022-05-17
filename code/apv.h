@@ -100,6 +100,8 @@ public :
   bool addHitToClasters(int layer, int strip, short max_q, int t_max_q, vector<short> raw_q);
   bool addHitToClasters(apvHit hit);
 
+  TTree* clasterTree;
+  TBranch* clasterBranch;
 };
 
 #endif
@@ -112,7 +114,8 @@ apv::apv(TString filename) : file(filename),
                              raw_q(nullptr), max_q(nullptr), t_max_q(nullptr),
                              srsFecPed(nullptr), srsChipPed(nullptr), srsChanPed(nullptr), mmChamberPed(nullptr),
                              mmLayerPed(nullptr), mmReadoutPed(nullptr), mmStripPed(nullptr),
-                             ped_meanPed(nullptr), ped_stdevPed(nullptr), ped_sigmaPed(nullptr)
+                             ped_meanPed(nullptr), ped_stdevPed(nullptr), ped_sigmaPed(nullptr),
+                             clasterTree(nullptr)
 {
   TFile *f = (TFile*)gROOT->GetListOfFiles()->FindObject(folder + file + ending);
   if(!f || !f->IsOpen()) {
@@ -130,12 +133,13 @@ apv::apv(TString filename) : file(filename),
 }
 
 apv::apv(TTree *tree, TTree *treePed) : fChainSignal(nullptr), fChainPedestal(nullptr),
-                             srsFec(nullptr), srsChip(nullptr), srsChan(nullptr), mmChamber(nullptr),
-                             mmLayer(nullptr), mmReadout(nullptr), mmStrip(nullptr),
-                             raw_q(nullptr), max_q(nullptr), t_max_q(nullptr),
-                             srsFecPed(nullptr), srsChipPed(nullptr), srsChanPed(nullptr), mmChamberPed(nullptr),
-                             mmLayerPed(nullptr), mmReadoutPed(nullptr), mmStripPed(nullptr),
-                             ped_meanPed(nullptr), ped_stdevPed(nullptr), ped_sigmaPed(nullptr)
+                                        srsFec(nullptr), srsChip(nullptr), srsChan(nullptr), mmChamber(nullptr),
+                                        mmLayer(nullptr), mmReadout(nullptr), mmStrip(nullptr),
+                                        raw_q(nullptr), max_q(nullptr), t_max_q(nullptr),
+                                        srsFecPed(nullptr), srsChipPed(nullptr), srsChanPed(nullptr), mmChamberPed(nullptr),
+                                        mmLayerPed(nullptr), mmReadoutPed(nullptr), mmStripPed(nullptr),
+                                        ped_meanPed(nullptr), ped_stdevPed(nullptr), ped_sigmaPed(nullptr),
+                                        clasterTree(nullptr)
 {
   if(tree == nullptr) {
     TFile *f = (TFile*)gROOT->GetListOfFiles()->FindObject(folder + file + ending);
@@ -219,6 +223,15 @@ void apv::Init(TTree *tree, TTree *treePed){
     treePed->GetEntry(0);
     // printf("PedEntries: %lld\n", treePed->GetEntries());
   }
+
+  if(clasterTree == nullptr)
+    clasterTree = new TTree("clasters", "clasters");
+  else
+    clasterTree->Reset();
+  clasterBranch = clasterTree->Branch("clasters", &clasters);
+  clasterTree->AddFriend(fChainSignal, "signals");
+  if(fChainPedestal)
+    clasterTree->AddFriend(fChainPedestal, "pedestals");
 }
 
 //daq epoch timestamp in upper 32 bits, 8 bits for tenths of second, followed by srs time stamp of 25 ns clock cycles counter, bizzare

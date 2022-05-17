@@ -11,12 +11,25 @@
 struct apvHit{
   int layer = 0;
   int strip = 0;
-  short max_q;
-  int t_max_q;
-  vector<short> raw_q;
+  short max_q = 0;
+  int t_max_q = 0;
+  vector<short> raw_q = {};
+  void print(bool verbose = false){
+    printf("Hit on layer %d, strip %d with max Q %d at time bin %d", layer, strip, max_q, t_max_q);
+    if(verbose){
+      printf("; Q values: [");
+      for(auto i = 0; i < raw_q.size(); i++){
+        printf("%d", raw_q.at(i));
+        if(i < raw_q.size()-1)
+          printf(", ");        
+      }
+      printf("]");
+    }
+    printf("\n");
+  }
 };
 
-class apvClaster{
+class apvClaster: public TObject{
 private:
   int layer;
   vector<apvHit> hits;
@@ -81,8 +94,11 @@ public:
     return qsum_;
   }
   unsigned long nHits(){ return hits.size(); }
-  void print(){
-    printf("Claster: %lu hits on layer %d, with center %.2f, width %d and Q %ld (maximal: %d)\n", nHits(), layer, center(), width(), q(), maxQ()); 
+  void print(bool verbose = false){
+    printf("Claster: %lu hits on layer %d, with center %.2f, width %d and Q %ld (maximal: %d)\n", nHits(), layer, center(), width(), q(), maxQ());
+    if(verbose)
+      for(auto &h: hits)
+        h.print(true);
   }
   void sortHits(){
     if(!sizeOnLastUpdate && sizeOnLastUpdate == nHits())
