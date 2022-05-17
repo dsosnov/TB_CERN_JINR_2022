@@ -356,7 +356,7 @@ void evBuilder::Loop()
                     mm_vs_sci_3det_corr->Fill(meanT - sciT_ch60);
                     if (strawCh == 3 && (meanCh > 19 && meanCh < 46))
                     {
-                        straw26_rt->Fill((meanCh - 19) * 6 / (46.0 - 19.0), 100 + t_srtraw - sciT_ch60);
+                        straw26_rt->Fill((meanCh - 19) * 0.25, 100 + t_srtraw - sciT_ch60);
                     }
                 }
 
