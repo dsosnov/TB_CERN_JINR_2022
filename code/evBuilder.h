@@ -285,7 +285,8 @@ void evBuilder::Init(TTree *tree)
    addLimits(250, "calibration_25_100_pdo250.txt");
    addLimits(300, "calibration_25_100_pdo300.txt");
 
-   addPDOCorrection("calibration_pdo_t@t_g1_p25_s100.txt");
+   // addPDOCorrection("calibration_pdo_t@t_g1_p25_s100.txt");
+   addPDOCorrection("calibration_pdo_t@t_g3_p25_s100.txt");
 }
 
 #endif // #ifdef evBuilder_cxx

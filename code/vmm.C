@@ -177,7 +177,7 @@ void vmm::Loop()
          if (fch == 35 || fch == 63)
             continue; // remove 'bad' ch for future tasks
 
-         if (fch == 31)
+         if (fch == 26)
          {
             int fpdoUC = pdo->at(0).at(j); // Uncorrected PDO, used at time calibration
             int fpdo = correctPDO(fch, fpdoUC);
@@ -208,7 +208,7 @@ void vmm::Loop()
             // ========================         LOOP OVER 40 events around         ========================
             //                           jentry to find correlation with straw 30
 
-            for (Long64_t kentry = jentry - 20; kentry < jentry + 20; kentry++)
+            for (Long64_t kentry = jentry - 1; kentry < jentry + 1; kentry++)
             {
                Long64_t iientry = LoadTree(kentry);
                if (iientry < 0)
@@ -249,7 +249,7 @@ void vmm::Loop()
             //                           jentry to find correlation with sci 0
 
             mbytes = 0, mb = 0;
-            for (Long64_t kentry = jentry - 20; kentry < jentry + 20; kentry++)
+            for (Long64_t kentry = jentry - 1; kentry < jentry + 1; kentry++)
             {
                Long64_t iientry = LoadTree(kentry);
                if (iientry < 0)
@@ -328,7 +328,7 @@ void vmm::Loop()
             //                           jentry to find correlation with sci 1
 
             mbytes = 0, mb = 0;
-            for (Long64_t kentry = jentry - 20; kentry < jentry + 20; kentry++)
+            for (Long64_t kentry = jentry - 1; kentry < jentry + 1; kentry++)
             {
                Long64_t iientry = LoadTree(kentry);
                if (iientry < 0)
@@ -375,7 +375,7 @@ void vmm::Loop()
             //                           jentry to find correlation with sci 2
 
             mbytes = 0, mb = 0;
-            for (Long64_t kentry = jentry - 20; kentry < jentry + 20; kentry++)
+            for (Long64_t kentry = jentry - 1; kentry < jentry + 1; kentry++)
             {
                Long64_t iientry = LoadTree(kentry);
                if (iientry < 0)
