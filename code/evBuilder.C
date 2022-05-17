@@ -104,7 +104,7 @@ void evBuilder::Loop()
 
     auto straw_vs_mm_spatial_corr = new TH2D("straw_vs_mm_spatial_corr", Form("%s: microMegas vs straw spatial correaltion;straw ch;MM ch", file.Data()), 10, 0, 10, 64, 0, 64);
 
-    auto straw25_rt = new TH2D("straw25_rt", Form("%s: straw ch25 v-shape;R, 1/D;T, ns", file.Data()), 26, 0, 6, 300, -100, 200);
+    auto straw26_rt = new TH2D("straw26_rt", Form("%s: straw ch26 v-shape;R, 1/D;T, ns", file.Data()), 26, 0, 6, 300, -100, 200);
 
     if (fChain == 0)
         return;
@@ -356,7 +356,7 @@ void evBuilder::Loop()
                     mm_vs_sci_3det_corr->Fill(meanT - sciT_ch60);
                     if (strawCh == 3 && (meanCh > 19 && meanCh < 46))
                     {
-                        straw25_rt->Fill((meanCh - 19) * 6 / (46.0 - 19.0), 100 + t_srtraw - sciT_ch60);
+                        straw26_rt->Fill((meanCh - 19) * 6 / (46.0 - 19.0), 100 + t_srtraw - sciT_ch60);
                     }
                 }
 
@@ -383,6 +383,6 @@ void evBuilder::Loop()
     mm_vs_sci_3det_corr->Write();
     straw_vs_mm_spatial_corr->Write();
     sci0_vs_sci60->Write();
-    straw25_rt->Write();
+    straw26_rt->Write();
     out->Close();
 }
