@@ -86,6 +86,13 @@ public :
 
    void addPDOCorrection(TString filename);
    int correctPDO(int channel, int pdoIn);
+
+   map<int, pair<int, int>> channelMap;
+   void addMap(TString filename);
+   pair<int,int> getMapped(int channel);
+   int getMappedDetector(int channel);
+   int getMappedChannel(int channel);
+
    void threePlotDrawF(TH1D *h1, TH1D *h2, TH1D *h3);
 };
 
@@ -221,6 +228,31 @@ int evBuilder::correctPDO(int channel, int pdoIn){
   return static_cast<int>(p0 + pdoIn * p1);
 }
 
+void evBuilder::addMap(TString filename){
+   ifstream infile(Form("../out/%s", filename.Data()));
+   std::string line;
+   int ch, d, dch;
+   while (std::getline(infile, line))
+   {
+     std::istringstream iss(line);
+     if(iss.str().substr(0, 1) == string("#")) // in c++20 there is starts_with("#")
+       continue;
+     if (!(iss >> ch >> d >> dch))
+       break; // error
+     channelMap.emplace(ch, make_pair(d, dch));
+   }
+}
+pair<int,int> evBuilder::getMapped(int channel){
+  if(!channelMap.count(channel))
+    return {-1, -1};
+  return channelMap.at(channel);
+}
+int evBuilder::getMappedDetector(int channel){
+  return getMapped(channel).first;
+}
+int evBuilder::getMappedChannel(int channel){
+  return getMapped(channel).second;
+}
 
 void evBuilder::Init(TTree *tree)
 {
@@ -287,6 +319,8 @@ void evBuilder::Init(TTree *tree)
 
    // addPDOCorrection("calibration_pdo_t@t_g1_p25_s100.txt");
    addPDOCorrection("calibration_pdo_t@t_g3_p25_s100.txt");
+
+   addMap("map-20220518.txt");
 }
 
 #endif // #ifdef evBuilder_cxx
