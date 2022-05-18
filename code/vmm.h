@@ -319,7 +319,7 @@ void vmm::Init(TTree *tree)
    // addPDOCorrection("calibration_pdo_t@t_g3_p25_s100.txt");
    addPDOCorrection("calibration_pdo_t@t_g1_p25_s100.txt");
 
-   addMap("map-20220518.txt");
+   addMap("map-strawOnly.txt");
 }
 
 #endif // #ifdef vmm_cxx
