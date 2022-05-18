@@ -1,5 +1,5 @@
-#ifndef vmm_h
-#define vmm_h
+#ifndef evBuilder_h
+#define evBuilder_h
 
 #include <TROOT.h>
 #include <TChain.h>
@@ -8,10 +8,10 @@
 // Header file for the classes stored in the TTree if any.
 //#include "c++/v1/vector"
 
-class vmm {
+class evBuilder {
 public :
    TString folder = "../data/";
-   TString file = "run_0057";
+   TString file = "run_0227";
    TString ending = ".root";
 
    TTree          *fChain;   //!pointer to the analyzed TTree or TChain
@@ -66,9 +66,9 @@ public :
    TBranch        *b_art;   //!
    TBranch        *b_art_trigger;   //!
 
-   vmm(TString);
-   vmm(TTree *tree=0);
-   virtual ~vmm();
+   evBuilder(TString);
+   evBuilder(TTree *tree=0);
+   virtual ~evBuilder();
    virtual Int_t    GetEntry(Long64_t entry);
    virtual Long64_t LoadTree(Long64_t entry);
    virtual void     Init(TTree *tree);
@@ -77,21 +77,22 @@ public :
    map<unsigned int, vector<array<int, 2>>> TDOlimits;
    vector<array<float, 2>> pdoCorrection;
 
-  void addLimits(int minLimit, TString filename, bool verbose = false);
+   void addLimits(int minLimit, TString filename);
    array<int, 2> getLimits(int channel, int pdo);
    int getLimitLow(int channel, int pdo);
    int getLimitUp(int channel, int pdo);
    double getTime(int channel, int bcid, int tdo, int pdo);
    static double getTimeByHand(int bcid, int tdo, int lowLimit, int upLimit);
 
-   void addPDOCorrection(TString filename, bool verbose = false);
+   void addPDOCorrection(TString filename);
    int correctPDO(int channel, int pdoIn);
+   void threePlotDrawF(TH1D *h1, TH1D *h2, TH1D *h3);
 };
 
 #endif
 
-#ifdef vmm_cxx
-vmm::vmm(TString filename) : file(filename)
+#ifdef evBuilder_cxx
+evBuilder::evBuilder(TString filename) : file(filename)
 {
    TFile *f = (TFile*)gROOT->GetListOfFiles()->FindObject(folder + file + ending);
    if (!f || !f->IsOpen()) {
@@ -106,7 +107,7 @@ vmm::vmm(TString filename) : file(filename)
    Init(tree);
 }
 
-vmm::vmm(TTree *tree) : fChain(0) 
+evBuilder::evBuilder(TTree *tree) : fChain(0) 
 {
    if (tree == 0) {
       TFile *f = (TFile*)gROOT->GetListOfFiles()->FindObject(folder + file + ending);
@@ -123,19 +124,19 @@ vmm::vmm(TTree *tree) : fChain(0)
    Init(tree);
 }
 
-vmm::~vmm()
+evBuilder::~evBuilder()
 {
    if (!fChain) return;
    delete fChain->GetCurrentFile();
 }
 
-Int_t vmm::GetEntry(Long64_t entry)
+Int_t evBuilder::GetEntry(Long64_t entry)
 {
 // Read contents of entry.
    if (!fChain) return 0;
    return fChain->GetEntry(entry);
 }
-Long64_t vmm::LoadTree(Long64_t entry)
+Long64_t evBuilder::LoadTree(Long64_t entry)
 {
 // Set the environment to read one entry
    if (!fChain) return -5;
@@ -147,7 +148,7 @@ Long64_t vmm::LoadTree(Long64_t entry)
    return centry;
 }
 
-void vmm::addLimits(int minLimit, TString filename, bool verbose){
+void evBuilder::addLimits(int minLimit, TString filename){
    vector<array<int, 2>> limitsCurrent;
    ifstream myfile(Form("../out/%s", filename.Data()));
    int bin1 = 0;
@@ -156,8 +157,7 @@ void vmm::addLimits(int minLimit, TString filename, bool verbose){
    while (myfile >> bin1 >> bin2)
    {
       limitsCurrent.push_back({bin1, bin2});
-      if(verbose)
-        std::cout << "MinPDO "<< minLimit << "\tCH " << i << "\t L TDO: " << bin1 << "\t R TDO: " << bin2 << "\n";
+      std::cout << "MinPDO "<< minLimit << "\tCH " << i << "\t L TDO: " << bin1 << "\t R TDO: " << bin2 << "\n";
       i++;
    }
    if(!limitsCurrent.size()){
@@ -166,7 +166,7 @@ void vmm::addLimits(int minLimit, TString filename, bool verbose){
    }
    TDOlimits.emplace(minLimit, limitsCurrent);
 }
-array<int, 2> vmm::getLimits(int channel, int pdo){
+array<int, 2> evBuilder::getLimits(int channel, int pdo){
    int maxPDOLower = -1;
    int minPDO = -1;
    for(auto &l: TDOlimits){
@@ -179,13 +179,13 @@ array<int, 2> vmm::getLimits(int channel, int pdo){
    maxPDOLower = (maxPDOLower < 0) ? minPDO : maxPDOLower;
    return TDOlimits.at(maxPDOLower)[channel];
 }
-int vmm::getLimitLow(int channel, int pdo){
+int evBuilder::getLimitLow(int channel, int pdo){
    return getLimits(channel, pdo)[0];
 }
-int vmm::getLimitUp(int channel, int pdo){
+int evBuilder::getLimitUp(int channel, int pdo){
    return getLimits(channel, pdo)[1];
 }
-double vmm::getTime(int channel, int bcid, int tdo, int pdo){
+double evBuilder::getTime(int channel, int bcid, int tdo, int pdo){
    auto TDOlimits = getLimits(channel, pdo);
    auto ll = getLimitLow(channel, pdo),
         ul = getLimitUp(channel, pdo);
@@ -195,11 +195,11 @@ double vmm::getTime(int channel, int bcid, int tdo, int pdo){
    }
    return getTimeByHand(bcid, tdo, ll, ul);
 }
-double vmm::getTimeByHand(int bcid, int tdo, int lowLimit, int upLimit){
+double evBuilder::getTimeByHand(int bcid, int tdo, int lowLimit, int upLimit){
    return bcid * 25.0 - (tdo - lowLimit) * 25.0 / (upLimit - lowLimit);
 }
 
-void vmm::addPDOCorrection(TString filename, bool verbose){
+void evBuilder::addPDOCorrection(TString filename){
    ifstream myfile(Form("../out/%s", filename.Data()));
    float p0, p1;
    int i = 0;
@@ -207,8 +207,7 @@ void vmm::addPDOCorrection(TString filename, bool verbose){
    while (myfile >> p0 >> p1)
    {
       pdoCorrection.push_back({p0, p1});
-      if(verbose)
-        std::cout << "PDO Corrections: CH " << i << "\t [0]: " << p0 << "\t [1]: " << p1 << "\n";
+      std::cout << "PDO Corrections: CH " << i << "\t [0]: " << p0 << "\t [1]: " << p1 << "\n";
       i++;
    }
    if(sizeBefore == pdoCorrection.size()){
@@ -216,14 +215,14 @@ void vmm::addPDOCorrection(TString filename, bool verbose){
       exit(1);
    }
 }
-int vmm::correctPDO(int channel, int pdoIn){
+int evBuilder::correctPDO(int channel, int pdoIn){
   auto p0 = pdoCorrection.at(channel)[0];
   auto p1 = pdoCorrection.at(channel)[1];
   return static_cast<int>(p0 + pdoIn * p1);
 }
 
 
-void vmm::Init(TTree *tree)
+void evBuilder::Init(TTree *tree)
 {
    triggerTimeStamp = 0;
    triggerCounter = 0;
@@ -286,8 +285,8 @@ void vmm::Init(TTree *tree)
    addLimits(250, "calibration_25_100_pdo250.txt");
    addLimits(300, "calibration_25_100_pdo300.txt");
 
-   // addPDOCorrection("calibration_pdo_t@t_g3_p25_s100.txt");
-   addPDOCorrection("calibration_pdo_t@t_g1_p25_s100.txt");
+   // addPDOCorrection("calibration_pdo_t@t_g1_p25_s100.txt");
+   addPDOCorrection("calibration_pdo_t@t_g3_p25_s100.txt");
 }
 
-#endif // #ifdef vmm_cxx
+#endif // #ifdef evBuilder_cxx
