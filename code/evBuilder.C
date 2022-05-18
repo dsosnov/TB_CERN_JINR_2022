@@ -88,6 +88,25 @@ void evBuilder::threePlotDrawF(TH1D *h1, TH1D *h2, TH1D *h3)
 
 void evBuilder::Loop()
 {
+   int strawMin = -1, strawMax = -1, mmMin = -1, mmMax = -1;
+   for(auto &s: channelMap){
+     if(s.second.first == 1){
+       if(strawMin < 0 || strawMin > s.second.second)
+         strawMin = s.second.second;
+       if(strawMax < 0 || strawMax < s.second.second)
+         strawMax = s.second.second;
+     } else if(s.second.first == 4){
+       if(mmMin < 0 || mmMin > s.second.second)
+         mmMin = s.second.second;
+       if(mmMax < 0 || mmMax < s.second.second)
+         mmMax = s.second.second;
+     }
+   }
+
+   if (fChain == 0)
+        return;
+
+    TFile *out = new TFile("../out/out_" + file + ending, "RECREATE"); // PATH where to save out_*.root file
 
     auto straw_vs_sci = new TH1D("straw_vs_sci", Form("%s: straw vs scint;#Deltat, ns", file.Data()), 1000, -500, 500);
     auto straw_vs_mm = new TH1D("straw_vs_mm", Form("%s: straw vs microMegas;#Deltat, ns", file.Data()), 1000, -500, 500);
@@ -95,7 +114,6 @@ void evBuilder::Loop()
     auto mm_vs_sci = new TH1D("mm_vs_sci", Form("%s: microMegas vs scint;#Deltat, ns", file.Data()), 1000, -500, 500);
 
     auto sci0_vs_sci60 = new TH1D("sci0_vs_sci60", Form("%s: sci ch 0 vs sci ch 60;#Deltat, ns", file.Data()), 1000, -500, 500);
-
 
     auto straw_vs_sci_3det_corr = new TH1D("straw_vs_sci_3det_corr", Form("%s: 3-det correlations;#Deltat, ns", file.Data()), 1000, -500, 500);
     auto straw_vs_mm_3det_corr = new TH1D("straw_vs_mm_3det_corr", Form("%s: 3-det correlations;#Deltat, ns", file.Data()), 1000, -500, 500);
@@ -105,9 +123,6 @@ void evBuilder::Loop()
 
     auto straw26_rt = new TH2D("straw26_rt", Form("%s: straw ch62 v-shape sci ch 60;R, mm;T, ns", file.Data()), 26, 0, 6, 300, -100, 200);
     auto straw26_rt_0 = new TH2D("straw26_rt_0", Form("%s: straw ch62 v-shape sci ch 0;R, mm;T, ns", file.Data()), 26, 0, 6, 300, -100, 200);
-
-    if (fChain == 0)
-        return;
 
     Long64_t nentries = fChain->GetEntriesFast();
 
@@ -134,8 +149,10 @@ void evBuilder::Loop()
         for (int j = 0; j < channel->at(0).size(); j++)
         {
             int fch = channel->at(0).at(j);
+            int fchD = getMappedDetector(fch);
+            int fchM = getMappedChannel(fch);
 
-            if ((fch > 0 && fch < 4) ||  (fch > 60 && fch < 64)) // All straw ch
+            if (fchD == 1) // All straw ch
             {
                 int fpdoUC = pdo->at(0).at(j); // Uncorrected PDO, used at time calibration
                 int fpdo = correctPDO(fch, fpdoUC);
@@ -162,7 +179,7 @@ void evBuilder::Loop()
                 MmCluster.clear();
                 mbytes = 0, mb = 0;
                 
-                for (Long64_t kentry = jentry - 1; kentry < jentry + 1; kentry++)
+                for (Long64_t kentry = jentry - nLoopEntriesAround; kentry < jentry + nLoopEntriesAround; kentry++)
                 {
                     Long64_t iientry = LoadTree(kentry);
                     if (iientry < 0)
@@ -173,7 +190,9 @@ void evBuilder::Loop()
                     for (int k = 0; k < channel->at(0).size(); k++)
                     {
                         int ffch = channel->at(0).at(k);
-                        if (ffch < 4 || ffch > 59)
+                        int ffchD = getMappedDetector(ffch);
+                        int ffchM = getMappedChannel(ffch);
+                        if (ffchD != 4) 
                             continue;
 
                         int ffpdoUC = pdo->at(0).at(k); // Uncorrected PDO, used at time calibration
@@ -186,7 +205,7 @@ void evBuilder::Loop()
                         if (fabs(t_srtraw - fft) < 500)
                         {
                             straw_vs_mm ->Fill(t_srtraw - fft);
-                            array<double, 3> mM_hit = {{ffch * 1.0, ffpdo * 1.0, fft}};
+                            array<double, 3> mM_hit = {{ffchM * 1.0, ffpdo * 1.0, fft}};
                             MmCluster.push_back(mM_hit);
                         }
                     }
@@ -198,32 +217,6 @@ void evBuilder::Loop()
                 double sum2 = 0;
                 double w_sum = 0;
 
-                int strawCh = 0;
-
-                if (fch == 1)
-                {
-                    strawCh = 6;
-                }
-                else if (fch == 2)
-                {
-                    strawCh = 4;
-                }
-                else if (fch == 3)
-                {
-                    strawCh = 2;
-                }
-                else if (fch == 61)
-                {
-                    strawCh = 5;
-                }
-                else if (fch == 62)
-                {
-                    strawCh = 1;
-                }
-                else if (fch == 63)
-                {
-                    strawCh = 3;
-                }
                 double minT_straw_mm = 600;
                 int mmCh_min = 0;
                 
@@ -255,11 +248,10 @@ void evBuilder::Loop()
                     }
                     meanT = sum1 / w_sum;
                     meanCh = sum2 / w_sum;
-                    straw_vs_mm_spatial_corr->Fill(strawCh, meanCh);
+                    straw_vs_mm_spatial_corr->Fill(fchM, meanCh);
                     // straw_vs_mm ->Fill(t_srtraw - meanT);
                     hits_in_cluster->Fill( MmCluster.size());
                 }
-                                
 
                 // ============================= end of sci MM correlation finding ============================
 
@@ -267,7 +259,7 @@ void evBuilder::Loop()
                 //                           jentry to find correlation with sci 0
 
                 mbytes = 0, mb = 0;
-                for (Long64_t kentry = jentry - 1; kentry < jentry + 1; kentry++)
+                for (Long64_t kentry = jentry - nLoopEntriesAround; kentry < jentry + nLoopEntriesAround; kentry++)
                 {
                     Long64_t iientry = LoadTree(kentry);
                     if (iientry < 0)
@@ -278,7 +270,9 @@ void evBuilder::Loop()
                     for (int k = 0; k < channel->at(0).size(); k++)
                     {
                         int ffch = channel->at(0).at(k);
-                        if (ffch != 0)
+                        int ffchD = getMappedDetector(ffch);
+                        int ffchM = getMappedChannel(ffch);
+                        if (ffchD != 0 || ffchM != 0)
                             continue;
 
                         int ffpdoUC = pdo->at(0).at(k); // Uncorrected PDO, used at time calibration
@@ -302,7 +296,7 @@ void evBuilder::Loop()
                 }
 
                 mbytes = 0, mb = 0;
-                for (Long64_t kentry = jentry - 1; kentry < jentry + 1; kentry++)
+                for (Long64_t kentry = jentry - nLoopEntriesAround; kentry < jentry + nLoopEntriesAround; kentry++)
                 {
                     Long64_t iientry = LoadTree(kentry);
                     if (iientry < 0)
@@ -313,7 +307,10 @@ void evBuilder::Loop()
                     for (int k = 0; k < channel->at(0).size(); k++)
                     {
                         int ffch = channel->at(0).at(k);
-                        if (ffch != 60)
+                        int ffch = channel->at(0).at(k);
+                        int ffchD = getMappedDetector(ffch);
+                        int ffchM = getMappedChannel(ffch);
+                        if (ffchD != 0 || ffchM != 4)
                             continue;
 
                         int ffpdoUC = pdo->at(0).at(k); // Uncorrected PDO, used at time calibration
@@ -377,20 +374,8 @@ void evBuilder::Loop()
             }
         }
     }
-    threePlotDrawF(mm_vs_sci_3det_corr, straw_vs_sci_3det_corr, straw_vs_mm_3det_corr);
+    // threePlotDrawF(mm_vs_sci_3det_corr, straw_vs_sci_3det_corr, straw_vs_mm_3det_corr);
 
-
-    TFile *out = new TFile("../out/out_" + file + ending, "RECREATE"); // PATH where to save out_*.root file
-    straw_vs_sci->Write();
-    straw_vs_mm->Write();
-    mm_vs_sci->Write();
-    hits_in_cluster->Write();
-    straw_vs_sci_3det_corr->Write();
-    straw_vs_mm_3det_corr->Write();
-    mm_vs_sci_3det_corr->Write();
-    straw_vs_mm_spatial_corr->Write();
-    sci0_vs_sci60->Write();
-    straw26_rt->Write();
-    straw26_rt_0->Write();
+    out->Write();
     out->Close();
 }
