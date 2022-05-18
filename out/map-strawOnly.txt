@@ -1,7 +1,11 @@
 # Map file. 
 # structure: Mu2E channel \t detector \t channel
 # Detectors:
-# - 0: scintillator
+# - 0: scintillator:
+#      - channel 0 - sci0
+#      - channel 1 - sci1
+#      - channel 2 - sci2
+#      - channel 3 - triple scintillator coinsidence
 # - 1: straw
 # - 2: MM layer 0
 # - 3: MM layer 1
