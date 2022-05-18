@@ -1,4 +1,3 @@
-#define vmm_cxx
 #include "vmm.h"
 #include <TH2.h>
 #include <TH1.h>
@@ -6,7 +5,7 @@
 
 void vmm::Loop()
 {
-
+  printf("vmm::Loop()\n");
   int strawMin = -1, strawMax = -1, mmMin = -1, mmMax = -1;
   for(auto &s: channelMap){
     if(s.second.first == 1){

@@ -1,4 +1,3 @@
-#define evBuilder_cxx
 #include "evBuilder.h"
 #include <TH1.h>
 
