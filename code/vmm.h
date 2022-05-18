@@ -318,7 +318,7 @@ void vmm::Init(TTree *tree)
 
    addPDOCorrection("calibration_pdo_t@t_g1_p25_s100.txt");
 
-   addMap("map.txt");
+   addMap("map-20220518.txt");
 }
 
 #endif // #ifdef vmm_cxx
