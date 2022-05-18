@@ -6,6 +6,23 @@
 
 void vmm::Loop()
 {
+
+  int strawMin = -1, strawMax = -1, mmMin = -1, mmMax = -1;
+  for(auto &s: channelMap){
+    if(s.second.first == 1){
+      if(strawMin < 0 || strawMin > s.second.second)
+        strawMin = s.second.second;
+      if(strawMax < 0 || strawMax < s.second.second)
+        strawMax = s.second.second;
+    } else if(s.second.first == 4){
+      if(mmMin < 0 || mmMin > s.second.second)
+        mmMin = s.second.second;
+      if(mmMax < 0 || mmMax < s.second.second)
+        mmMax = s.second.second;
+    }
+  }
+  printf("Straws: %d-%d, MM: %d-%d\n", strawMin, strawMax, mmMin, mmMax);
+
    // fast check plots
    auto tdo_sci0 = new TH1D("tdo_sci0", Form("%s: cid_sci0; TDO", file.Data()), 128, 0, 256);
    auto bcid_sci0 = new TH1D("bcid_sci0", Form("%s: bcid_sci0; TDO", file.Data()), 4096, 0, 4096);
@@ -47,7 +64,6 @@ void vmm::Loop()
 
    auto straw31_vs_straw30_banana_bcid = new TH2D("straw31_vs_straw30_banana_bcid",
                                                    Form("%s: straw31_vs_straw30_banana_bcid; straw 31 #Delta BCID; straw 3cid_sci0; TDO", file.Data()), 500, -250, 250, 500, -250, 250);
-
    // TDO distribution for every Ch
    TH1D *h[64];
    for (Int_t i = 0; i < 64; i++)
