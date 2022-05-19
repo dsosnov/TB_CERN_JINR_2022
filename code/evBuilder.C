@@ -135,6 +135,9 @@ void evBuilder::Loop()
     auto straw_vs_mm_spatial_corr = new TH2D("straw_vs_mm_spatial_corr", Form("%s: microMegas vs straw spatial correaltion;straw ch;MM ch", file.Data()),
                                              strawMax - strawMin + 1, strawMin, strawMax + 1, mmMax - mmMin + 1, mmMin, mmMax);
 
+    auto bananaPlot_straw_26_and_27 = new TH2D("bananaPlot_straw_26_and_27", Form("%s:''Banana'' - Plot;#Deltat straw 26 vs scint 0, ns;#Deltat straw 27 vs scint 0, ns", file.Data()),
+                                             70, -60, 10, 70, -60, 10);
+
     auto straw_rt_dir = out->mkdir("straw_rt");
     straw_rt_dir->cd();
     map<int, TH2D*> straw_rt, straw_rt_0 ;
@@ -311,6 +314,49 @@ void evBuilder::Loop()
 
                 // ============================= end of sci MM correlation finding ============================
 
+
+                // ============================= search another straw for "banana" ============================
+
+                double second_strawT = 0;
+
+                if (fchM == 26)
+                {
+                    mbytes = 0, mb = 0;
+
+                    for (Long64_t kentry = jentry - nLoopEntriesAround; kentry < jentry + nLoopEntriesAround; kentry++)
+                    {
+                        Long64_t iientry = LoadTree(kentry);
+                        if (iientry < 0)
+                            continue;
+                        mb = fChain->GetEntry(kentry);
+                        mbytes += mb;
+
+                        for (int k = 0; k < channel->at(0).size(); k++)
+                        {
+                            int ffch = channel->at(0).at(k);
+                            int ffchD = getMappedDetector(ffch);
+                            int ffchM = getMappedChannel(ffch);
+                            if (ffchD != 1 || ffchM != 27)
+                                continue;
+
+                            int ffpdoUC = pdo->at(0).at(k); // Uncorrected PDO, used at time calibration
+                            int ffpdo = correctPDO(ffch, ffpdoUC);
+                            int fftdo = tdo->at(0).at(k);
+                            int ffbcid = grayDecoded->at(0).at(k);
+                            // double fft = getTimeByHand(ffbcid, fftdo, 110, 160); //'hand' limits
+                            double fft = getTime(ffch, ffbcid, fftdo, ffpdoUC); // 'auto' limits
+
+                            if (fabs(t_srtraw - fft) < 500)
+                            {
+                                straw_vs_mm ->Fill(t_srtraw - fft);
+                                second_strawT = fft;
+                            }
+                        }
+                    }
+                }
+
+                // ============================= "banana" search end ============================
+
                 // ========================         LOOP OVER nLoopEntriesAround  events around         ========================
                 //                           jentry to find correlation with sci 0
 
@@ -401,6 +447,10 @@ void evBuilder::Loop()
                     straw_vs_sci->Fill(t_srtraw - sciT_ch0);
                     straw_deltat_0.at(fchM)->Fill(t_srtraw - sciT_ch0);
                     straw_pdo_0.at(fchM)->Fill(fpdo);
+                    if (second_strawT != 0)
+                    {
+                        bananaPlot_straw_26_and_27->Fill(t_srtraw - sciT_ch0, second_strawT - sciT_ch0);
+                    }
                 }
                 if (sciT_ch60 != 0)
                 {
@@ -440,6 +490,15 @@ void evBuilder::Loop()
             }
         }
     }
+
+    TCanvas *banana = new TCanvas("banana", "banana", 1000, 900);
+    banana->cd();
+    gStyle->SetOptStat(0);
+    bananaPlot_straw_26_and_27->Draw("COLZ");
+    banana->SaveAs("../out/banana_" + file + ".pdf");
+    banana->SaveAs("../out/banana_" + file + ".png");
+
+
 
     auto straw_rt_normed_dir = out->mkdir("straw_rt_normed");
     straw_rt_normed_dir->cd();
