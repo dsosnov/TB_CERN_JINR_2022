@@ -150,11 +150,11 @@ void evBuilder::Loop()
       straw_rt.emplace(i,
                        new TH2D(Form("straw%d_rt", i),
                                 Form("%s: straw %d v-shape sci ch 60;R, mm;T, ns", file.Data(), i),
-                                32, -1, 7, 300, -100, 200));
+                                32, -4, 4, 300, -100, 200));
       straw_rt_0.emplace(i,
                          new TH2D(Form("straw%d_rt_0", i),
                                   Form("%s: straw %d v-shape sci ch 0;R, mm;T, ns", file.Data(), i),
-                                  32, -1, 7, 300, -100, 200));
+                                  32, -4, 4, 300, -100, 200));
     }
     out->cd();
 
