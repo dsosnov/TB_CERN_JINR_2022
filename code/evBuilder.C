@@ -504,6 +504,15 @@ void evBuilder::Loop()
       }
     out->cd();
 
+    auto straw_rt_proj_dir = out->mkdir("straw_rt_proj");
+    straw_rt_proj_dir->cd();
+    for(auto &m: {straw_rt, straw_rt_0})
+      for(auto &h: m){
+        auto hist = h.second->ProjectionY(Form("%s_projectiony", h.second->GetName()));
+        hist->SetTitle(Form("%s - projectionY", h.second->GetTitle()));
+      }
+    out->cd();
+
     threePlotDrawF(mm_vs_sci_3det_corr, straw_vs_sci_3det_corr, straw_vs_mm_3det_corr);
     threePlotDrawF(mm_vs_sci_3det_corr_0, straw_vs_sci_3det_corr_0, straw_vs_mm_3det_corr_0, "_0");
 
