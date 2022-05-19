@@ -160,7 +160,19 @@ void evBuilder::Loop()
     }
     out->cd();
 
-    
+    auto straw_deltat_dir = out->mkdir("straw_deltat_corr");
+    straw_deltat_dir->cd();
+    map<int, TH1D*> straw_deltat, straw_deltat_0 ;
+    for(auto i = strawMin; i <= strawMax; i++){
+      straw_deltat.emplace(i,
+                        new TH1D(Form("straw%d_vs_sci60", i),
+                                 Form("%s: straw%d_vs_sci60;#Delta t", file.Data(), i), 1000, -500, 500));
+      straw_deltat_0.emplace(i,
+                        new TH1D(Form("straw%d_vs_sci0", i),
+                                 Form("%s: straw%d_vs_sci0;#Delta t", file.Data(), i), 1000, -500, 500));
+    }
+    out->cd();
+
     // auto straw26_rt = new TH2D("straw26_rt", Form("%s: straw ch62 v-shape sci ch 60;R, mm;T, ns", file.Data()), 26, 0, 6, 300, -100, 200);
     // auto straw26_rt_0 = new TH2D("straw26_rt_0", Form("%s: straw ch62 v-shape sci ch 0;R, mm;T, ns", file.Data()), 26, 0, 6, 300, -100, 200);
 
@@ -384,10 +396,12 @@ void evBuilder::Loop()
                         mm_vs_sci->Fill(meanT - sciT_ch0);
                     }
                     straw_vs_sci->Fill(t_srtraw - sciT_ch0);
+                    straw_deltat_0.at(fchM)->Fill(t_srtraw - sciT_ch0);
                     straw_pdo_0.at(fchM)->Fill(fpdo);
                 }
                 if (sciT_ch60 != 0)
                 {
+                    straw_deltat.at(fchM)->Fill(t_srtraw - sciT_ch60);
                     straw_pdo.at(fchM)->Fill(fpdo);
                 }
                 if (sciT_ch0 != 0 && meanT != 0)
@@ -421,6 +435,49 @@ void evBuilder::Loop()
             }
         }
     }
+
+    auto straw_rt_normed_dir = out->mkdir("straw_rt_normed");
+    straw_rt_normed_dir->cd();
+    map<int, TH2D*> straw_rt_normed, straw_rt_0_normed ;
+    for(auto &h: straw_rt){
+      auto hnew = static_cast<TH2D*>(h.second->Clone(Form("straw%d_rt_normed", h.first)));
+      for(auto i = 1; i <= hnew->GetNbinsX(); i++){
+        auto integ = hnew->Integral(i, i, 1, hnew->GetNbinsY());
+        if(!integ) continue;
+        for(auto j = 1; j <= hnew->GetNbinsY(); j++){
+          auto c = hnew->GetBinContent(i, j);
+          auto e = hnew->GetBinError(i, j);
+          hnew->SetBinContent(i, j, static_cast<float>(c) / static_cast<float>(integ));
+          hnew->SetBinError(i, j, static_cast<float>(e) / static_cast<float>(integ));
+        }
+      }
+      straw_rt_normed.emplace(h.first, hnew);
+    }
+    for(auto &h: straw_rt_0){
+      auto hnew = static_cast<TH2D*>(h.second->Clone(Form("straw%d_rt_0_normed", h.first)));
+      for(auto i = 1; i <= hnew->GetNbinsX(); i++){
+        auto integ = hnew->Integral(i, i, 1, hnew->GetNbinsY());
+        if(!integ) continue;
+        for(auto j = 1; j <= hnew->GetNbinsY(); j++){
+          auto c = hnew->GetBinContent(i, j);
+          auto e = hnew->GetBinError(i, j);
+          hnew->SetBinContent(i, j, static_cast<float>(c) / static_cast<float>(integ));
+          hnew->SetBinError(i, j, static_cast<float>(e) / static_cast<float>(integ));
+        }
+      }
+      straw_rt_0_normed.emplace(h.first, hnew);
+    }
+    out->cd();
+
+    auto straw_rt_normed_proj_dir = out->mkdir("straw_rt_normed_proj");
+    straw_rt_normed_proj_dir->cd();
+    for(auto &m: {straw_rt_normed, straw_rt_0_normed})
+      for(auto &h: m){
+        auto hist = h.second->ProjectionY(Form("%s_projectiony", h.second->GetName()));
+        hist->SetTitle(Form("%s - projectionY", h.second->GetTitle()));
+      }
+    out->cd();
+
     // threePlotDrawF(mm_vs_sci_3det_corr, straw_vs_sci_3det_corr, straw_vs_mm_3det_corr);
 
     out->Write();
