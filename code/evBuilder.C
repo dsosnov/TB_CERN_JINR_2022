@@ -107,13 +107,21 @@ void evBuilder::Loop()
    if (fChain == 0)
         return;
 
-    map<int, float> firstStripForStraw = {
-      {24, 21 + 150 + 24/1.0},
-      {25, 21 + 150 + 24/2.0},
-      {26, 21 + 150         }, //21 + (mmMin - 4)
-      {27, 21 + 150 - 24/2.0},
-      {28, 21 + 150 + 24/1.0},
-      {29, 21 + 150 + 24/1.5},
+    // map<int, float> firstStripForStraw = {
+    //   {24, 21 + 150 + 24/1.0},
+    //   {25, 21 + 150 + 24/2.0},
+    //   {26, 21 + 150         }, //21 + (mmMin - 4)
+    //   {27, 21 + 150 - 24/2.0},
+    //   {28, 21 + 150 + 24/1.0},
+    //   {29, 21 + 150 + 24/1.5},
+    // };
+    map<int, float> strawCenterMM = {
+      {24, 207}, // 21 + 150 + 24/1.0 + 12
+      {25, 198}, // 21 + 150 + 24/2.0 + 15
+      {26, 182}, // 21 + 150 + 12 - 1 // 21 + (mmMin - 4)
+      {27, 174}, // 21 + 150 - 24/2.0 + 15
+      {28, 207}, // 21 + 150 + 24/1.0 + 12
+      {29, 199}, // 21 + 150 + 24/1.5 + 12
     };
 
     TFile *out = new TFile("../out/out_" + file + ending, "RECREATE"); // PATH where to save out_*.root file
@@ -142,11 +150,11 @@ void evBuilder::Loop()
       straw_rt.emplace(i,
                        new TH2D(Form("straw%d_rt", i),
                                 Form("%s: straw %d v-shape sci ch 60;R, mm;T, ns", file.Data(), i),
-                                26, 0, 6, 300, -100, 200));
+                                32, -1, 7, 300, -100, 200));
       straw_rt_0.emplace(i,
                          new TH2D(Form("straw%d_rt_0", i),
                                   Form("%s: straw %d v-shape sci ch 0;R, mm;T, ns", file.Data(), i),
-                                  26, 0, 6, 300, -100, 200));
+                                  32, -1, 7, 300, -100, 200));
     }
     out->cd();
 
@@ -422,7 +430,7 @@ void evBuilder::Loop()
                 }
                 if (sciT_ch0 != 0 && meanT != 0)
                 {
-                    straw_rt_0.at(fchM)->Fill((meanCh - firstStripForStraw.at(fchM)) * 0.25, 100 + t_srtraw - sciT_ch0);
+                    straw_rt_0.at(fchM)->Fill((meanCh - strawCenterMM.at(fchM)) * 0.25 + 3.0, 100 + t_srtraw - sciT_ch0);
                     // if (strawCh == 3 && (meanCh > 21 && meanCh < 47))
                     // {
                     //     straw26_rt_0->Fill((meanCh - 21) * 0.25, 100 + t_srtraw - sciT_ch0);
@@ -436,7 +444,7 @@ void evBuilder::Loop()
                     straw_vs_sci_3det_corr->Fill(t_srtraw - sciT_ch60);
                     straw_vs_mm_3det_corr->Fill(t_srtraw - meanT);
                     mm_vs_sci_3det_corr->Fill(meanT - sciT_ch60);
-                    straw_rt.at(fchM)->Fill((meanCh - firstStripForStraw.at(fchM)) * 0.25, 100 + t_srtraw - sciT_ch60);
+                    straw_rt.at(fchM)->Fill((meanCh - strawCenterMM.at(fchM)) * 0.25 + 3.0, 100 + t_srtraw - sciT_ch60);
                     // if (strawCh == 3 && (meanCh > 21 && meanCh < 47))
                     // {
                     //     straw26_rt->Fill((meanCh - 21) * 0.25, 100 + t_srtraw - sciT_ch60);
