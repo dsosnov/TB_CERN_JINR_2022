@@ -64,6 +64,10 @@ void vmm::Loop()
 
    auto straw31_vs_straw30_banana_bcid = new TH2D("straw31_vs_straw30_banana_bcid",
                                                    Form("%s: straw31_vs_straw30_banana_bcid; straw 31 #Delta BCID; straw 3cid_sci0; TDO", file.Data()), 500, -250, 250, 500, -250, 250);
+   
+   auto straw26_vs_sci_pdo = new TH1D("straw26_vs_sci_pdo", Form("%s: straw 26 vs scint0;pdo", file.Data()), 64, 0, 1024);
+   auto straw27_vs_sci_pdo = new TH1D("straw27_vs_sci_pdo", Form("%s: straw 27 vs scint0;pdo", file.Data()), 64, 0, 1024);
+
    // TDO distribution for every Ch
    TH1D *h[64];
    for (Int_t i = 0; i < 64; i++)
@@ -94,43 +98,43 @@ void vmm::Loop()
    Long64_t nentries = fChain->GetEntriesFast();
 
    Long64_t nbytes = 0, nb = 0;
-   for (Long64_t jentry = 0; jentry < nentries; jentry++)
-   {
-      Long64_t ientry = LoadTree(jentry);
-      if (ientry < 0)
-         break;
-      nb = fChain->GetEntry(jentry);
-      nbytes += nb;
-      for (int j = 0; j < channel->at(0).size(); j++)
-      {
-         int chtemp = channel->at(0).at(j);
-         if (pdo->at(0).at(j) > 350) // !!! <------ setup for TDO distributions for every Ch
-         {
-            h[chtemp]->Fill(tdo->at(0).at(j));
-         }
-         if (chtemp == 0)
-         {
-            tdo_sci0->Fill(tdo->at(0).at(j));
-         }
-         else if (chtemp == 1)
-         {
-            tdo_sci1->Fill(tdo->at(0).at(j));
-         }
-         else if (chtemp == 2)
-         {
-            tdo_sci2->Fill(tdo->at(0).at(j));
-         }
-         else if (chtemp == 31)
-         {
-            tdo_straw31->Fill(tdo->at(0).at(j));
-            tdo_vs_pdo_straw31->Fill(pdo->at(0).at(j), tdo->at(0).at(j));
-         }
-         else
-         {
-            continue;
-         }
-      }
-   }
+   // for (Long64_t jentry = 0; jentry < nentries; jentry++)
+   // {
+   //    Long64_t ientry = LoadTree(jentry);
+   //    if (ientry < 0)
+   //       break;
+   //    nb = fChain->GetEntry(jentry);
+   //    nbytes += nb;
+   //    for (int j = 0; j < channel->at(0).size(); j++)
+   //    {
+   //       int chtemp = channel->at(0).at(j);
+   //       if (pdo->at(0).at(j) > 350) // !!! <------ setup for TDO distributions for every Ch
+   //       {
+   //          h[chtemp]->Fill(tdo->at(0).at(j));
+   //       }
+   //       if (chtemp == 0)
+   //       {
+   //          tdo_sci0->Fill(tdo->at(0).at(j));
+   //       }
+   //       else if (chtemp == 1)
+   //       {
+   //          tdo_sci1->Fill(tdo->at(0).at(j));
+   //       }
+   //       else if (chtemp == 2)
+   //       {
+   //          tdo_sci2->Fill(tdo->at(0).at(j));
+   //       }
+   //       else if (chtemp == 31)
+   //       {
+   //          tdo_straw31->Fill(tdo->at(0).at(j));
+   //          tdo_vs_pdo_straw31->Fill(pdo->at(0).at(j), tdo->at(0).at(j));
+   //       }
+   //       else
+   //       {
+   //          continue;
+   //       }
+   //    }
+   // }
    // ===================================================================================
 
 
@@ -193,7 +197,7 @@ void vmm::Loop()
          if (fch == 35 || fch == 63)
             continue; // remove 'bad' ch for future tasks
 
-         if (fch == 26)
+         if (fch == 26 || fch == 27)
          {
             int fpdoUC = pdo->at(0).at(j); // Uncorrected PDO, used at time calibration
             int fpdo = correctPDO(fch, fpdoUC);
@@ -311,6 +315,15 @@ void vmm::Loop()
                bcid_sci0->Fill(sci_bcid_ch0);
                bcid_straw31->Fill(straw_bcid_ch31);
                bcid_straw30->Fill(straw_bcid_ch30);
+               if (fch == 26)
+               {
+                  straw26_vs_sci_pdo->Fill(fpdo);
+
+               }
+               if (fch == 27)
+               {
+                  straw27_vs_sci_pdo->Fill(fpdo);
+               }
             }
 
             if (t30 != 0 && sciT_ch0 != 0)
@@ -495,5 +508,7 @@ void vmm::Loop()
    straw31_vs_straw30_all->Write();
    straw31_vs_straw30_banana_all->Write();
    straw31_vs_straw30_banana_bcid->Write();
+   straw26_vs_sci_pdo->Write();
+   straw27_vs_sci_pdo->Write();
    out->Close();
 }

@@ -77,14 +77,14 @@ public :
    map<unsigned int, vector<array<int, 2>>> TDOlimits;
    vector<array<float, 2>> pdoCorrection;
 
-   void addLimits(int minLimit, TString filename);
+  void addLimits(int minLimit, TString filename, bool verbose = false);
    array<int, 2> getLimits(int channel, int pdo);
    int getLimitLow(int channel, int pdo);
    int getLimitUp(int channel, int pdo);
    double getTime(int channel, int bcid, int tdo, int pdo);
    static double getTimeByHand(int bcid, int tdo, int lowLimit, int upLimit);
 
-   void addPDOCorrection(TString filename);
+   void addPDOCorrection(TString filename, bool verbose = false);
    int correctPDO(int channel, int pdoIn);
 
    map<int, pair<int, int>> channelMap;
@@ -153,7 +153,7 @@ Long64_t vmm::LoadTree(Long64_t entry)
    return centry;
 }
 
-void vmm::addLimits(int minLimit, TString filename){
+void vmm::addLimits(int minLimit, TString filename, bool verbose){
    vector<array<int, 2>> limitsCurrent;
    ifstream myfile(Form("../out/%s", filename.Data()));
    int bin1 = 0;
@@ -162,7 +162,8 @@ void vmm::addLimits(int minLimit, TString filename){
    while (myfile >> bin1 >> bin2)
    {
       limitsCurrent.push_back({bin1, bin2});
-      std::cout << "MinPDO "<< minLimit << "\tCH " << i << "\t L TDO: " << bin1 << "\t R TDO: " << bin2 << "\n";
+      if(verbose)
+        std::cout << "MinPDO "<< minLimit << "\tCH " << i << "\t L TDO: " << bin1 << "\t R TDO: " << bin2 << "\n";
       i++;
    }
    if(!limitsCurrent.size()){
@@ -204,7 +205,7 @@ double vmm::getTimeByHand(int bcid, int tdo, int lowLimit, int upLimit){
    return bcid * 25.0 - (tdo - lowLimit) * 25.0 / (upLimit - lowLimit);
 }
 
-void vmm::addPDOCorrection(TString filename){
+void vmm::addPDOCorrection(TString filename, bool verbose){
    ifstream myfile(Form("../out/%s", filename.Data()));
    float p0, p1;
    int i = 0;
@@ -212,7 +213,8 @@ void vmm::addPDOCorrection(TString filename){
    while (myfile >> p0 >> p1)
    {
       pdoCorrection.push_back({p0, p1});
-      std::cout << "PDO Corrections: CH " << i << "\t [0]: " << p0 << "\t [1]: " << p1 << "\n";
+      if(verbose)
+        std::cout << "PDO Corrections: CH " << i << "\t [0]: " << p0 << "\t [1]: " << p1 << "\n";
       i++;
    }
    if(sizeBefore == pdoCorrection.size()){
