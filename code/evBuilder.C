@@ -134,11 +134,26 @@ void evBuilder::Loop()
                                 Form("%s: straw %d v-shape sci ch 60;R, mm;T, ns", file.Data(), i),
                                 26, 0, 6, 300, -100, 200));
       straw_rt_0.emplace(i,
-                       new TH2D(Form("straw%d_rt_0", i),
-                                Form("%s: straw %d v-shape sci ch 0;R, mm;T, ns", file.Data(), i),
-                                26, 0, 6, 300, -100, 200));
+                         new TH2D(Form("straw%d_rt_0", i),
+                                  Form("%s: straw %d v-shape sci ch 0;R, mm;T, ns", file.Data(), i),
+                                  26, 0, 6, 300, -100, 200));
     }
     out->cd();
+
+    auto straw_pdo_dir = out->mkdir("straw_pdo_corr");
+    straw_pdo_dir->cd();
+    map<int, TH1D*> straw_pdo, straw_pdo_0 ;
+    for(auto i = strawMin; i <= strawMax; i++){
+      straw_pdo.emplace(i,
+                        new TH1D(Form("straw%d_pdo_corr", i),
+                                 Form("%s: pdo for straw %d corellated with sci ch 60;pdo", file.Data(), i), 64, 0, 1024));
+      straw_pdo_0.emplace(i,
+                          new TH1D(Form("straw%d_pdo_corr_0", i),
+                                   Form("%s: pdo for straw %d corellated with sci ch 0;pdo", file.Data(), i), 64, 0, 1024));
+    }
+    out->cd();
+
+    
     // auto straw26_rt = new TH2D("straw26_rt", Form("%s: straw ch62 v-shape sci ch 60;R, mm;T, ns", file.Data()), 26, 0, 6, 300, -100, 200);
     // auto straw26_rt_0 = new TH2D("straw26_rt_0", Form("%s: straw ch62 v-shape sci ch 0;R, mm;T, ns", file.Data()), 26, 0, 6, 300, -100, 200);
 
@@ -362,6 +377,11 @@ void evBuilder::Loop()
                         mm_vs_sci->Fill(meanT - sciT_ch0);
                     }
                     straw_vs_sci->Fill(t_srtraw - sciT_ch0);
+                    straw_pdo_0.at(fchM)->Fill(fpdo);
+                }
+                if (sciT_ch60 != 0)
+                {
+                    straw_pdo.at(fchM)->Fill(fpdo);
                 }
                 auto firstMM = firstStripFirstStraw - 25 / 2.0 * (fchM - strawMin);
                 if (sciT_ch0 != 0 && meanT != 0)
