@@ -2,7 +2,7 @@
 #include "evBuilder.h"
 #include <TH1.h>
 
-void evBuilder::threePlotDrawF(TH1D *h1, TH1D *h2, TH1D *h3)
+void evBuilder::threePlotDrawF(TH1D *h1, TH1D *h2, TH1D *h3, TString fileEnding)
 {
     h1->SetLineColor(kGreen - 2);
     h2->SetLineColor(kMagenta);
@@ -84,7 +84,7 @@ void evBuilder::threePlotDrawF(TH1D *h1, TH1D *h2, TH1D *h3)
     legend2->AddEntry(h3, constant2);
     legend2->Draw("same");
 
-    three_plots->SaveAs("../out/3plots_" + file + ".pdf");
+    three_plots->SaveAs("../out/3plots_" + file + fileEnding + ".pdf");
 }
 
 void evBuilder::Loop()
@@ -128,6 +128,9 @@ void evBuilder::Loop()
     auto straw_vs_sci_3det_corr = new TH1D("straw_vs_sci_3det_corr", Form("%s: 3-det correlations;#Deltat, ns", file.Data()), 1000, -500, 500);
     auto straw_vs_mm_3det_corr = new TH1D("straw_vs_mm_3det_corr", Form("%s: 3-det correlations;#Deltat, ns", file.Data()), 1000, -500, 500);
     auto mm_vs_sci_3det_corr = new TH1D("mm_vs_sci_3det_corr", Form("%s: 3-det correlations;#Deltat, ns", file.Data()), 1000, -500, 500);
+    auto straw_vs_sci_3det_corr_0 = new TH1D("straw_vs_sci0_3det_corr", Form("%s: 3-det correlations, sci0;#Deltat, ns", file.Data()), 1000, -500, 500);
+    auto straw_vs_mm_3det_corr_0 = new TH1D("straw_vs_mm_3det_corr_vs_sci0", Form("%s: 3-det correlations, sci0;#Deltat, ns", file.Data()), 1000, -500, 500);
+    auto mm_vs_sci_3det_corr_0 = new TH1D("mm_vs_sci0_3det_corr", Form("%s: 3-det correlations, sci0;#Deltat, ns", file.Data()), 1000, -500, 500);
 
     auto straw_vs_mm_spatial_corr = new TH2D("straw_vs_mm_spatial_corr", Form("%s: microMegas vs straw spatial correaltion;straw ch;MM ch", file.Data()),
                                              strawMax - strawMin + 1, strawMin, strawMax + 1, mmMax - mmMin + 1, mmMin, mmMax);
@@ -411,7 +414,9 @@ void evBuilder::Loop()
                     // {
                     //     straw26_rt_0->Fill((meanCh - 21) * 0.25, 100 + t_srtraw - sciT_ch0);
                     // }
-                    
+                    straw_vs_sci_3det_corr_0->Fill(t_srtraw - sciT_ch0);
+                    straw_vs_mm_3det_corr_0->Fill(t_srtraw - meanT);
+                    mm_vs_sci_3det_corr_0->Fill(meanT - sciT_ch0);
                 }
                 if (sciT_ch60 != 0 && meanT != 0)
                 {
@@ -478,7 +483,8 @@ void evBuilder::Loop()
       }
     out->cd();
 
-    // threePlotDrawF(mm_vs_sci_3det_corr, straw_vs_sci_3det_corr, straw_vs_mm_3det_corr);
+    threePlotDrawF(mm_vs_sci_3det_corr, straw_vs_sci_3det_corr, straw_vs_mm_3det_corr);
+    threePlotDrawF(mm_vs_sci_3det_corr_0, straw_vs_sci_3det_corr_0, straw_vs_mm_3det_corr_0, "_0");
 
     out->Write();
     out->Close();
