@@ -430,7 +430,7 @@ void evBuilder::Loop()
                 }
                 if (sciT_ch0 != 0 && meanT != 0)
                 {
-                    straw_rt_0.at(fchM)->Fill((meanCh - strawCenterMM.at(fchM)) * 0.25 + 3.0, 100 + t_srtraw - sciT_ch0);
+                    straw_rt_0.at(fchM)->Fill((meanCh - strawCenterMM.at(fchM)) * 0.25, 100 + t_srtraw - sciT_ch0);
                     // if (strawCh == 3 && (meanCh > 21 && meanCh < 47))
                     // {
                     //     straw26_rt_0->Fill((meanCh - 21) * 0.25, 100 + t_srtraw - sciT_ch0);
@@ -444,7 +444,7 @@ void evBuilder::Loop()
                     straw_vs_sci_3det_corr->Fill(t_srtraw - sciT_ch60);
                     straw_vs_mm_3det_corr->Fill(t_srtraw - meanT);
                     mm_vs_sci_3det_corr->Fill(meanT - sciT_ch60);
-                    straw_rt.at(fchM)->Fill((meanCh - strawCenterMM.at(fchM)) * 0.25 + 3.0, 100 + t_srtraw - sciT_ch60);
+                    straw_rt.at(fchM)->Fill((meanCh - strawCenterMM.at(fchM)) * 0.25, 100 + t_srtraw - sciT_ch60);
                     // if (strawCh == 3 && (meanCh > 21 && meanCh < 47))
                     // {
                     //     straw26_rt->Fill((meanCh - 21) * 0.25, 100 + t_srtraw - sciT_ch60);
