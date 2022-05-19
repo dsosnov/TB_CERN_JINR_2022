@@ -14,14 +14,14 @@ void evBuilder::threePlotDrawF(TH1D *h1, TH1D *h2, TH1D *h3, TString fileEnding)
 
     TCanvas *three_plots = new TCanvas("3 det correlation", "3 det correlation", 1400, 900);
     three_plots->cd();
-    
+
     h2->Draw();
     h1->Draw("SAME");
     h3->Draw("SAME");
 
     h1->Fit("gaus", "", "", -200, 200); // TMM - TScint
-    h2->Fit("gaus", "", "", -200, 200); // TStraw - TScint 
-    h3->Fit("gaus", "", "", -200, 200); // TStraw - TMM 
+    h2->Fit("gaus", "", "", -200, 200); // TStraw - TScint
+    h3->Fit("gaus", "", "", -200, 200); // TStraw - TMM
 
     TF1 *g1 = (TF1*)h1->GetListOfFunctions()->FindObject("gaus");
     TF1 *g2 = (TF1*)h2->GetListOfFunctions()->FindObject("gaus");
@@ -234,7 +234,7 @@ void evBuilder::Loop()
                 //                              jentry to find correlation with MM
                 MmCluster.clear();
                 mbytes = 0, mb = 0;
-                
+
                 for (Long64_t kentry = jentry - nLoopEntriesAround; kentry < jentry + nLoopEntriesAround; kentry++)
                 {
                     Long64_t iientry = LoadTree(kentry);
@@ -248,7 +248,7 @@ void evBuilder::Loop()
                         int ffch = channel->at(0).at(k);
                         int ffchD = getMappedDetector(ffch);
                         int ffchM = getMappedChannel(ffch);
-                        if (ffchD != 4) 
+                        if (ffchD != 4)
                             continue;
 
                         int ffpdoUC = pdo->at(0).at(k); // Uncorrected PDO, used at time calibration
@@ -275,7 +275,7 @@ void evBuilder::Loop()
 
                 double minT_straw_mm = 600;
                 int mmCh_min = 0;
-                
+
                 if (MmCluster.size() != 0)
                 {
                     for (size_t l = 0; l < MmCluster.size(); l++)
@@ -294,7 +294,7 @@ void evBuilder::Loop()
                             MmCluster.erase(MmCluster.begin()+l);
                         }
                     }
-                    
+    
 
                     for (size_t l = 0; l < MmCluster.size(); l++)
                     {
@@ -432,7 +432,7 @@ void evBuilder::Loop()
 
                 // ============================= end of sci 0 correlation finding =============================
 
-                
+
             }
             else
             {
