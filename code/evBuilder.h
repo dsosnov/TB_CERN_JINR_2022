@@ -230,7 +230,7 @@ void evBuilder::addPDOCorrection(TString filename, bool verbose){
 int evBuilder::correctPDO(int channel, int pdoIn){
   auto p0 = pdoCorrection.at(channel)[0];
   auto p1 = pdoCorrection.at(channel)[1];
-  auto result = static_cast<int>(p0 + pdoIn * p1);
+  auto result = static_cast<int>(round(p0 + static_cast<double>(pdoIn) * p1));
   if(result < 0)
     result = 0;
   else if(result >= 1024)
