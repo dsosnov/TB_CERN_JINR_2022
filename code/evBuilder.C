@@ -107,7 +107,14 @@ void evBuilder::Loop()
    if (fChain == 0)
         return;
 
-    int firstStripFirstStraw = (21 + 150) + 25; // The bottom end of third used straw was hardcoded to 21'st channel on MM.
+    map<int, float> firstStripForStraw = {
+      {24, 21 + 150 + 24/1.0},
+      {25, 21 + 150 + 24/2.0},
+      {26, 21 + 150         }, //21 + (mmMin - 4)
+      {27, 21 + 150 - 24/2.0},
+      {28, 21 + 150 + 24/1.0},
+      {29, 21 + 150 + 24/1.5},
+    };
 
     TFile *out = new TFile("../out/out_" + file + ending, "RECREATE"); // PATH where to save out_*.root file
 
@@ -383,10 +390,9 @@ void evBuilder::Loop()
                 {
                     straw_pdo.at(fchM)->Fill(fpdo);
                 }
-                auto firstMM = firstStripFirstStraw - 25 / 2.0 * (fchM - strawMin);
                 if (sciT_ch0 != 0 && meanT != 0)
                 {
-                    straw_rt_0.at(fchM)->Fill((meanCh - firstMM) * 0.25, 100 + t_srtraw - sciT_ch0);
+                    straw_rt_0.at(fchM)->Fill((meanCh - firstStripForStraw.at(fchM)) * 0.25, 100 + t_srtraw - sciT_ch0);
                     // if (strawCh == 3 && (meanCh > 21 && meanCh < 47))
                     // {
                     //     straw26_rt_0->Fill((meanCh - 21) * 0.25, 100 + t_srtraw - sciT_ch0);
@@ -398,7 +404,7 @@ void evBuilder::Loop()
                     straw_vs_sci_3det_corr->Fill(t_srtraw - sciT_ch60);
                     straw_vs_mm_3det_corr->Fill(t_srtraw - meanT);
                     mm_vs_sci_3det_corr->Fill(meanT - sciT_ch60);
-                    straw_rt.at(fchM)->Fill((meanCh - firstMM) * 0.25, 100 + t_srtraw - sciT_ch60);
+                    straw_rt.at(fchM)->Fill((meanCh - firstStripForStraw.at(fchM)) * 0.25, 100 + t_srtraw - sciT_ch60);
                     // if (strawCh == 3 && (meanCh > 21 && meanCh < 47))
                     // {
                     //     straw26_rt->Fill((meanCh - 21) * 0.25, 100 + t_srtraw - sciT_ch60);
