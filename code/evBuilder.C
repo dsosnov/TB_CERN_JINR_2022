@@ -176,8 +176,18 @@ void evBuilder::Loop()
     }
     out->cd();
 
-    // auto straw26_rt = new TH2D("straw26_rt", Form("%s: straw ch62 v-shape sci ch 60;R, mm;T, ns", file.Data()), 26, 0, 6, 300, -100, 200);
-    // auto straw26_rt_0 = new TH2D("straw26_rt_0", Form("%s: straw ch62 v-shape sci ch 0;R, mm;T, ns", file.Data()), 26, 0, 6, 300, -100, 200);
+    auto straw_pdo_uc_dir = out->mkdir("straw_pdo_uncorr");
+    straw_pdo_uc_dir->cd();
+    map<int, TH1D*> straw_pdo_ucl_ucr, straw_pdo_ucl_cr;
+    for(auto i = strawMin; i <= strawMax; i++){
+      straw_pdo_ucl_ucr.emplace(i,
+                          new TH1D(Form("straw%d_pdo_uncorrellated_uncorrected", i),
+                                   Form("%s: pdo for straw %d - uncorellated, no pdo correction;pdo", file.Data(), i), 64, 0, 1024));
+      straw_pdo_ucl_cr.emplace(i,
+                        new TH1D(Form("straw%d_pdo_uncorrellated_corrected", i),
+                                 Form("%s: pdo for straw %d - uncorellated, pdo correction;pdo", file.Data(), i), 64, 0, 1024));
+    }
+    out->cd();
 
     unsigned int nLoopEntriesAround = 1;
     Long64_t nentries = fChain->GetEntriesFast();
@@ -219,6 +229,9 @@ void evBuilder::Loop()
                 straw_pdo_ch_srtraw = fpdo;
                 t_srtraw = getTime(fch, fbcid, ftdo, fpdoUC); // 'auto' limits
                 // t_srtraw = getTimeByHand(fbcid, ftdo, Y, Y); //'hand' limits
+
+                straw_pdo_ucl_cr.at(fchM)->Fill(fpdo);
+                straw_pdo_ucl_ucr.at(fchM)->Fill(fpdoUC);
 
                 Long64_t mbytes = 0, mb = 0;
                 double t30 = 0;
