@@ -2,7 +2,7 @@
 #include "evBuilder.h"
 #include <TH1.h>
 
-void evBuilder::threePlotDrawF(TH1D *h1, TH1D *h2, TH1D *h3)
+void evBuilder::threePlotDrawF(TH1D *h1, TH1D *h2, TH1D *h3, TString fileEnding)
 {
     h1->SetLineColor(kGreen - 2);
     h2->SetLineColor(kMagenta);
@@ -14,14 +14,14 @@ void evBuilder::threePlotDrawF(TH1D *h1, TH1D *h2, TH1D *h3)
 
     TCanvas *three_plots = new TCanvas("3 det correlation", "3 det correlation", 1400, 900);
     three_plots->cd();
-    
+
     h2->Draw();
     h1->Draw("SAME");
     h3->Draw("SAME");
 
     h1->Fit("gaus", "", "", -200, 200); // TMM - TScint
-    h2->Fit("gaus", "", "", -200, 200); // TStraw - TScint 
-    h3->Fit("gaus", "", "", -200, 200); // TStraw - TMM 
+    h2->Fit("gaus", "", "", -200, 200); // TStraw - TScint
+    h3->Fit("gaus", "", "", -200, 200); // TStraw - TMM
 
     TF1 *g1 = (TF1*)h1->GetListOfFunctions()->FindObject("gaus");
     TF1 *g2 = (TF1*)h2->GetListOfFunctions()->FindObject("gaus");
@@ -84,7 +84,7 @@ void evBuilder::threePlotDrawF(TH1D *h1, TH1D *h2, TH1D *h3)
     legend2->AddEntry(h3, constant2);
     legend2->Draw("same");
 
-    three_plots->SaveAs("../out/3plots_" + file + ".pdf");
+    three_plots->SaveAs("../out/3plots_" + file + fileEnding + ".pdf");
 }
 
 void evBuilder::Loop()
@@ -107,7 +107,14 @@ void evBuilder::Loop()
    if (fChain == 0)
         return;
 
-    int firstStripFirstStraw = (21 + 150) + 25; // The bottom end of third used straw was hardcoded to 21'st channel on MM.
+    map<int, float> firstStripForStraw = {
+      {24, 21 + 150 + 24/1.0},
+      {25, 21 + 150 + 24/2.0},
+      {26, 21 + 150         }, //21 + (mmMin - 4)
+      {27, 21 + 150 - 24/2.0},
+      {28, 21 + 150 + 24/1.0},
+      {29, 21 + 150 + 24/1.5},
+    };
 
     TFile *out = new TFile("../out/out_" + file + ending, "RECREATE"); // PATH where to save out_*.root file
 
@@ -121,6 +128,9 @@ void evBuilder::Loop()
     auto straw_vs_sci_3det_corr = new TH1D("straw_vs_sci_3det_corr", Form("%s: 3-det correlations;#Deltat, ns", file.Data()), 1000, -500, 500);
     auto straw_vs_mm_3det_corr = new TH1D("straw_vs_mm_3det_corr", Form("%s: 3-det correlations;#Deltat, ns", file.Data()), 1000, -500, 500);
     auto mm_vs_sci_3det_corr = new TH1D("mm_vs_sci_3det_corr", Form("%s: 3-det correlations;#Deltat, ns", file.Data()), 1000, -500, 500);
+    auto straw_vs_sci_3det_corr_0 = new TH1D("straw_vs_sci0_3det_corr", Form("%s: 3-det correlations, sci0;#Deltat, ns", file.Data()), 1000, -500, 500);
+    auto straw_vs_mm_3det_corr_0 = new TH1D("straw_vs_mm_3det_corr_vs_sci0", Form("%s: 3-det correlations, sci0;#Deltat, ns", file.Data()), 1000, -500, 500);
+    auto mm_vs_sci_3det_corr_0 = new TH1D("mm_vs_sci0_3det_corr", Form("%s: 3-det correlations, sci0;#Deltat, ns", file.Data()), 1000, -500, 500);
 
     auto straw_vs_mm_spatial_corr = new TH2D("straw_vs_mm_spatial_corr", Form("%s: microMegas vs straw spatial correaltion;straw ch;MM ch", file.Data()),
                                              strawMax - strawMin + 1, strawMin, strawMax + 1, mmMax - mmMin + 1, mmMin, mmMax);
@@ -153,7 +163,19 @@ void evBuilder::Loop()
     }
     out->cd();
 
-    
+    auto straw_deltat_dir = out->mkdir("straw_deltat_corr");
+    straw_deltat_dir->cd();
+    map<int, TH1D*> straw_deltat, straw_deltat_0 ;
+    for(auto i = strawMin; i <= strawMax; i++){
+      straw_deltat.emplace(i,
+                        new TH1D(Form("straw%d_vs_sci60", i),
+                                 Form("%s: straw%d_vs_sci60;#Delta t", file.Data(), i), 1000, -500, 500));
+      straw_deltat_0.emplace(i,
+                        new TH1D(Form("straw%d_vs_sci0", i),
+                                 Form("%s: straw%d_vs_sci0;#Delta t", file.Data(), i), 1000, -500, 500));
+    }
+    out->cd();
+
     // auto straw26_rt = new TH2D("straw26_rt", Form("%s: straw ch62 v-shape sci ch 60;R, mm;T, ns", file.Data()), 26, 0, 6, 300, -100, 200);
     // auto straw26_rt_0 = new TH2D("straw26_rt_0", Form("%s: straw ch62 v-shape sci ch 0;R, mm;T, ns", file.Data()), 26, 0, 6, 300, -100, 200);
 
@@ -212,7 +234,7 @@ void evBuilder::Loop()
                 //                              jentry to find correlation with MM
                 MmCluster.clear();
                 mbytes = 0, mb = 0;
-                
+
                 for (Long64_t kentry = jentry - nLoopEntriesAround; kentry < jentry + nLoopEntriesAround; kentry++)
                 {
                     Long64_t iientry = LoadTree(kentry);
@@ -226,7 +248,7 @@ void evBuilder::Loop()
                         int ffch = channel->at(0).at(k);
                         int ffchD = getMappedDetector(ffch);
                         int ffchM = getMappedChannel(ffch);
-                        if (ffchD != 4) 
+                        if (ffchD != 4)
                             continue;
 
                         int ffpdoUC = pdo->at(0).at(k); // Uncorrected PDO, used at time calibration
@@ -253,7 +275,7 @@ void evBuilder::Loop()
 
                 double minT_straw_mm = 600;
                 int mmCh_min = 0;
-                
+
                 if (MmCluster.size() != 0)
                 {
                     for (size_t l = 0; l < MmCluster.size(); l++)
@@ -272,7 +294,7 @@ void evBuilder::Loop()
                             MmCluster.erase(MmCluster.begin()+l);
                         }
                     }
-                    
+    
 
                     for (size_t l = 0; l < MmCluster.size(); l++)
                     {
@@ -377,28 +399,31 @@ void evBuilder::Loop()
                         mm_vs_sci->Fill(meanT - sciT_ch0);
                     }
                     straw_vs_sci->Fill(t_srtraw - sciT_ch0);
+                    straw_deltat_0.at(fchM)->Fill(t_srtraw - sciT_ch0);
                     straw_pdo_0.at(fchM)->Fill(fpdo);
                 }
                 if (sciT_ch60 != 0)
                 {
+                    straw_deltat.at(fchM)->Fill(t_srtraw - sciT_ch60);
                     straw_pdo.at(fchM)->Fill(fpdo);
                 }
-                auto firstMM = firstStripFirstStraw - 25 / 2.0 * (fchM - strawMin);
                 if (sciT_ch0 != 0 && meanT != 0)
                 {
-                    straw_rt_0.at(fchM)->Fill((meanCh - firstMM) * 0.25, 100 + t_srtraw - sciT_ch0);
+                    straw_rt_0.at(fchM)->Fill((meanCh - firstStripForStraw.at(fchM)) * 0.25, 100 + t_srtraw - sciT_ch0);
                     // if (strawCh == 3 && (meanCh > 21 && meanCh < 47))
                     // {
                     //     straw26_rt_0->Fill((meanCh - 21) * 0.25, 100 + t_srtraw - sciT_ch0);
                     // }
-                    
+                    straw_vs_sci_3det_corr_0->Fill(t_srtraw - sciT_ch0);
+                    straw_vs_mm_3det_corr_0->Fill(t_srtraw - meanT);
+                    mm_vs_sci_3det_corr_0->Fill(meanT - sciT_ch0);
                 }
                 if (sciT_ch60 != 0 && meanT != 0)
                 {
                     straw_vs_sci_3det_corr->Fill(t_srtraw - sciT_ch60);
                     straw_vs_mm_3det_corr->Fill(t_srtraw - meanT);
                     mm_vs_sci_3det_corr->Fill(meanT - sciT_ch60);
-                    straw_rt.at(fchM)->Fill((meanCh - firstMM) * 0.25, 100 + t_srtraw - sciT_ch60);
+                    straw_rt.at(fchM)->Fill((meanCh - firstStripForStraw.at(fchM)) * 0.25, 100 + t_srtraw - sciT_ch60);
                     // if (strawCh == 3 && (meanCh > 21 && meanCh < 47))
                     // {
                     //     straw26_rt->Fill((meanCh - 21) * 0.25, 100 + t_srtraw - sciT_ch60);
@@ -407,7 +432,7 @@ void evBuilder::Loop()
 
                 // ============================= end of sci 0 correlation finding =============================
 
-                
+
             }
             else
             {
@@ -415,7 +440,51 @@ void evBuilder::Loop()
             }
         }
     }
-    // threePlotDrawF(mm_vs_sci_3det_corr, straw_vs_sci_3det_corr, straw_vs_mm_3det_corr);
+
+    auto straw_rt_normed_dir = out->mkdir("straw_rt_normed");
+    straw_rt_normed_dir->cd();
+    map<int, TH2D*> straw_rt_normed, straw_rt_0_normed ;
+    for(auto &h: straw_rt){
+      auto hnew = static_cast<TH2D*>(h.second->Clone(Form("straw%d_rt_normed", h.first)));
+      for(auto i = 1; i <= hnew->GetNbinsX(); i++){
+        auto integ = hnew->Integral(i, i, 1, hnew->GetNbinsY());
+        if(!integ) continue;
+        for(auto j = 1; j <= hnew->GetNbinsY(); j++){
+          auto c = hnew->GetBinContent(i, j);
+          auto e = hnew->GetBinError(i, j);
+          hnew->SetBinContent(i, j, static_cast<float>(c) / static_cast<float>(integ));
+          hnew->SetBinError(i, j, static_cast<float>(e) / static_cast<float>(integ));
+        }
+      }
+      straw_rt_normed.emplace(h.first, hnew);
+    }
+    for(auto &h: straw_rt_0){
+      auto hnew = static_cast<TH2D*>(h.second->Clone(Form("straw%d_rt_0_normed", h.first)));
+      for(auto i = 1; i <= hnew->GetNbinsX(); i++){
+        auto integ = hnew->Integral(i, i, 1, hnew->GetNbinsY());
+        if(!integ) continue;
+        for(auto j = 1; j <= hnew->GetNbinsY(); j++){
+          auto c = hnew->GetBinContent(i, j);
+          auto e = hnew->GetBinError(i, j);
+          hnew->SetBinContent(i, j, static_cast<float>(c) / static_cast<float>(integ));
+          hnew->SetBinError(i, j, static_cast<float>(e) / static_cast<float>(integ));
+        }
+      }
+      straw_rt_0_normed.emplace(h.first, hnew);
+    }
+    out->cd();
+
+    auto straw_rt_normed_proj_dir = out->mkdir("straw_rt_normed_proj");
+    straw_rt_normed_proj_dir->cd();
+    for(auto &m: {straw_rt_normed, straw_rt_0_normed})
+      for(auto &h: m){
+        auto hist = h.second->ProjectionY(Form("%s_projectiony", h.second->GetName()));
+        hist->SetTitle(Form("%s - projectionY", h.second->GetTitle()));
+      }
+    out->cd();
+
+    threePlotDrawF(mm_vs_sci_3det_corr, straw_vs_sci_3det_corr, straw_vs_mm_3det_corr);
+    threePlotDrawF(mm_vs_sci_3det_corr_0, straw_vs_sci_3det_corr_0, straw_vs_mm_3det_corr_0, "_0");
 
     out->Write();
     out->Close();
