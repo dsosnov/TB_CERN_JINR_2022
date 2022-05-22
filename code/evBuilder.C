@@ -273,15 +273,13 @@ void evBuilder::Loop()
 
                 Long64_t mbytes = 0, mb = 0;
                 double t30 = 0;
-                double minTsci0 = 1e3;
+                double minTsci0 = 3e2;
                 double sciT_ch0 = 0;
-                int sci_bcid_ch0 = 0;
-                double minTsci60 = 1e3;
+                double minTsci60 = 3e2;
                 double sciT_ch60 = 0;
-                int sci_bcid_ch60 = 0;
                 vector<array<double, 3> > MmCluster;
                 double neighborStrawTime = 0;
-                double neighborMinStrawTime = 1E3;
+                double neighborMinStrawTime = 3E2;
 
                 // ========================         LOOP OVER nLoopEntriesAround  events around         ========================
                 //                              jentry to find correlation with MM
@@ -302,15 +300,16 @@ void evBuilder::Loop()
                       if(ffch == fch) continue;
                       int ffchD = getMappedDetector(ffch);
                       int ffchM = getMappedChannel(ffch);
+                      
+                      int ffpdoUC = pdo->at(0).at(k); // Uncorrected PDO, used at time calibration
+                      int ffpdo = correctPDO(ffch, ffpdoUC);
+                      int fftdo = tdo->at(0).at(k);
+                      int ffbcid = grayDecoded->at(0).at(k);
+                      // double fft = getTimeByHand(ffbcid, fftdo, 110, 160); //'hand' limits
+                      double fft = getTime(ffch, ffbcid, fftdo, ffpdoUC); // 'auto' limits
+
                       if(ffchD == 4) // All MM channels
                       { 
-                        int ffpdoUC = pdo->at(0).at(k); // Uncorrected PDO, used at time calibration
-                        int ffpdo = correctPDO(ffch, ffpdoUC);
-                        int fftdo = tdo->at(0).at(k);
-                        int ffbcid = grayDecoded->at(0).at(k);
-                        // double fft = getTimeByHand(ffbcid, fftdo, 110, 160); //'hand' limits
-                        double fft = getTime(ffch, ffbcid, fftdo, ffpdoUC); // 'auto' limits
-
                         if (fabs(t_srtraw - fft) < 500)
                         {
                           straw_vs_mm ->Fill(t_srtraw - fft);
@@ -321,58 +320,22 @@ void evBuilder::Loop()
                       }
                       else if (ffchD == 0 && ffchM == 0) // Sci 0
                       {
-                        int ffpdoUC = pdo->at(0).at(k); // Uncorrected PDO, used at time calibration
-                        int ffpdo = correctPDO(ffch, ffpdoUC);
-                        int fftdo = tdo->at(0).at(k);
-                        int ffbcid = grayDecoded->at(0).at(k);
-                        // if (ffbcid < 40)
-                        //    continue;
-                        double fft = getTimeByHand(ffbcid, fftdo, 88, 140); //'hand' limits
-                        // double fft = getTime(ffch, ffbcid, fftdo, ffpdoUC); // 'auto' limits
-
-                        // straw_vs_sci->Fill(t_srtraw - fft);
-
                         if (fabs(t_srtraw - fft) < minTsci0)
                         {
                           minTsci0 = fabs(t_srtraw - fft);
                           sciT_ch0 = fft;
-                          sci_bcid_ch0 = ffbcid;
                         }
-
                       }
                       else if (ffchD == 0 && ffchM == 3) // triple sci coinsidence
                       {
-                        int ffpdoUC = pdo->at(0).at(k); // Uncorrected PDO, used at time calibration
-                        int ffpdo = correctPDO(ffch, ffpdoUC);
-                        int fftdo = tdo->at(0).at(k);
-                        int ffbcid = grayDecoded->at(0).at(k);
-                        // if (ffbcid < 40)
-                        //    continue;
-                        // double fft = getTimeByHand(ffbcid, fftdo, 88, 140); //'hand' limits
-                        double fft = getTime(ffch, ffbcid, fftdo, ffpdoUC); // 'auto' limits
-
-                        // straw_vs_sci->Fill(t_srtraw - fft);
-
                         if (fabs(t_srtraw - fft) < minTsci60)
                         {
                           minTsci60 = fabs(t_srtraw - fft);
                           sciT_ch60 = fft;
-                          sci_bcid_ch60 = ffbcid;
                         }
-
                       }
                       else if (ffchD == 1 && ffchM == fchM + 1) // Next straw channel
                       {
-                        int ffpdoUC = pdo->at(0).at(k); // Uncorrected PDO, used at time calibration
-                        int ffpdo = correctPDO(ffch, ffpdoUC);
-                        // if (ffpdo < 100 || ffpdo > 900)
-                        //    continue;
-                        int fftdo = tdo->at(0).at(k);
-                        int ffbcid = grayDecoded->at(0).at(k);
-                        // if (ffbcid < 40)
-                        //    continue;
-                        double fft = getTime(ffch, ffbcid, fftdo, ffpdoUC); // 'auto' limits
-                        // double fft = getTimeByHand(ffbcid, fftdo, X, Y); //'hand' limits
                         if (fabs(t_srtraw - fft) < neighborMinStrawTime)
                         {
                           neighborMinStrawTime = fabs(t_srtraw - fft);
@@ -455,10 +418,6 @@ void evBuilder::Loop()
                 if (sciT_ch0 != 0 && meanT != 0)
                 {
                     straw_rt_0.at(fchM)->Fill((meanCh - strawCenterMM.at(fchM)) * 0.25, 100 + t_srtraw - sciT_ch0);
-                    // if (strawCh == 3 && (meanCh > 21 && meanCh < 47))
-                    // {
-                    //     straw26_rt_0->Fill((meanCh - 21) * 0.25, 100 + t_srtraw - sciT_ch0);
-                    // }
                     straw_vs_sci_3det_corr_0->Fill(t_srtraw - sciT_ch0);
                     straw_vs_mm_3det_corr_0->Fill(t_srtraw - meanT);
                     mm_vs_sci_3det_corr_0->Fill(meanT - sciT_ch0);
@@ -469,14 +428,9 @@ void evBuilder::Loop()
                     straw_vs_mm_3det_corr->Fill(t_srtraw - meanT);
                     mm_vs_sci_3det_corr->Fill(meanT - sciT_ch60);
                     straw_rt.at(fchM)->Fill((meanCh - strawCenterMM.at(fchM)) * 0.25, 100 + t_srtraw - sciT_ch60);
-                    // if (strawCh == 3 && (meanCh > 21 && meanCh < 47))
-                    // {
-                    //     straw26_rt->Fill((meanCh - 21) * 0.25, 100 + t_srtraw - sciT_ch60);
-                    // }
                 }
                 if(neighborStrawTime != 0)
                 {
-                  // straw_banana.at(fchM)->Fill()
                   straw_straw.at(fchM)->Fill(t_srtraw - neighborStrawTime);
                   if (sciT_ch0 != 0)
                     straw_banana_0.at(fchM)->Fill(t_srtraw - sciT_ch0, neighborStrawTime - sciT_ch0);
@@ -503,10 +457,8 @@ void evBuilder::Loop()
                 double t30 = 0;
                 double minTsci0 = 1e3;
                 double sciT_ch0 = 0;
-                int sci_bcid_ch0 = 0;
                 double minTsci60 = 1e3;
                 double sciT_ch60 = 0;
-                int sci_bcid_ch60 = 0;
                 vector<array<double, 3> > MmCluster;
 
                 // ========================         LOOP OVER nLoopEntriesAround  events around         ========================
