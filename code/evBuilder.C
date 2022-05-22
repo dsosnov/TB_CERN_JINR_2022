@@ -299,6 +299,7 @@ void evBuilder::Loop()
                     for (int k = 0; k < channel->at(0).size(); k++)
                     {
                       int ffch = channel->at(0).at(k);
+                      if(ffch == fch) continue;
                       int ffchD = getMappedDetector(ffch);
                       int ffchM = getMappedChannel(ffch);
                       if(ffchD == 4) // All MM channels
