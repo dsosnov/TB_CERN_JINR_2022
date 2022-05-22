@@ -10,9 +10,9 @@ void apv::Loop()
   clasterTree->Reset();
 
   printf("apv::Loop\n");
-  if (fChainSignal == nullptr)
-    return;
-  fChainSignal->GetEntry(0);
+  if (isChain())
+    fChainSignal->GetEntry(0);
+
   TFile *out = new TFile("../out/out_apv_" + file + ending, "RECREATE"); // PATH where to save out_*.root file
 
   vector<TDirectory*> dirs;
@@ -84,171 +84,175 @@ void apv::Loop()
   // =============================== TDO & distributions ===============================
 
   // printf("Chain tree: %p\n", fChainSignal);
-  printf("Chain n events: %lld\n", fChainSignal->GetEntries());
-  Long64_t nentries = fChainSignal->GetEntries();
+  if(isChain()){
+    printf("Chain n events: %lld\n", fChainSignal->GetEntries());
+    Long64_t nentries = fChainSignal->GetEntries();
 
-  unsigned long long previousTimestamp = 0;
-  vector<apvHit> hits;
+    unsigned long long previousTimestamp = 0;
+    vector<apvHit> hits;
   
-  // nentries = 200;
-  for (auto event = 0; event < nentries; event++){
-  // for(auto event = 80330; event <  nentries; event++){
-    Long64_t ientry = LoadTree(event);
-    if (ientry < 0) break;
-    GetEntry(event);
-    // printf("Entry: %d: error - %d\n", event, error);
-    if(error)
-      continue;
+    // nentries = 2000;
+    for (auto event = 0; event < nentries; event++){
+      // for(auto event = 80330; event <  nentries; event++){
+      Long64_t ientry = LoadTree(event);
+      if (ientry < 0) break;
+      GetEntry(event);
+      // printf("Entry: %d: error - %d\n", event, error);
+      if(error)
+        continue;
 
-    /* Checking if there is any mapped channels */
-    bool notErr = false;
-    for (auto &r: *mmReadout)
-      notErr = notErr || (r != 'E');
-    if(!notErr) continue;
+      /* Checking if there is any mapped channels */
+      bool notErr = false;
+      for (auto &r: *mmReadout)
+        notErr = notErr || (r != 'E');
+      if(!notErr) continue;
     
-    /* Filling entry histogram */
-    hevts->Fill(evt);
-    hdaqTimeSec->Fill(daqTimeSec);
-    hdaqTimeMSec->Fill(daqTimeMicroSec);
-    hsrsTrigger->Fill(srsTrigger);
+      /* Filling entry histogram */
+      hevts->Fill(evt);
+      hdaqTimeSec->Fill(daqTimeSec);
+      hdaqTimeMSec->Fill(daqTimeMicroSec);
+      hsrsTrigger->Fill(srsTrigger);
 
-    unsigned long long currentTimestamp = daqTimeSec * 1E6 + daqTimeMicroSec;
-    if(previousTimestamp > 0)
-      hdaqTimeDifference->Fill(currentTimestamp - previousTimestamp);
-    previousTimestamp = currentTimestamp;
+      unsigned long long currentTimestamp = daqTimeSec * 1E6 + daqTimeMicroSec;
+      if(previousTimestamp > 0)
+        hdaqTimeDifference->Fill(currentTimestamp - previousTimestamp);
+      previousTimestamp = currentTimestamp;
 
-    printf("Evevt parameters: evt %lld, time: %d & %d, timestamp: %d, trigger: %d;", evt, daqTimeSec, daqTimeMicroSec, srsTimeStamp, srsTrigger);
-    // printf(" Unique timestamp: %llu;", unique_srs_time_stamp(daqTimeSec, daqTimeMicroSec, srsTimeStamp));
-    printf("\n");
+      printf("Evevt parameters: evt %lld, time: %d & %d, timestamp: %d, trigger: %d;", evt, daqTimeSec, daqTimeMicroSec, srsTimeStamp, srsTrigger);
+      // printf(" Unique timestamp: %llu;", unique_srs_time_stamp(daqTimeSec, daqTimeMicroSec, srsTimeStamp));
+      printf("\n");
 
-    // printf("  Channels (%lu):", max_q->size());
-    /* Per-channel */
-    hits.clear();
-    for (int j = 0; j < max_q->size(); j++){
-    // printf("Record inside entry: %d\n", j);
-      auto readout = mmReadout->at(j);
+      // printf("  Channels (%lu):", max_q->size());
+      /* Per-channel */
+      hits.clear();
+      for (int j = 0; j < max_q->size(); j++){
+        // printf("Record inside entry: %d\n", j);
+        auto readout = mmReadout->at(j);
+        if(readout == 'E') //non-mapped channel
+          continue;
+        auto layer = mmLayer->at(j);
+        auto strip = mmStrip->at(j);
+        hProfile.at(layer)->Fill(strip);
+        auto maxQ = max_q->at(j);
+        hMaxQ.at(layer)->Fill(maxQ);
+      
+        // printf(" %d-%d (%d)", layer, strip, maxQ);
+
+        auto maxTime = t_max_q->at(j);
+        hMaxQTime.at(layer)->Fill(maxTime*25);
+
+        hPositionVSMaxQ.at(layer)->Fill(strip, maxQ);
+        hPositionVSMaxQTime.at(layer)->Fill(strip, maxTime*25);
+      
+        hits.push_back({layer, strip, maxQ, maxTime, raw_q->at(j)});
+      
+        // // printf("Raw q pointer: %p\n", raw_q);
+        // int maxADCBin = -1;
+        // // printf("raw_q->at(%d).size(): %d\n", j, raw_q->at(j).size());
+        // for(uint qBin = 0; qBin < raw_q->at(j).size(); qBin++){
+        //   // if(raw_q->at(j).at(qBin) == maxQ){
+        //   //   hTriggerShiftByMaxQ.at(layer)->Fill(qBin*25);
+        //   // }
+        //   if(maxADCBin < 0 || raw_q->at(j).at(qBin) > raw_q->at(j).at(maxADCBin))
+        //     maxADCBin = qBin;
+        // }
+        // hChePerTrigger.at(layer)->Fill(srsTrigger, strip);
+        // auto maxADC = raw_q->at(j).at(maxADCBin);
+        // // hmaxQFullHistory.at(layer)->Fill(maxADC);
+        // // hmaxQTimeFullHistory.at(layer)->Fill(maxADCBin*25);
+      }
+      // printf("\n");
+
+      /* Constructing clasters */
+      clasters.clear();
+      std::sort(hits.begin(), hits.end(), [](auto h1, auto h2){return h1.strip < h2.strip;});
+      for(auto &hit: hits)
+        addHitToClasters(hit);
+
+      // /* Remove small clasters or clasters with small energy*/
+      // clasters.erase(std::remove_if(clasters.begin(), 
+      //                               clasters.end(),
+      //                               [](auto c){return c.nHits() < 3;}),
+      //                clasters.end());
+      clasters.erase(std::remove_if(clasters.begin(), 
+                                    clasters.end(),
+                                    [](auto c){return c.maxQ() < 300;}),
+                     clasters.end());
+
+      std::stable_sort(clasters.begin(), clasters.end(), [](auto c1, auto c2){return (c1.getLayer() < c2.getLayer()) || (c1.center() < c2.center());});
+    
+      bool clasterInRange0 = false, clasterInRange1 = false, clasterInRange2 = false;
+      for(auto &c: clasters){
+        if(c.getLayer() == 0 && c.center() >= 124 && c.center() <= 168-16)
+          clasterInRange0 = true;
+        else if(c.getLayer() == 1 && c.center() >= 134 && c.center() <= 184-16)
+          clasterInRange1 = true;
+        else if(c.getLayer() == 2 && c.center() >= 150 && c.center() <= 209-16 && (c.center() < 170 || c.center() >173))
+          clasterInRange2 = true;
+      }
+      if(clasterInRange0 && clasterInRange1){
+        nEventsWHitsTwoLayers++;
+        if(clasterInRange2)
+          nEventsWHitsThreeLayers++;
+      }
+
+      for(auto &c: clasters){
+        printf(" ");
+        c.print();
+      
+        hClasterPosition.at(c.getLayer())->Fill(c.center());
+        hClasterMaxQ.at(c.getLayer())->Fill(c.maxQ());
+        hClasterQ.at(c.getLayer())->Fill(c.q());
+        hClasterSize.at(c.getLayer())->Fill(c.nHits());
+
+        hClasterPositionVSMaxQ.at(c.getLayer())->Fill(c.center(), c.maxQ());;
+        hClasterPositionVSQ.at(c.getLayer())->Fill(c.center(), c.q());;
+        hClasterPositionVSSize.at(c.getLayer())->Fill(c.center(), c.nHits());
+      }
+
+      if(clasters.size() == 3){
+        if(clasters.at(0).getLayer() == 0 &&
+           clasters.at(1).getLayer() == 1 &&
+           clasters.at(2).getLayer() == 2){
+          hClasterShiftBetweenLayers01->Fill(clasters.at(0).center() - clasters.at(1).center());
+          hClasterShiftBetweenLayers02->Fill(clasters.at(0).center() - clasters.at(2).center());
+          hClasterShiftBetweenLayers12->Fill(clasters.at(1).center() - clasters.at(2).center());
+        }
+      }
+      // printf("::N events with hits in two   layers: %lu (of %lld events -> %.2f)\n", nEventsWHitsTwoLayers, event+1, static_cast<double>(nEventsWHitsTwoLayers) / static_cast<double>(event+1));  
+      // printf("::N events with hits in three layers: %lu (of %lld events -> %.2f)\n", nEventsWHitsThreeLayers, event+1, static_cast<double>(nEventsWHitsThreeLayers) / static_cast<double>(event+1));  
+    
+      // clasterTree->Fill();
+    }
+  
+    printf("N events with hits in two   layers to region double-readed wyth mu2E: %lu (of %lld events -> %.2f)\n", nEventsWHitsTwoLayers, nentries, static_cast<double>(nEventsWHitsTwoLayers) / static_cast<double>(nentries));
+    printf("N events with hits in three layers to region double-readed wyth mu2E: %lu (of %lld events -> %.2f)\n", nEventsWHitsThreeLayers, nentries, static_cast<double>(nEventsWHitsThreeLayers) / static_cast<double>(nentries));
+  }
+  
+  if(isChainPed()){
+    /* Checking pedestals */
+    for (int j = 0; j < mmReadoutPed->size(); j++){
+      // printf("Record inside entry: %d\n", j);
+      auto readout = mmReadoutPed->at(j);
       if(readout == 'E') //non-mapped channel
         continue;
-      auto layer = mmLayer->at(j);
-      auto strip = mmStrip->at(j);
-      hProfile.at(layer)->Fill(strip);
-      auto maxQ = max_q->at(j);
-      hMaxQ.at(layer)->Fill(maxQ);
-      
-      // printf(" %d-%d (%d)", layer, strip, maxQ);
-
-      auto maxTime = t_max_q->at(j);
-      hMaxQTime.at(layer)->Fill(maxTime*25);
-
-      hPositionVSMaxQ.at(layer)->Fill(strip, maxQ);
-      hPositionVSMaxQTime.at(layer)->Fill(strip, maxTime*25);
-      
-      hits.push_back({layer, strip, maxQ, maxTime, raw_q->at(j)});
-      
-      // // printf("Raw q pointer: %p\n", raw_q);
-      // int maxADCBin = -1;
-      // // printf("raw_q->at(%d).size(): %d\n", j, raw_q->at(j).size());
-      // for(uint qBin = 0; qBin < raw_q->at(j).size(); qBin++){
-      //   // if(raw_q->at(j).at(qBin) == maxQ){
-      //   //   hTriggerShiftByMaxQ.at(layer)->Fill(qBin*25);
-      //   // }
-      //   if(maxADCBin < 0 || raw_q->at(j).at(qBin) > raw_q->at(j).at(maxADCBin))
-      //     maxADCBin = qBin;
-      // }
-      // hChePerTrigger.at(layer)->Fill(srsTrigger, strip);
-      // auto maxADC = raw_q->at(j).at(maxADCBin);
-      // // hmaxQFullHistory.at(layer)->Fill(maxADC);
-      // // hmaxQTimeFullHistory.at(layer)->Fill(maxADCBin*25);
+      auto layer = mmLayerPed->at(j);
+      auto strip = mmStripPed->at(j);
+      auto meanPed = ped_meanPed->at(j);
+      auto stdevPed = ped_stdevPed->at(j);
+      auto sigmaPed = ped_sigmaPed->at(j);
+      auto bin = hPed.at(layer)->GetXaxis()->FindBin(strip);
+      hPedMeanVal.at(layer)->Fill(strip, meanPed);
+      hPedMeanVal.at(layer)->SetBinError(bin, 0);
+      hPedStdevVal.at(layer)->Fill(strip, stdevPed);
+      hPedStdevVal.at(layer)->SetBinError(bin, 0);
+      hPedSigmaVal.at(layer)->Fill(strip, sigmaPed);
+      hPedSigmaVal.at(layer)->SetBinError(bin, 0);
+      hPed.at(layer)->SetBinContent(bin, meanPed);
+      hPed.at(layer)->SetBinError(bin, stdevPed);
     }
-    // printf("\n");
-
-    /* Constructing clasters */
-    clasters.clear();
-    std::sort(hits.begin(), hits.end(), [](auto h1, auto h2){return h1.strip < h2.strip;});
-    for(auto &hit: hits)
-      addHitToClasters(hit);
-
-    // /* Remove small clasters or clasters with small energy*/
-    // clasters.erase(std::remove_if(clasters.begin(), 
-    //                               clasters.end(),
-    //                               [](auto c){return c.nHits() < 3;}),
-    //                clasters.end());
-    clasters.erase(std::remove_if(clasters.begin(), 
-                                  clasters.end(),
-                                  [](auto c){return c.maxQ() < 300;}),
-                   clasters.end());
-
-    std::stable_sort(clasters.begin(), clasters.end(), [](auto c1, auto c2){return (c1.getLayer() < c2.getLayer()) || (c1.center() < c2.center());});
-    
-    bool clasterInRange0 = false, clasterInRange1 = false, clasterInRange2 = false;
-    for(auto &c: clasters){
-      if(c.getLayer() == 0 && c.center() >= 124 && c.center() <= 168-16)
-        clasterInRange0 = true;
-      else if(c.getLayer() == 1 && c.center() >= 134 && c.center() <= 184-16)
-        clasterInRange1 = true;
-      else if(c.getLayer() == 2 && c.center() >= 150 && c.center() <= 209-16 && (c.center() < 170 || c.center() >173))
-        clasterInRange2 = true;
-    }
-    if(clasterInRange0 && clasterInRange1){
-      nEventsWHitsTwoLayers++;
-      if(clasterInRange2)
-        nEventsWHitsThreeLayers++;
-    }
-
-    for(auto &c: clasters){
-      printf(" ");
-      c.print();
-      
-      hClasterPosition.at(c.getLayer())->Fill(c.center());
-      hClasterMaxQ.at(c.getLayer())->Fill(c.maxQ());
-      hClasterQ.at(c.getLayer())->Fill(c.q());
-      hClasterSize.at(c.getLayer())->Fill(c.nHits());
-
-      hClasterPositionVSMaxQ.at(c.getLayer())->Fill(c.center(), c.maxQ());;
-      hClasterPositionVSQ.at(c.getLayer())->Fill(c.center(), c.q());;
-      hClasterPositionVSSize.at(c.getLayer())->Fill(c.center(), c.nHits());
-    }
-
-    if(clasters.size() == 3){
-      if(clasters.at(0).getLayer() == 0 &&
-         clasters.at(1).getLayer() == 1 &&
-         clasters.at(2).getLayer() == 2){
-        hClasterShiftBetweenLayers01->Fill(clasters.at(0).center() - clasters.at(1).center());
-        hClasterShiftBetweenLayers02->Fill(clasters.at(0).center() - clasters.at(2).center());
-        hClasterShiftBetweenLayers12->Fill(clasters.at(1).center() - clasters.at(2).center());
-      }
-    }
-    // printf("::N events with hits in two   layers: %lu (of %lld events -> %.2f)\n", nEventsWHitsTwoLayers, event+1, static_cast<double>(nEventsWHitsTwoLayers) / static_cast<double>(event+1));  
-    // printf("::N events with hits in three layers: %lu (of %lld events -> %.2f)\n", nEventsWHitsThreeLayers, event+1, static_cast<double>(nEventsWHitsThreeLayers) / static_cast<double>(event+1));  
-    
-    // clasterTree->Fill();
   }
-  
-  printf("N events with hits in two   layers to region double-readed wyth mu2E: %lu (of %lld events -> %.2f)\n", nEventsWHitsTwoLayers, nentries, static_cast<double>(nEventsWHitsTwoLayers) / static_cast<double>(nentries));
-  printf("N events with hits in three layers to region double-readed wyth mu2E: %lu (of %lld events -> %.2f)\n", nEventsWHitsThreeLayers, nentries, static_cast<double>(nEventsWHitsThreeLayers) / static_cast<double>(nentries));
 
-  /* Checking pedestals */
-  for (int j = 0; j < mmReadoutPed->size(); j++){
-    // printf("Record inside entry: %d\n", j);
-    auto readout = mmReadoutPed->at(j);
-    if(readout == 'E') //non-mapped channel
-      continue;
-    auto layer = mmLayerPed->at(j);
-    auto strip = mmStripPed->at(j);
-    auto meanPed = ped_meanPed->at(j);
-    auto stdevPed = ped_stdevPed->at(j);
-    auto sigmaPed = ped_sigmaPed->at(j);
-    auto bin = hPed.at(layer)->GetXaxis()->FindBin(strip);
-    hPedMeanVal.at(layer)->Fill(strip, meanPed);
-    hPedMeanVal.at(layer)->SetBinError(bin, 0);
-    hPedStdevVal.at(layer)->Fill(strip, stdevPed);
-    hPedStdevVal.at(layer)->SetBinError(bin, 0);
-    hPedSigmaVal.at(layer)->Fill(strip, sigmaPed);
-    hPedSigmaVal.at(layer)->SetBinError(bin, 0);
-    hPed.at(layer)->SetBinContent(bin, meanPed);
-    hPed.at(layer)->SetBinError(bin, stdevPed);
-  }
-  
   // straw31_vs_straw30_banana_bcid->Write();
   out->Write();
   out->Close();

@@ -32,6 +32,9 @@ public :
   int           fCurrentData; //!current Tree number in a TChain
   int           fCurrentPedestal; //!current Tree number in a TChain
 
+  bool isChain(){ return fChainSignal != nullptr; }
+  bool isChainPed(){ return fChainPedestal != nullptr; }
+
   // Event variables, signal
   unsigned long long evt; // event id, is one of: DaqTime, SrsTimeStamp, SrsTriggerNumber
   uint error;
@@ -185,22 +188,24 @@ void apv::Init(TTree *tree, TTree *treePed){
   fChainPedestal = treePed;
   printf("Init:: File: %s, tree %p, treePed %p\n", file.Data(), tree, treePed);
   // Signal
-  tree->SetBranchAddress("evt", &evt, &b_evt);
-  tree->SetBranchAddress("error", &error, &b_error);
-  tree->SetBranchAddress("daqTimeSec", &daqTimeSec, &b_daqTimeSec);
-  tree->SetBranchAddress("daqTimeMicroSec", &daqTimeMicroSec, &b_daqTimeMicroSec);
-  tree->SetBranchAddress("srsTimeStamp", &srsTimeStamp, &b_srsTimeStamp);
-  tree->SetBranchAddress("srsTrigger", &srsTrigger, &b_srsTrigger);
-  tree->SetBranchAddress("srsFec", &srsFec, &b_srsFec);
-  tree->SetBranchAddress("srsChip", &srsChip, &b_srsChip);
-  tree->SetBranchAddress("srsChan", &srsChan, &b_srsChan);
-  tree->SetBranchAddress("mmChamber", &mmChamber, &b_mmChamber);
-  tree->SetBranchAddress("mmLayer", &mmLayer, &b_mmLayer);
-  tree->SetBranchAddress("mmReadout", &mmReadout, &b_mmReadout);
-  tree->SetBranchAddress("mmStrip", &mmStrip, &b_mmStrip);
-  tree->SetBranchAddress("raw_q", &raw_q, &b_raw_q);
-  tree->SetBranchAddress("max_q", &max_q, &b_max_q);
-  tree->SetBranchAddress("t_max_q", &t_max_q, &b_t_max_q);
+  if(tree){
+    tree->SetBranchAddress("evt", &evt, &b_evt);
+    tree->SetBranchAddress("error", &error, &b_error);
+    tree->SetBranchAddress("daqTimeSec", &daqTimeSec, &b_daqTimeSec);
+    tree->SetBranchAddress("daqTimeMicroSec", &daqTimeMicroSec, &b_daqTimeMicroSec);
+    tree->SetBranchAddress("srsTimeStamp", &srsTimeStamp, &b_srsTimeStamp);
+    tree->SetBranchAddress("srsTrigger", &srsTrigger, &b_srsTrigger);
+    tree->SetBranchAddress("srsFec", &srsFec, &b_srsFec);
+    tree->SetBranchAddress("srsChip", &srsChip, &b_srsChip);
+    tree->SetBranchAddress("srsChan", &srsChan, &b_srsChan);
+    tree->SetBranchAddress("mmChamber", &mmChamber, &b_mmChamber);
+    tree->SetBranchAddress("mmLayer", &mmLayer, &b_mmLayer);
+    tree->SetBranchAddress("mmReadout", &mmReadout, &b_mmReadout);
+    tree->SetBranchAddress("mmStrip", &mmStrip, &b_mmStrip);
+    tree->SetBranchAddress("raw_q", &raw_q, &b_raw_q);
+    tree->SetBranchAddress("max_q", &max_q, &b_max_q);
+    tree->SetBranchAddress("t_max_q", &t_max_q, &b_t_max_q);
+  }
   // Pedestal
   if(treePed){
     // treePed->Print();
