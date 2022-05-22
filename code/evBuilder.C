@@ -320,6 +320,7 @@ void evBuilder::Loop()
                       }
                       else if (ffchD == 0 && ffchM == 0) // Sci 0
                       {
+                        fft = getTimeByHand(ffbcid, fftdo, 88, 140); //'hand' limits
                         if (fabs(t_srtraw - fft) < minTsci0)
                         {
                           minTsci0 = fabs(t_srtraw - fft);
