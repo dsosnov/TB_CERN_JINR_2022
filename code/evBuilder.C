@@ -610,44 +610,6 @@ void evBuilder::Loop()
       }
     out->cd();
 
-    auto straw_rt_normed_projsum_dir = out->mkdir("straw_rt_normed_proj-sum");
-    straw_rt_normed_projsum_dir->cd();
-    for(auto &m: {straw_rt_normed, straw_rt_0_normed})
-      for(auto &h: m){
-        auto hOld = h.second;
-        auto hist = new TH1D(Form("%s_projection_sum", hOld->GetName()), Form("%s: %s_projection_sum", file.Data(), hOld->GetName()),
-                             hOld->GetNbinsY(), hOld->GetYaxis()->GetBinLowEdge(1), hOld->GetYaxis()->GetBinUpEdge(hOld->GetNbinsY()));
-        double err;
-        for(auto i = 1; i < hOld->GetNbinsY(); i++){
-          auto integral = hOld->IntegralAndError(1, hOld->GetNbinsX(), i, i, err);
-          hist->SetBinContent(i, integral);
-          hist->SetBinError(i, err);
-        }
-        // hist->Scale(1.0/hist->Integral());
-      }
-    out->cd();
-
-    auto straw_rt_normed_alternative_dir = out->mkdir("straw_rt_normed_alternative");
-    straw_rt_normed_alternative_dir->cd();
-    map<int, TH2D*> straw_rt_0_normed_alt ;
-    for(auto &h: straw_rt_0){
-      auto hnew = static_cast<TH2D*>(h.second->Clone(Form("straw%d_rt_0_normed_alt", h.first)));
-      for(auto i = 1; i <= hnew->GetNbinsX(); i++){
-        auto xshift = hnew->GetXaxis()->GetBinLowEdge(i);
-        auto meanCh = xshift * 4.0 + strawCenterMM.at(h.first);
-        auto bin = mmSingle_corr0->GetXaxis()->FindBin(meanCh);
-        auto integ = mmSingle_corr0->GetBinContent(bin);
-        if(!integ) continue;
-        for(auto j = 1; j <= hnew->GetNbinsY(); j++){
-          auto c = hnew->GetBinContent(i, j);
-          auto e = hnew->GetBinError(i, j);
-          hnew->SetBinContent(i, j, static_cast<float>(c) / static_cast<float>(integ));
-          hnew->SetBinError(i, j, static_cast<float>(e) / static_cast<float>(integ));
-        }
-      }
-      straw_rt_0_normed_alt.emplace(h.first, hnew);
-    }
-    out->cd();
     
     threePlotDrawF(mm_vs_sci_3det_corr, straw_vs_sci_3det_corr, straw_vs_mm_3det_corr);
     threePlotDrawF(mm_vs_sci_3det_corr_0, straw_vs_sci_3det_corr_0, straw_vs_mm_3det_corr_0, "_0");
