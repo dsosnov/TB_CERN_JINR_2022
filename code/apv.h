@@ -26,8 +26,8 @@ public :
   TString file = "run16";
   TString ending = ".root";
 
-  TTree          *fChainSignal;   //!pointer to the analyzed TTree or TChain
-  TTree          *fChainPedestal;   //!pointer to the analyzed TTree or TChain
+  TChain          *fChainSignal;   //!pointer to the analyzed TTree or TChain
+  TChain          *fChainPedestal;   //!pointer to the analyzed TTree or TChain
   std::map<string, TString> configs;
   int           fCurrentData; //!current Tree number in a TChain
   int           fCurrentPedestal; //!current Tree number in a TChain
@@ -128,10 +128,10 @@ apv::apv(TString filename) : file(filename),
     std::cout << "Problem with opening data file" << std::endl;
     exit(1);
   }
-  TTree* tree = nullptr; 
-  f->GetObject("apv_raw",tree);
-  TTree* treePed = nullptr; 
-  f->GetObject("apv_raw_ped",treePed);
+  auto tree = new TChain("apv_raw");
+  tree->Add(folder + file + ending);
+  auto treePed = new TChain("apv_raw_ped");
+  treePed->Add(folder + file + ending);
   Init(tree, treePed);
 }
 
