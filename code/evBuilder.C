@@ -279,7 +279,7 @@ void evBuilder::Loop()
                 double sciT_ch60 = 0;
                 vector<array<double, 3> > MmCluster;
                 double neighborStrawTime = 0;
-                double neighborMinStrawTime = 3E2;
+                double neighborMinStrawTime = 1.0E2;
 
                 // ========================         LOOP OVER nLoopEntriesAround  events around         ========================
                 //                              jentry to find correlation with MM
