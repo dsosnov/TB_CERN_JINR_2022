@@ -227,7 +227,7 @@ void evBuilder::Loop()
     }
     out->cd();
     
-    unsigned int nLoopEntriesAround = 1;
+    unsigned int nLoopEntriesAround = 0;
     Long64_t nentries = fChain->GetEntriesFast();
 
     Long64_t nbytes = 0, nb = 0;
