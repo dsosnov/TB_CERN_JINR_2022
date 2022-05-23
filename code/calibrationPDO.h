@@ -196,10 +196,16 @@ vector<fitPDOChannelResult> fitPDO(const vector<singleTest> valuesForFit){
       fitData.at(channel.channelNum)->SetBinError(test.mean, channel.pdoMaxDiff());
     }
   }
-                                       
+
+  
   vector<fitPDOChannelResult> out;
   for(auto &fitPair: fitData){
+    // printf("Channel %d fitting ...\n", fitPair.first);
     auto h = fitPair.second;
+    if(h->GetEntries() < 2){
+      out.push_back({fitPair.first, 0, 0, 1.0, 0, 0, 0});
+      continue;
+    }
     auto fitR = h->Fit("pol1", "S");
     auto b = fitR->Parameter(0);
     auto bE = fitR->ParError(0);
