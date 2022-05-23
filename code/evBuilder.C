@@ -197,7 +197,33 @@ void evBuilder::Loop()
     }
     out->cd();
 
-    unsigned int nLoopEntriesAround = 1;
+    auto straw_banana_dir = out->mkdir("straw_banana");
+    straw_banana_dir->cd();
+    map<int, TH2D*> straw_banana, straw_banana_0 ;
+    for(auto i = strawMin; i < strawMax; i++){
+      straw_banana.emplace(i,
+                       new TH2D(Form("straw%d-%d_banana", i, i+1),
+                                Form("%s: Time difference between straws %d, %d and sci60;T_{straw%d} - T_{scint}, [ns];T_{straw%d} - T_{scint}, [ns]", file.Data(), i, i+1, i, i+1),
+                                500, -250, 250, 500, -250, 250));
+      straw_banana_0.emplace(i,
+                       new TH2D(Form("straw%d-%d_banana_0", i, i+1),
+                                Form("%s: Time difference between straws %d, %d and sci0;T_{straw%d} - T_{scint}, [ns];T_{straw%d} - T_{scint}, [ns]", file.Data(), i, i+1, i, i+1),
+                                  500, -250, 250, 500, -250, 250));
+    }
+    out->cd();
+
+    auto straw_vs_straw_deltat_dir = out->mkdir("straw_vs_straw_deltat");
+    straw_vs_straw_deltat_dir->cd();
+    map<int, TH1D*> straw_straw;
+    for(auto i = strawMin; i < strawMax; i++){
+      straw_straw.emplace(i,
+                          new TH1D(Form("straw%d_vs_straw%d", i, i+1),
+                                   Form("%s: straw%d_vs_straw%d;T_{straw%d} - T_{straw%d}", file.Data(), i, i+1, i, i+1), 1000, -500, 500));
+    }
+    out->cd();
+
+    unsigned int pdoThr = 100;
+    unsigned int nLoopEntriesAround = 0;
     Long64_t nentries = fChain->GetEntriesFast();
 
     Long64_t nbytes = 0, nb = 0;
@@ -226,13 +252,15 @@ void evBuilder::Loop()
             int fchD = getMappedDetector(fch);
             int fchM = getMappedChannel(fch);
 
+            int fpdoUC = pdo->at(0).at(j); // Uncorrected PDO, used at time calibration
+            int fpdo = correctPDO(fch, fpdoUC);
+            int ftdo = tdo->at(0).at(j);
+            int fbcid = grayDecoded->at(0).at(j);
+
+            if(fpdo < pdoThr) continue;
+
             if (fchD == 1) // All straw ch
             {
-                int fpdoUC = pdo->at(0).at(j); // Uncorrected PDO, used at time calibration
-                int fpdo = correctPDO(fch, fpdoUC);
-                int ftdo = tdo->at(0).at(j);
-                int fbcid = grayDecoded->at(0).at(j);
-
                 straw_bcid_ch_srtraw = fbcid;
                 straw_pdo_ch_srtraw = fpdo;
                 t_srtraw = getTime(fch, fbcid, ftdo, fpdoUC); // 'auto' limits
@@ -243,20 +271,20 @@ void evBuilder::Loop()
 
                 Long64_t mbytes = 0, mb = 0;
                 double t30 = 0;
-                double minTsci0 = 1e3;
+                double minTsci0 = 3e2;
                 double sciT_ch0 = 0;
-                int sci_bcid_ch0 = 0;
-                double minTsci60 = 1e3;
+                double minTsci60 = 3e2;
                 double sciT_ch60 = 0;
-                int sci_bcid_ch60 = 0;
                 vector<array<double, 3> > MmCluster;
+                double neighborStrawTime = 0;
+                double neighborMinStrawTime = 1.0E2;
 
                 // ========================         LOOP OVER nLoopEntriesAround  events around         ========================
                 //                              jentry to find correlation with MM
                 MmCluster.clear();
                 mbytes = 0, mb = 0;
 
-                for (Long64_t kentry = jentry - nLoopEntriesAround; kentry < jentry + nLoopEntriesAround; kentry++)
+                for (Long64_t kentry = jentry - nLoopEntriesAround; kentry <= jentry + nLoopEntriesAround; kentry++)
                 {
                     Long64_t iientry = LoadTree(kentry);
                     if (iientry < 0)
@@ -266,25 +294,58 @@ void evBuilder::Loop()
 
                     for (int k = 0; k < channel->at(0).size(); k++)
                     {
-                        int ffch = channel->at(0).at(k);
-                        int ffchD = getMappedDetector(ffch);
-                        int ffchM = getMappedChannel(ffch);
-                        if (ffchD != 4)
-                            continue;
+                      int ffch = channel->at(0).at(k);
+                      if(ffch == fch) continue;
+                      int ffchD = getMappedDetector(ffch);
+                      int ffchM = getMappedChannel(ffch);
+                      
+                      int ffpdoUC = pdo->at(0).at(k); // Uncorrected PDO, used at time calibration
+                      int ffpdo = correctPDO(ffch, ffpdoUC);
+                      int fftdo = tdo->at(0).at(k);
+                      int ffbcid = grayDecoded->at(0).at(k);
+                      // double fft = getTimeByHand(ffbcid, fftdo, 110, 160); //'hand' limits
+                      double fft = getTime(ffch, ffbcid, fftdo, ffpdoUC); // 'auto' limits
 
-                        int ffpdoUC = pdo->at(0).at(k); // Uncorrected PDO, used at time calibration
-                        int ffpdo = correctPDO(ffch, ffpdoUC);
-                        int fftdo = tdo->at(0).at(k);
-                        int ffbcid = grayDecoded->at(0).at(k);
-                        // double fft = getTimeByHand(ffbcid, fftdo, 110, 160); //'hand' limits
-                        double fft = getTime(ffch, ffbcid, fftdo, ffpdoUC); // 'auto' limits
+                      if(ffpdo < pdoThr) continue;
 
+                      if(ffchD == 4) // All MM channels
+                      { 
                         if (fabs(t_srtraw - fft) < 500)
                         {
-                            straw_vs_mm ->Fill(t_srtraw - fft);
-                            array<double, 3> mM_hit = {{ffchM * 1.0, ffpdo * 1.0, fft}};
-                            MmCluster.push_back(mM_hit);
+                          straw_vs_mm ->Fill(t_srtraw - fft);
+                          array<double, 3> mM_hit = {{ffchM * 1.0, ffpdo * 1.0, fft}};
+                          MmCluster.push_back(mM_hit);
                         }
+                      }
+                      else if (ffchD == 0 && ffchM == 0) // Sci 0
+                      {
+                        fft = getTimeByHand(ffbcid, fftdo, 88, 140); //'hand' limits
+                        if (fabs(t_srtraw - fft) < minTsci0)
+                        {
+                          minTsci0 = fabs(t_srtraw - fft);
+                          sciT_ch0 = fft;
+                        }
+                      }
+                      else if (ffchD == 0 && ffchM == 3) // triple sci coinsidence
+                      {
+                        if (fabs(t_srtraw - fft) < minTsci60)
+                        {
+                          minTsci60 = fabs(t_srtraw - fft);
+                          sciT_ch60 = fft;
+                        }
+                      }
+                      else if (ffchD == 1 && ffchM == fchM + 1) // Next straw channel
+                      {
+                        if (fabs(t_srtraw - fft) < neighborMinStrawTime)
+                        {
+                          neighborMinStrawTime = fabs(t_srtraw - fft);
+                          neighborStrawTime = fft;
+                        }
+                      }
+                      else
+                      {
+                        continue;
+                      }
                     }
                 }
 
@@ -332,82 +393,6 @@ void evBuilder::Loop()
 
                 // ============================= end of sci MM correlation finding ============================
 
-                // ========================         LOOP OVER nLoopEntriesAround  events around         ========================
-                //                           jentry to find correlation with sci 0
-
-                mbytes = 0, mb = 0;
-                for (Long64_t kentry = jentry - nLoopEntriesAround; kentry < jentry + nLoopEntriesAround; kentry++)
-                {
-                    Long64_t iientry = LoadTree(kentry);
-                    if (iientry < 0)
-                        continue;
-                    mb = fChain->GetEntry(kentry);
-                    mbytes += mb;
-
-                    for (int k = 0; k < channel->at(0).size(); k++)
-                    {
-                        int ffch = channel->at(0).at(k);
-                        int ffchD = getMappedDetector(ffch);
-                        int ffchM = getMappedChannel(ffch);
-                        if (ffchD != 0 || ffchM != 0)
-                            continue;
-
-                        int ffpdoUC = pdo->at(0).at(k); // Uncorrected PDO, used at time calibration
-                        int ffpdo = correctPDO(ffch, ffpdoUC);
-                        int fftdo = tdo->at(0).at(k);
-                        int ffbcid = grayDecoded->at(0).at(k);
-                        // if (ffbcid < 40)
-                        //    continue;
-                        double fft = getTimeByHand(ffbcid, fftdo, 88, 140); //'hand' limits
-                        // double fft = getTime(ffch, ffbcid, fftdo, ffpdoUC); // 'auto' limits
-
-                        // straw_vs_sci->Fill(t_srtraw - fft);
-
-                        if (fabs(t_srtraw - fft) < minTsci0)
-                        {
-                            minTsci0 = fabs(t_srtraw - fft);
-                            sciT_ch0 = fft;
-                            sci_bcid_ch0 = ffbcid;
-                        }
-                    }
-                }
-
-                mbytes = 0, mb = 0;
-                for (Long64_t kentry = jentry - nLoopEntriesAround; kentry < jentry + nLoopEntriesAround; kentry++)
-                {
-                    Long64_t iientry = LoadTree(kentry);
-                    if (iientry < 0)
-                        continue;
-                    mb = fChain->GetEntry(kentry);
-                    mbytes += mb;
-
-                    for (int k = 0; k < channel->at(0).size(); k++)
-                    {
-                        int ffch = channel->at(0).at(k);
-                        int ffchD = getMappedDetector(ffch);
-                        int ffchM = getMappedChannel(ffch);
-                        if (ffchD != 0 || ffchM != 3)
-                            continue;
-
-                        int ffpdoUC = pdo->at(0).at(k); // Uncorrected PDO, used at time calibration
-                        int ffpdo = correctPDO(ffch, ffpdoUC);
-                        int fftdo = tdo->at(0).at(k);
-                        int ffbcid = grayDecoded->at(0).at(k);
-                        // if (ffbcid < 40)
-                        //    continue;
-                        // double fft = getTimeByHand(ffbcid, fftdo, 88, 140); //'hand' limits
-                        double fft = getTime(ffch, ffbcid, fftdo, ffpdoUC); // 'auto' limits
-
-                        // straw_vs_sci->Fill(t_srtraw - fft);
-
-                        if (fabs(t_srtraw - fft) < minTsci60)
-                        {
-                            minTsci60 = fabs(t_srtraw - fft);
-                            sciT_ch60 = fft;
-                            sci_bcid_ch60 = ffbcid;
-                        }
-                    }
-                }
                 if (sciT_ch0 != 0 && sciT_ch60 != 0) // WARNING! this is not real scintillator corellation!
                 {
                     sci0_vs_sci60->Fill(sciT_ch0 - sciT_ch60);
@@ -431,10 +416,6 @@ void evBuilder::Loop()
                 if (sciT_ch0 != 0 && meanT != 0)
                 {
                     straw_rt_0.at(fchM)->Fill((meanCh - strawCenterMM.at(fchM)) * 0.25, 100 + t_srtraw - sciT_ch0);
-                    // if (strawCh == 3 && (meanCh > 21 && meanCh < 47))
-                    // {
-                    //     straw26_rt_0->Fill((meanCh - 21) * 0.25, 100 + t_srtraw - sciT_ch0);
-                    // }
                     straw_vs_sci_3det_corr_0->Fill(t_srtraw - sciT_ch0);
                     straw_vs_mm_3det_corr_0->Fill(t_srtraw - meanT);
                     mm_vs_sci_3det_corr_0->Fill(meanT - sciT_ch0);
@@ -445,14 +426,17 @@ void evBuilder::Loop()
                     straw_vs_mm_3det_corr->Fill(t_srtraw - meanT);
                     mm_vs_sci_3det_corr->Fill(meanT - sciT_ch60);
                     straw_rt.at(fchM)->Fill((meanCh - strawCenterMM.at(fchM)) * 0.25, 100 + t_srtraw - sciT_ch60);
-                    // if (strawCh == 3 && (meanCh > 21 && meanCh < 47))
-                    // {
-                    //     straw26_rt->Fill((meanCh - 21) * 0.25, 100 + t_srtraw - sciT_ch60);
-                    // }
+                }
+                if(neighborStrawTime != 0)
+                {
+                  straw_straw.at(fchM)->Fill(t_srtraw - neighborStrawTime);
+                  if (sciT_ch0 != 0)
+                    straw_banana_0.at(fchM)->Fill(t_srtraw - sciT_ch0, neighborStrawTime - sciT_ch0);
+                  if (sciT_ch60 != 0)
+                    straw_banana.at(fchM)->Fill(t_srtraw - sciT_ch60, neighborStrawTime - sciT_ch60);
                 }
 
                 // ============================= end of sci 0 correlation finding =============================
-
 
             }
             else
@@ -506,6 +490,7 @@ void evBuilder::Loop()
 
     auto straw_rt_proj_dir = out->mkdir("straw_rt_proj");
     straw_rt_proj_dir->cd();
+    vector<TH1D*> straw_rt_proj;
     for(auto &m: {straw_rt, straw_rt_0})
       for(auto &h: m){
         auto hist = h.second->ProjectionY(Form("%s_projectiony", h.second->GetName()));
@@ -513,9 +498,34 @@ void evBuilder::Loop()
       }
     out->cd();
 
+    auto straw_vs_mm_spatial_corr_normed = static_cast<TH2D*>(straw_vs_mm_spatial_corr->Clone("straw_vs_mm_spatial_corr_normed"));
+    straw_vs_mm_spatial_corr_normed->SetTitle(Form("%s: microMegas vs straw spatial correaltion (normed);straw ch;MM ch", file.Data()));
+    for(auto i = 1; i <= straw_vs_mm_spatial_corr_normed->GetNbinsX(); i++){
+      auto integ = straw_vs_mm_spatial_corr_normed->Integral(i, i, 1, straw_vs_mm_spatial_corr_normed->GetNbinsY());
+      if(!integ) continue;
+      for(auto j = 1; j <= straw_vs_mm_spatial_corr_normed->GetNbinsY(); j++){
+        auto c = straw_vs_mm_spatial_corr_normed->GetBinContent(i, j);
+        auto e = straw_vs_mm_spatial_corr_normed->GetBinError(i, j);
+        straw_vs_mm_spatial_corr_normed->SetBinContent(i, j, static_cast<float>(c) / static_cast<float>(integ));
+        straw_vs_mm_spatial_corr_normed->SetBinError(i, j, static_cast<float>(e) / static_cast<float>(integ));
+      }
+    }
+    
     threePlotDrawF(mm_vs_sci_3det_corr, straw_vs_sci_3det_corr, straw_vs_mm_3det_corr);
     threePlotDrawF(mm_vs_sci_3det_corr_0, straw_vs_sci_3det_corr_0, straw_vs_mm_3det_corr_0, "_0");
 
+    {
+      for(auto &h: straw_banana_0){
+        auto banana = new TCanvas(Form("banana_%d", h.first), Form("banana_%d", h.first), 1000, 900);
+        banana->cd();
+        gStyle->SetOptStat(0);
+        h.second->Draw("COLZ");
+        banana->SaveAs(Form("../out/banana_%s_straws%d-%d.pdf", file.Data(), h.first, h.first+1));
+        banana->SaveAs(Form("../out/banana_%s_straws%d-%d.png", file.Data(), h.first, h.first+1));
+      }
+    }
+
     out->Write();
     out->Close();
+
 }
