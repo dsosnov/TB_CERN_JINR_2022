@@ -498,6 +498,18 @@ void evBuilder::Loop()
       }
     out->cd();
 
+    auto straw_vs_mm_spatial_corr_normed = static_cast<TH2D*>(straw_vs_mm_spatial_corr->Clone("straw_vs_mm_spatial_corr_normed"));
+    straw_vs_mm_spatial_corr_normed->SetTitle(Form("%s: microMegas vs straw spatial correaltion (normed);straw ch;MM ch", file.Data()));
+    for(auto i = 1; i <= straw_vs_mm_spatial_corr_normed->GetNbinsX(); i++){
+      auto integ = straw_vs_mm_spatial_corr_normed->Integral(i, i, 1, straw_vs_mm_spatial_corr_normed->GetNbinsY());
+      if(!integ) continue;
+      for(auto j = 1; j <= straw_vs_mm_spatial_corr_normed->GetNbinsY(); j++){
+        auto c = straw_vs_mm_spatial_corr_normed->GetBinContent(i, j);
+        auto e = straw_vs_mm_spatial_corr_normed->GetBinError(i, j);
+        straw_vs_mm_spatial_corr_normed->SetBinContent(i, j, static_cast<float>(c) / static_cast<float>(integ));
+        straw_vs_mm_spatial_corr_normed->SetBinError(i, j, static_cast<float>(e) / static_cast<float>(integ));
+      }
+    }
     
     threePlotDrawF(mm_vs_sci_3det_corr, straw_vs_sci_3det_corr, straw_vs_mm_3det_corr);
     threePlotDrawF(mm_vs_sci_3det_corr_0, straw_vs_sci_3det_corr_0, straw_vs_mm_3det_corr_0, "_0");
