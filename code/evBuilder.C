@@ -497,9 +497,6 @@ void evBuilder::Loop()
     threePlotDrawF(mm_vs_sci_3det_corr, straw_vs_sci_3det_corr, straw_vs_mm_3det_corr);
     threePlotDrawF(mm_vs_sci_3det_corr_0, straw_vs_sci_3det_corr_0, straw_vs_mm_3det_corr_0, "_0");
 
-    out->Write();
-    out->Close();
-
     {
       for(auto &h: straw_banana_0){
         auto banana = new TCanvas(Form("banana_%d", h.first), Form("banana_%d", h.first), 1000, 900);
@@ -510,5 +507,8 @@ void evBuilder::Loop()
         banana->SaveAs(Form("../out/banana_%s_straws%d-%d.png", file.Data(), h.first, h.first+1));
       }
     }
+
+    out->Write();
+    out->Close();
 
 }
