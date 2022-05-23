@@ -221,7 +221,8 @@ void evBuilder::Loop()
                                    Form("%s: straw%d_vs_straw%d;T_{straw%d} - T_{straw%d}", file.Data(), i, i+1, i, i+1), 1000, -500, 500));
     }
     out->cd();
-    
+
+    unsigned int pdoThr = 100;
     unsigned int nLoopEntriesAround = 0;
     Long64_t nentries = fChain->GetEntriesFast();
 
@@ -251,13 +252,15 @@ void evBuilder::Loop()
             int fchD = getMappedDetector(fch);
             int fchM = getMappedChannel(fch);
 
+            int fpdoUC = pdo->at(0).at(j); // Uncorrected PDO, used at time calibration
+            int fpdo = correctPDO(fch, fpdoUC);
+            int ftdo = tdo->at(0).at(j);
+            int fbcid = grayDecoded->at(0).at(j);
+
+            if(fpdo < pdoThr) continue;
+
             if (fchD == 1) // All straw ch
             {
-                int fpdoUC = pdo->at(0).at(j); // Uncorrected PDO, used at time calibration
-                int fpdo = correctPDO(fch, fpdoUC);
-                int ftdo = tdo->at(0).at(j);
-                int fbcid = grayDecoded->at(0).at(j);
-
                 straw_bcid_ch_srtraw = fbcid;
                 straw_pdo_ch_srtraw = fpdo;
                 t_srtraw = getTime(fch, fbcid, ftdo, fpdoUC); // 'auto' limits
@@ -302,6 +305,8 @@ void evBuilder::Loop()
                       int ffbcid = grayDecoded->at(0).at(k);
                       // double fft = getTimeByHand(ffbcid, fftdo, 110, 160); //'hand' limits
                       double fft = getTime(ffch, ffbcid, fftdo, ffpdoUC); // 'auto' limits
+
+                      if(ffpdo < pdoThr) continue;
 
                       if(ffchD == 4) // All MM channels
                       { 
