@@ -10,10 +10,14 @@
 # - 2: MM layer 0
 # - 3: MM layer 1
 # - 4: MM layer 2
+# - 5: MM layer 3
+# - 6: Additional straws:
+#   - channel 0 - SHiP straw
+#   - channel 1 - neutron straw
 0 0 0
-1 1 28
+1 6 1
 2 1 27
-3 1 25
+3 6 0
 4 4 209
 5 4 208
 6 4 207
