@@ -2,6 +2,8 @@
 #ifndef apv_h
 #define apv_h
 
+#include "analysisGeneral.h"
+
 #include <TROOT.h>
 #include <TChain.h>
 #include <TFile.h>
@@ -20,19 +22,14 @@ using std::map;
 using std::string;
 using std::shared_ptr, std::make_shared;
 
-class apv {
+class apv : public analysisGeneral {
 public :
-  TString folder = "../data-apv/";
-  TString file = "run16";
-  TString ending = ".root";
 
-  TChain          *fChainSignal;   //!pointer to the analyzed TTree or TChain
   TChain          *fChainPedestal;   //!pointer to the analyzed TTree or TChain
   std::map<string, TString> configs;
-  int           fCurrentData; //!current Tree number in a TChain
   int           fCurrentPedestal; //!current Tree number in a TChain
 
-  bool isChain(){ return fChainSignal != nullptr; }
+  bool isChain(){ return fChain != nullptr; }
   bool isChainPed(){ return fChainPedestal != nullptr; }
 
   // Event variables, signal
@@ -90,12 +87,12 @@ public :
   TBranch *b_t_max_q;
 
   apv(TString);
-  apv(TTree *tree = nullptr, TTree *treePed = nullptr);
+  apv(vector<TString>);
+  apv(TChain *tree = nullptr, TChain *treePed = nullptr);
   virtual ~apv();
-  virtual int    GetEntry(Long64_t entry);
-  virtual Long64_t LoadTree(Long64_t entry);
-  virtual void     Init(TTree *tree, TTree *treePed);
-  virtual void     Loop();
+  virtual void     Init() override;
+  virtual void     Loop() override;
+  virtual void     LoopSecond(unsigned long long sec);
 
   static unsigned long long unique_srs_time_stamp(int, int, int);
 
@@ -105,13 +102,27 @@ public :
 
   TTree* clasterTree;
   TBranch* clasterBranch;
+
+  map<int, pair<double, double>> shiftBetweenLayels = {
+    {0, {-13.83, 3.516}}, // layer 0 - layer 1, from run76
+    {0, {-18.23, 7.712}}, // layer 1 - layer 2, from run76
+  };
+    
 };
+
+// vector<pair<double, double>> selectTracks(vector<apvClaster> clasters){
+//   for(auto i = 0; i < clasters.size(); i++){
+//     if(clasters.at(i).getLayer() != 0)
+//       continue;
+//     for(auto i = 0; i < clasters.size(); i++){
+    
+//   }
+// }
 
 #endif
 
 #ifdef apv_cxx
-apv::apv(TString filename) : file(filename),
-                             fChainSignal(nullptr), fChainPedestal(nullptr),
+apv::apv(TString filename) : fChainPedestal(nullptr),
                              srsFec(nullptr), srsChip(nullptr), srsChan(nullptr), mmChamber(nullptr),
                              mmLayer(nullptr), mmReadout(nullptr), mmStrip(nullptr),
                              raw_q(nullptr), max_q(nullptr), t_max_q(nullptr),
@@ -120,22 +131,26 @@ apv::apv(TString filename) : file(filename),
                              ped_meanPed(nullptr), ped_stdevPed(nullptr), ped_sigmaPed(nullptr),
                              clasterTree(nullptr)
 {
-  TFile *f = (TFile*)gROOT->GetListOfFiles()->FindObject(folder + file + ending);
-  if(!f || !f->IsOpen()) {
-    f = new TFile(folder + file + ending);
-  }
-  if(!f->IsOpen()) {
-    std::cout << "Problem with opening data file" << std::endl;
-    exit(1);
-  }
-  auto tree = new TChain("apv_raw");
-  tree->Add(folder + file + ending);
-  auto treePed = new TChain("apv_raw_ped");
-  treePed->Add(folder + file + ending);
-  Init(tree, treePed);
+  file = filename;
+  folder = "../data-apv/";
+  fChain = GetTree(filename, "apv_raw");
+  fChainPedestal = GetTree(filename, "apv_raw_ped");
+  Init();
 }
 
-apv::apv(TTree *tree, TTree *treePed) : fChainSignal(nullptr), fChainPedestal(nullptr),
+apv::apv(vector<TString> filenames)
+{
+  file = filenames.at(0);
+  folder = "../data-apv/";
+  fChain = GetTree(filenames.at(0), "apv_raw");
+  fChainPedestal = GetTree(filenames.at(0), "apv_raw_ped");
+  for(auto i = 1; i < filenames.size(); i++)
+    fChain->Add(folder + filenames.at(i) + ending);
+  Init();
+}
+
+
+apv::apv(TChain *tree, TChain *treePed) : analysisGeneral(tree), fChainPedestal(treePed),
                                         srsFec(nullptr), srsChip(nullptr), srsChan(nullptr), mmChamber(nullptr),
                                         mmLayer(nullptr), mmReadout(nullptr), mmStrip(nullptr),
                                         raw_q(nullptr), max_q(nullptr), t_max_q(nullptr),
@@ -144,88 +159,58 @@ apv::apv(TTree *tree, TTree *treePed) : fChainSignal(nullptr), fChainPedestal(nu
                                         ped_meanPed(nullptr), ped_stdevPed(nullptr), ped_sigmaPed(nullptr),
                                         clasterTree(nullptr)
 {
-  if(tree == nullptr) {
-    TFile *f = (TFile*)gROOT->GetListOfFiles()->FindObject(folder + file + ending);
-    if(!f || !f->IsOpen()) {
-      f = new TFile(folder + file + ending);
-    }
-    if(!f->IsOpen()) {
-      std::cout << "Problem with opening data file" << std::endl;
-      exit(1);
-    }
-    f->GetObject("apv_raw",tree);
-    if(treePed == nullptr)
-      f->GetObject("apv_raw_ped",treePed);
-  }
-  Init(tree, treePed);
+  folder = "../data-apv/";
+  fChain = (tree == nullptr) ? GetTree("", "apv_raw") : tree;
+  fChainPedestal = (treePed == nullptr) ? GetTree("", "apv_raw_ped") : treePed;
+  Init();
 }
 
 apv::~apv(){
-  if(fChainSignal)
-    delete fChainSignal->GetCurrentFile();
   if(fChainPedestal)
     delete fChainPedestal->GetCurrentFile();
 }
 
-int apv::GetEntry(Long64_t entry){
-  // Read contents of entry.
-  if(!fChainSignal) return 0;
-  return fChainSignal->GetEntry(entry);
-}
-Long64_t apv::LoadTree(Long64_t entry){
-  // Set the environment to read one entry
-  if(!fChainSignal) return -5;
-  Long64_t centry = fChainSignal->LoadTree(entry);
-  if(centry < 0) return centry;
-  if(fChainSignal->GetTreeNumber() != fCurrentData) {
-    fCurrentData = fChainSignal->GetTreeNumber();
-  }
-  return centry;
-}
-
-void apv::Init(TTree *tree, TTree *treePed){
-  fChainSignal = tree;
-  fChainPedestal = treePed;
-  printf("Init:: File: %s, tree %p, treePed %p\n", file.Data(), tree, treePed);
+void apv::Init(){
+  printf("Init:: File: %s, tree %p, treePed %p\n", file.Data(), fChain, fChainPedestal);
   // Signal
-  if(tree){
-    tree->SetBranchAddress("evt", &evt, &b_evt);
-    tree->SetBranchAddress("error", &error, &b_error);
-    tree->SetBranchAddress("daqTimeSec", &daqTimeSec, &b_daqTimeSec);
-    tree->SetBranchAddress("daqTimeMicroSec", &daqTimeMicroSec, &b_daqTimeMicroSec);
-    tree->SetBranchAddress("srsTimeStamp", &srsTimeStamp, &b_srsTimeStamp);
-    tree->SetBranchAddress("srsTrigger", &srsTrigger, &b_srsTrigger);
-    tree->SetBranchAddress("srsFec", &srsFec, &b_srsFec);
-    tree->SetBranchAddress("srsChip", &srsChip, &b_srsChip);
-    tree->SetBranchAddress("srsChan", &srsChan, &b_srsChan);
-    tree->SetBranchAddress("mmChamber", &mmChamber, &b_mmChamber);
-    tree->SetBranchAddress("mmLayer", &mmLayer, &b_mmLayer);
-    tree->SetBranchAddress("mmReadout", &mmReadout, &b_mmReadout);
-    tree->SetBranchAddress("mmStrip", &mmStrip, &b_mmStrip);
-    tree->SetBranchAddress("raw_q", &raw_q, &b_raw_q);
-    tree->SetBranchAddress("max_q", &max_q, &b_max_q);
-    tree->SetBranchAddress("t_max_q", &t_max_q, &b_t_max_q);
+  if(fChain){
+    fChain->SetBranchAddress("evt", &evt, &b_evt);
+    fChain->SetBranchAddress("error", &error, &b_error);
+    fChain->SetBranchAddress("daqTimeSec", &daqTimeSec, &b_daqTimeSec);
+    fChain->SetBranchAddress("daqTimeMicroSec", &daqTimeMicroSec, &b_daqTimeMicroSec);
+    fChain->SetBranchAddress("srsTimeStamp", &srsTimeStamp, &b_srsTimeStamp);
+    fChain->SetBranchAddress("srsTrigger", &srsTrigger, &b_srsTrigger);
+    fChain->SetBranchAddress("srsFec", &srsFec, &b_srsFec);
+    fChain->SetBranchAddress("srsChip", &srsChip, &b_srsChip);
+    fChain->SetBranchAddress("srsChan", &srsChan, &b_srsChan);
+    fChain->SetBranchAddress("mmChamber", &mmChamber, &b_mmChamber);
+    fChain->SetBranchAddress("mmLayer", &mmLayer, &b_mmLayer);
+    fChain->SetBranchAddress("mmReadout", &mmReadout, &b_mmReadout);
+    fChain->SetBranchAddress("mmStrip", &mmStrip, &b_mmStrip);
+    fChain->SetBranchAddress("raw_q", &raw_q, &b_raw_q);
+    fChain->SetBranchAddress("max_q", &max_q, &b_max_q);
+    fChain->SetBranchAddress("t_max_q", &t_max_q, &b_t_max_q);
   }
   // Pedestal
-  if(treePed){
+  if(fChainPedestal){
     // treePed->Print();
-    treePed->SetBranchAddress("evt", &evtPed);
-    treePed->SetBranchAddress("error", &errorPed);
-    treePed->SetBranchAddress("daqTimeSec", &daqTimeSecPed);
-    treePed->SetBranchAddress("daqTimeMicroSec", &daqTimeMicroSecPed);
-    treePed->SetBranchAddress("srsTimeStamp", &srsTimeStampPed);
-    treePed->SetBranchAddress("srsTrigger", &srsTriggerPed);
-    treePed->SetBranchAddress("srsFec", &srsFecPed);
-    treePed->SetBranchAddress("srsChip", &srsChipPed);
-    treePed->SetBranchAddress("srsChan", &srsChanPed);
-    treePed->SetBranchAddress("mmChamber", &mmChamberPed);
-    treePed->SetBranchAddress("mmLayer", &mmLayerPed);
-    treePed->SetBranchAddress("mmReadout", &mmReadoutPed);
-    treePed->SetBranchAddress("mmStrip", &mmStripPed);
-    treePed->SetBranchAddress("ped_mean", &ped_meanPed);
-    treePed->SetBranchAddress("ped_stdev", &ped_stdevPed);
-    treePed->SetBranchAddress("ped_sigma", &ped_sigmaPed);
-    treePed->GetEntry(0);
+    fChainPedestal->SetBranchAddress("evt", &evtPed);
+    fChainPedestal->SetBranchAddress("error", &errorPed);
+    fChainPedestal->SetBranchAddress("daqTimeSec", &daqTimeSecPed);
+    fChainPedestal->SetBranchAddress("daqTimeMicroSec", &daqTimeMicroSecPed);
+    fChainPedestal->SetBranchAddress("srsTimeStamp", &srsTimeStampPed);
+    fChainPedestal->SetBranchAddress("srsTrigger", &srsTriggerPed);
+    fChainPedestal->SetBranchAddress("srsFec", &srsFecPed);
+    fChainPedestal->SetBranchAddress("srsChip", &srsChipPed);
+    fChainPedestal->SetBranchAddress("srsChan", &srsChanPed);
+    fChainPedestal->SetBranchAddress("mmChamber", &mmChamberPed);
+    fChainPedestal->SetBranchAddress("mmLayer", &mmLayerPed);
+    fChainPedestal->SetBranchAddress("mmReadout", &mmReadoutPed);
+    fChainPedestal->SetBranchAddress("mmStrip", &mmStripPed);
+    fChainPedestal->SetBranchAddress("ped_mean", &ped_meanPed);
+    fChainPedestal->SetBranchAddress("ped_stdev", &ped_stdevPed);
+    fChainPedestal->SetBranchAddress("ped_sigma", &ped_sigmaPed);
+    fChainPedestal->GetEntry(0);
     // printf("PedEntries: %lld\n", treePed->GetEntries());
   }
 
@@ -234,7 +219,8 @@ void apv::Init(TTree *tree, TTree *treePed){
   else
     clasterTree->Reset();
   clasterBranch = clasterTree->Branch("clasters", &clasters);
-  clasterTree->AddFriend(fChainSignal, "signals");
+  clasterTree->AddFriend(fChain, "signals");
+  
   if(fChainPedestal)
     clasterTree->AddFriend(fChainPedestal, "pedestals");
 }

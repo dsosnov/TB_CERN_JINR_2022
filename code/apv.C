@@ -5,13 +5,112 @@
 #include <TF1.h>
 #include <limits>
 
+void apv::LoopSecond(unsigned long long sec){
+  if(!isChain())
+    return;
+  Long64_t nentries = fChain->GetEntries();
+
+  unsigned long long previousTimestamp = 0;
+  vector<apvHit> hits;
+  
+  for (auto event = 0; event < nentries; event++){
+    Long64_t ientry = LoadTree(event);
+    if (ientry < 0) break;
+    GetEntry(event);
+    // printf("Entry: %d: error - %d\n", event, error);
+    if(error)
+      continue;
+      
+    if(daqTimeSec < sec)
+      continue;
+    if(daqTimeSec > sec)
+      break;
+
+    printf("Evevt parameters: evt %lld, time: %d & %d, timestamp: %d, trigger: %d;", evt, daqTimeSec, daqTimeMicroSec, srsTimeStamp, srsTrigger);
+    // printf(" Unique timestamp: %llu;", unique_srs_time_stamp(daqTimeSec, daqTimeMicroSec, srsTimeStamp));
+    printf("\n");
+
+    /* Checking if there is any mapped channels */
+    bool notErr = false;
+    for (auto &r: *mmReadout)
+      notErr = notErr || (r != 'E');
+    if(!notErr) continue;
+    
+    unsigned long long currentTimestamp = daqTimeSec * 1E6 + daqTimeMicroSec;
+    previousTimestamp = currentTimestamp;
+
+    hits.clear();
+    for (int j = 0; j < max_q->size(); j++){
+      // printf("Record inside entry: %d\n", j);
+      auto readout = mmReadout->at(j);
+      if(readout == 'E') //non-mapped channel
+        continue;
+      auto layer = mmLayer->at(j);
+      auto strip = mmStrip->at(j);
+      auto maxQ = max_q->at(j);
+      
+      auto maxTime = t_max_q->at(j);
+      
+      hits.push_back({layer, strip, maxQ, maxTime, raw_q->at(j)});      
+    }
+
+    /* Constructing clasters */
+    clasters.clear();
+    std::sort(hits.begin(), hits.end(), [](auto h1, auto h2){return h1.strip < h2.strip;});
+    for(auto &hit: hits)
+      addHitToClasters(hit);
+
+    /* Remove small clasters or clasters with small energy for the first layers only */
+    clasters.erase(std::remove_if(clasters.begin(), 
+                                  clasters.end(),
+                                  [](auto c){return c.getLayer() != 2 && c.nHits() < 3;}),
+                   clasters.end());
+    clasters.erase(std::remove_if(clasters.begin(), 
+                                  clasters.end(),
+                                  [](auto c){
+                                    auto qthr = (c.getLayer() == 2) ? 150 : 300;
+                                    return c.maxQ() < qthr;}),
+                   clasters.end());
+
+    std::stable_sort(clasters.begin(), clasters.end(), [](auto c1, auto c2){return (c1.getLayer() < c2.getLayer()) || (c1.center() < c2.center());});
+    
+    bool clasterInRange0 = false, clasterInRange1 = false, clasterInRange2 = false;
+    for(auto &c: clasters){
+      if(c.getLayer() == 0 && c.center() >= 124 && c.center() <= 168-16)
+        clasterInRange0 = true;
+      else if(c.getLayer() == 1 && c.center() >= 134 && c.center() <= 184-16)
+        clasterInRange1 = true;
+      else if(c.getLayer() == 2 && c.center() >= 150 && c.center() <= 209-16 && (c.center() < 170 || c.center() >173))
+        clasterInRange2 = true;
+    }
+    // if(clasterInRange0 && clasterInRange1){
+    //   nEventsWHitsTwoLayers++;
+    //   if(clasterInRange2)
+    //     nEventsWHitsThreeLayers++;
+    // }
+
+    for(auto &c: clasters){
+      printf(" ");
+      c.print();
+    }
+
+        // printf("Evevt parameters: evt %lld, time: %d & %d, timestamp: %d, trigger: %d;", evt, daqTimeSec, daqTimeMicroSec, srsTimeStamp, srsTrigger);
+    // // printf(" Unique timestamp: %llu;", unique_srs_time_stamp(daqTimeSec, daqTimeMicroSec, srsTimeStamp));
+    // printf("\n");
+
+
+
+  }
+
+}
+
 void apv::Loop()
 {
   clasterTree->Reset();
 
   printf("apv::Loop\n");
   if (isChain())
-    fChainSignal->GetEntry(0);
+    fChain->GetEntry(0);
 
   TFile *out = new TFile("../out/out_apv_" + file + ending, "RECREATE"); // PATH where to save out_*.root file
 
@@ -83,10 +182,10 @@ void apv::Loop()
   /* Claster histograms */
   // =============================== TDO & distributions ===============================
 
-  // printf("Chain tree: %p\n", fChainSignal);
+  // printf("Chain tree: %p\n", fChain);
   if(isChain()){
-    printf("Chain n events: %lld\n", fChainSignal->GetEntries());
-    Long64_t nentries = fChainSignal->GetEntries();
+    printf("Chain n events: %lld\n", fChain->GetEntries());
+    Long64_t nentries = fChain->GetEntries();
 
     unsigned long long previousTimestamp = 0;
     vector<apvHit> hits;
@@ -169,14 +268,16 @@ void apv::Loop()
       for(auto &hit: hits)
         addHitToClasters(hit);
 
-      // /* Remove small clasters or clasters with small energy*/
-      // clasters.erase(std::remove_if(clasters.begin(), 
-      //                               clasters.end(),
-      //                               [](auto c){return c.nHits() < 3;}),
-      //                clasters.end());
+      /* Remove small clasters or clasters with small energy for the first layers only */
       clasters.erase(std::remove_if(clasters.begin(), 
                                     clasters.end(),
-                                    [](auto c){return c.maxQ() < 300;}),
+                                    [](auto c){return c.getLayer() != 2 && c.nHits() < 3;}),
+                     clasters.end());
+      clasters.erase(std::remove_if(clasters.begin(), 
+                                    clasters.end(),
+                                    [](auto c){
+                                      auto qthr = (c.getLayer() == 2) ? 150 : 300;
+                                      return c.maxQ() < qthr;}),
                      clasters.end());
 
       std::stable_sort(clasters.begin(), clasters.end(), [](auto c1, auto c2){return (c1.getLayer() < c2.getLayer()) || (c1.center() < c2.center());});
@@ -213,7 +314,8 @@ void apv::Loop()
       if(clasters.size() == 3){
         if(clasters.at(0).getLayer() == 0 &&
            clasters.at(1).getLayer() == 1 &&
-           clasters.at(2).getLayer() == 2){
+           clasters.at(2).getLayer() == 2 &&
+           (clasters.at(2).center() <= 122 || clasters.at(2).center() > 238)){
           hClasterShiftBetweenLayers01->Fill(clasters.at(0).center() - clasters.at(1).center());
           hClasterShiftBetweenLayers02->Fill(clasters.at(0).center() - clasters.at(2).center());
           hClasterShiftBetweenLayers12->Fill(clasters.at(1).center() - clasters.at(2).center());
@@ -255,5 +357,6 @@ void apv::Loop()
 
   // straw31_vs_straw30_banana_bcid->Write();
   out->Write();
+  out->Print();
   out->Close();
 }

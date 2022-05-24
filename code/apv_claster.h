@@ -34,16 +34,16 @@ private:
   int layer;
   vector<apvHit> hits;
   unsigned long sizeOnLastUpdate;
-  // float center_;
+  float center_;
   // int width_;
   int maxq_;
   long qsum_;
 public:
   apvClaster(int clasterLayer = 0):
-    layer(clasterLayer), hits({}), sizeOnLastUpdate(-1){
+    layer(clasterLayer), hits({}), sizeOnLastUpdate(0){
   }
   apvClaster(apvHit hit):
-    layer(hit.layer), hits({}), sizeOnLastUpdate(-1){
+    layer(hit.layer), hits({}), sizeOnLastUpdate(0){
     addHit(hit);
   }
   ~apvClaster(){
@@ -67,8 +67,15 @@ public:
     return true;
   }
   float center(){
-    sortHits();
-    return (hits.at(0).strip + hits.back().strip)/2.0;
+    if(sizeOnLastUpdate && sizeOnLastUpdate == nHits())
+      return center_;
+    long long sum = 0, sumw = 0;
+    for(auto &hit: hits){
+      sum += hit.strip * hit.max_q;
+      sumw += hit.max_q;
+    }
+    center_ = static_cast<float>(sum) / static_cast<float>(sumw);
+    return center_;
   }
   int width(){
     sortHits();
@@ -77,7 +84,7 @@ public:
   int firstStrip(){ sortHits(); return hits.at(0).strip; }
   int lastStrip(){ sortHits(); return hits.back().strip; }
   int maxQ(){
-    if(!sizeOnLastUpdate && sizeOnLastUpdate == nHits())
+    if(sizeOnLastUpdate && sizeOnLastUpdate == nHits())
       return maxq_;
     maxq_ = -1;
     for(auto &hit: hits)
@@ -86,7 +93,7 @@ public:
     return maxq_;
   }
   long q(){
-    if(!sizeOnLastUpdate && sizeOnLastUpdate == nHits())
+    if(sizeOnLastUpdate && sizeOnLastUpdate == nHits())
       return qsum_;    
     qsum_ = 0;
     for(auto &hit: hits)
@@ -101,9 +108,12 @@ public:
         h.print(true);
   }
   void sortHits(){
-    if(!sizeOnLastUpdate && sizeOnLastUpdate == nHits())
+    if(sizeOnLastUpdate && sizeOnLastUpdate == nHits())
       return;
     std::sort(hits.begin(), hits.end(), [](const apvHit h1, const apvHit h2){return (h1.strip < h2.strip);});
+    q();
+    maxQ();
+    center();
     sizeOnLastUpdate = nHits();
   }
   bool merge(apvClaster claster){

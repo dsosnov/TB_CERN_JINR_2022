@@ -77,6 +77,35 @@ public :
    virtual void     Init(TTree *tree);
    virtual void     Loop();
 
+   virtual void     LoopSecond(unsigned long long sec);
+
+   // map<int, float> firstStripForStraw = {
+   //   {24, 213 - 21 - 24/1.0},
+   //   {25, 213 - 21 - 24/2.0},
+   //   {26, 213 - 21         }, //(mmMax + 4) - 21
+   //   {27, 213 - 21 + 24/2.0},
+   //   {28, 213 - 21 + 24/1.0},
+   //   {29, 213 - 21 + 24/1.5},
+   // };
+   map<int, float> strawCenterMM = {
+     {24, 156}, // 213 - 21 - 24/1.0 - 12
+     {25, 165}, // 213 - 21 - 24/2.0 - 15
+     {26, 181}, // 213 - 21 - 12 + 1
+     {27, 189}, // 213 - 21 + 24/2.0 - 15
+     {28, 204}, // 213 - 21 + 24/1.0 - 12
+     {29, 216}, // 213 - 21 + 24/1.5 - 12
+   };
+
+   map<int, pair<int, int>> mmAcceptanceStraws = {
+     {24, {156-24/2, 156+24/2}},
+     {25, {165-24/2, 165+24/2}},
+     {26, {181-24/2, 181+24/2}},
+     {27, {189-24/2, 189+24/2}},
+     {28, {204-24/2, 204+24/2}},
+     {29, {216-24/2, 216+24/2}},
+   };
+
+
    map<unsigned int, vector<array<int, 2>>> TDOlimits;
    vector<array<float, 2>> pdoCorrection;
 

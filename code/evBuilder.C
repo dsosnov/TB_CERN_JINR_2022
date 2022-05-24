@@ -4,87 +4,216 @@
 
 void evBuilder::threePlotDrawF(TH1D *h1, TH1D *h2, TH1D *h3, TString fileEnding)
 {
-    h1->SetLineColor(kGreen - 2);
-    h2->SetLineColor(kMagenta);
-    h3->SetLineColor(kBlack);
-    h1->SetStats(0);
-    h2->SetStats(0);
-    h3->SetStats(0);
+  h1->SetLineColor(kGreen - 2);
+  h2->SetLineColor(kMagenta);
+  h3->SetLineColor(kBlack);
+  h1->SetStats(0);
+  h2->SetStats(0);
+  h3->SetStats(0);
 
 
-    TCanvas *three_plots = new TCanvas("3 det correlation", "3 det correlation", 1400, 900);
-    three_plots->cd();
+  TCanvas *three_plots = new TCanvas("3 det correlation", "3 det correlation", 1400, 900);
+  three_plots->cd();
 
-    h2->Draw();
-    h1->Draw("SAME");
-    h3->Draw("SAME");
+  h2->Draw();
+  h1->Draw("SAME");
+  h3->Draw("SAME");
 
-    h1->Fit("gaus", "", "", -200, 200); // TMM - TScint
-    h2->Fit("gaus", "", "", -200, 200); // TStraw - TScint
-    h3->Fit("gaus", "", "", -200, 200); // TStraw - TMM
+  h1->Fit("gaus", "", "", -200, 200); // TMM - TScint
+  h2->Fit("gaus", "", "", -200, 200); // TStraw - TScint
+  h3->Fit("gaus", "", "", -200, 200); // TStraw - TMM
 
-    TF1 *g1 = (TF1*)h1->GetListOfFunctions()->FindObject("gaus");
-    TF1 *g2 = (TF1*)h2->GetListOfFunctions()->FindObject("gaus");
-    TF1 *g3 = (TF1*)h3->GetListOfFunctions()->FindObject("gaus");
+  TF1 *g1 = (TF1*)h1->GetListOfFunctions()->FindObject("gaus");
+  TF1 *g2 = (TF1*)h2->GetListOfFunctions()->FindObject("gaus");
+  TF1 *g3 = (TF1*)h3->GetListOfFunctions()->FindObject("gaus");
 
-    double m1 = g1->GetParameter(1);
-    double s1 = g1->GetParameter(2);
+  double m1 = g1->GetParameter(1);
+  double s1 = g1->GetParameter(2);
 
-    double m2 = g2->GetParameter(1);
-    double s2 = g2->GetParameter(2);
+  double m2 = g2->GetParameter(1);
+  double s2 = g2->GetParameter(2);
 
-    double m3 = g3->GetParameter(1);
-    double s3 = g3->GetParameter(2);
+  double m3 = g3->GetParameter(1);
+  double s3 = g3->GetParameter(2);
 
 
-    gStyle->SetOptFit(1111);
-    // draw fit parameters as legends:
-    Char_t ndf[80];
-    Char_t sigma[80];
-    Char_t mean[80];
-    Char_t constant[80];
-    auto legend = new TLegend(0.65, 0.9, 1.0, 0.75, "TMM - TScint");
-    sprintf(ndf, "#chi^{2}/NDF = %.2f / %.2i", h1->GetFunction("gaus")->GetChisquare(), h1->GetFunction("gaus")->GetNDF());
-    legend->AddEntry(h1, ndf);
-    sprintf(sigma, "#sigma = %.1f", h1->GetFunction("gaus")->GetParameter(2));
-    legend->AddEntry(h1, sigma);
-    sprintf(mean, "Mean = %.1f", h1->GetFunction("gaus")->GetParameter(1));
-    legend->AddEntry(h1, mean);
-    sprintf(constant, "Events under peak: %.f", h1->GetFunction("gaus")->Integral(m1 - 4 * s1, m1 + 4 * s1) / h1->GetBinWidth(1));
-    legend->AddEntry(h1, constant);
-    legend->Draw("same");
+  gStyle->SetOptFit(1111);
+  // draw fit parameters as legends:
+  Char_t ndf[80];
+  Char_t sigma[80];
+  Char_t mean[80];
+  Char_t constant[80];
+  auto legend = new TLegend(0.65, 0.9, 1.0, 0.75, "TMM - TScint");
+  sprintf(ndf, "#chi^{2}/NDF = %.2f / %.2i", h1->GetFunction("gaus")->GetChisquare(), h1->GetFunction("gaus")->GetNDF());
+  legend->AddEntry(h1, ndf);
+  sprintf(sigma, "#sigma = %.1f", h1->GetFunction("gaus")->GetParameter(2));
+  legend->AddEntry(h1, sigma);
+  sprintf(mean, "Mean = %.1f", h1->GetFunction("gaus")->GetParameter(1));
+  legend->AddEntry(h1, mean);
+  sprintf(constant, "Events under peak: %.f", h1->GetFunction("gaus")->Integral(m1 - 4 * s1, m1 + 4 * s1) / h1->GetBinWidth(1));
+  legend->AddEntry(h1, constant);
+  legend->Draw("same");
 
-    Char_t ndf1[80];
-    Char_t sigma1[80];
-    Char_t mean1[80];
-    Char_t constant1[80];
-    auto legend1 = new TLegend(0.65, 0.75, 1.0, 0.60, "TStraw - TScint");
-    sprintf(ndf1, "#chi^{2}/NDF = %.2f / %.2i", h2->GetFunction("gaus")->GetChisquare(), h2->GetFunction("gaus")->GetNDF());
-    legend1->AddEntry(h2, ndf1);
-    sprintf(sigma1, "#sigma = %.1f", h2->GetFunction("gaus")->GetParameter(2));
-    legend1->AddEntry(h2, sigma1);
-    sprintf(mean1, "Mean = %.1f", h2->GetFunction("gaus")->GetParameter(1));
-    legend1->AddEntry(h2, mean1);
-    sprintf(constant1, "Events under peak: %.f", h2->GetFunction("gaus")->Integral(m2 - 4 * s2, m2 + 4 * s2) / h2->GetBinWidth(1));
-    legend1->AddEntry(h2, constant1);
-    legend1->Draw("same");
+  Char_t ndf1[80];
+  Char_t sigma1[80];
+  Char_t mean1[80];
+  Char_t constant1[80];
+  auto legend1 = new TLegend(0.65, 0.75, 1.0, 0.60, "TStraw - TScint");
+  sprintf(ndf1, "#chi^{2}/NDF = %.2f / %.2i", h2->GetFunction("gaus")->GetChisquare(), h2->GetFunction("gaus")->GetNDF());
+  legend1->AddEntry(h2, ndf1);
+  sprintf(sigma1, "#sigma = %.1f", h2->GetFunction("gaus")->GetParameter(2));
+  legend1->AddEntry(h2, sigma1);
+  sprintf(mean1, "Mean = %.1f", h2->GetFunction("gaus")->GetParameter(1));
+  legend1->AddEntry(h2, mean1);
+  sprintf(constant1, "Events under peak: %.f", h2->GetFunction("gaus")->Integral(m2 - 4 * s2, m2 + 4 * s2) / h2->GetBinWidth(1));
+  legend1->AddEntry(h2, constant1);
+  legend1->Draw("same");
 
-    Char_t ndf2[80];
-    Char_t sigma2[80];
-    Char_t mean2[80];
-    Char_t constant2[80];
-    auto legend2 = new TLegend(0.65, 0.60, 1.0, 0.45, "TStraw - TMM");
-    sprintf(ndf2, "#chi^{2}/NDF = %.2f / %.2i", h3->GetFunction("gaus")->GetChisquare(), h3->GetFunction("gaus")->GetNDF());
-    legend2->AddEntry(h3, ndf2);
-    sprintf(sigma2, "#sigma = %.1f", h3->GetFunction("gaus")->GetParameter(2));
-    legend2->AddEntry(h3, sigma2);
-    sprintf(mean2, "Mean = %.1f", h3->GetFunction("gaus")->GetParameter(1));
-    legend2->AddEntry(h3, mean2);
-    sprintf(constant2, "Events under peak: %.f", h3->GetFunction("gaus")->Integral(m3 - 4 * s3, m3 + 4 * s3) / h3->GetBinWidth(1));
-    legend2->AddEntry(h3, constant2);
-    legend2->Draw("same");
+  Char_t ndf2[80];
+  Char_t sigma2[80];
+  Char_t mean2[80];
+  Char_t constant2[80];
+  auto legend2 = new TLegend(0.65, 0.60, 1.0, 0.45, "TStraw - TMM");
+  sprintf(ndf2, "#chi^{2}/NDF = %.2f / %.2i", h3->GetFunction("gaus")->GetChisquare(), h3->GetFunction("gaus")->GetNDF());
+  legend2->AddEntry(h3, ndf2);
+  sprintf(sigma2, "#sigma = %.1f", h3->GetFunction("gaus")->GetParameter(2));
+  legend2->AddEntry(h3, sigma2);
+  sprintf(mean2, "Mean = %.1f", h3->GetFunction("gaus")->GetParameter(1));
+  legend2->AddEntry(h3, mean2);
+  sprintf(constant2, "Events under peak: %.f", h3->GetFunction("gaus")->Integral(m3 - 4 * s3, m3 + 4 * s3) / h3->GetBinWidth(1));
+  legend2->AddEntry(h3, constant2);
+  legend2->Draw("same");
 
-    three_plots->SaveAs("../out/3plots_" + file + fileEnding + ".pdf");
+  three_plots->SaveAs("../out/3plots_" + file + fileEnding + ".pdf");
+}
+
+
+void evBuilder::LoopSecond(unsigned long long sec){
+  unsigned int pdoThr = 100;
+  unsigned int nLoopEntriesAround = 0;
+  Long64_t nentries = fChain->GetEntriesFast();
+
+  Long64_t nbytes = 0, nb = 0, mbytes = 0, mb = 0;
+
+  // =============================== CORRELATION FINDING ===============================
+  vector<array<double, 3> > MmCluster;
+  for (Long64_t jentry = 0; jentry < nentries; jentry++) // You can remove "/ 10" and use the whole dataset
+  {
+    Long64_t ientry = LoadTree(jentry);
+    if (ientry < 0)
+      break;
+    nb = fChain->GetEntry(jentry);
+    nbytes += nb;
+
+    printf("VERSO: time %d - %d\n", daq_timestamp_s->at(0), daq_timestamp_ns->at(0));
+
+    if(daq_timestamp_s->at(0) < sec-1)
+      continue;
+    else if(daq_timestamp_s->at(0) > sec+1)
+      break;
+
+    bool isTrigger = false;
+    int trigTime = 0;
+    for (int j = 0; j < channel->at(0).size(); j++)
+    {
+      int fch = channel->at(0).at(j);
+      int fchD = getMappedDetector(fch);
+      int fchM = getMappedChannel(fch);
+      
+      int fpdoUC = pdo->at(0).at(j); // Uncorrected PDO, used at time calibration
+      int fpdo = correctPDO(fch, fpdoUC);
+      int ftdo = tdo->at(0).at(j);
+      int fbcid = grayDecoded->at(0).at(j);
+
+      // isTrigger = isTrigger || (ffchD == 0 && ffchM == 3);
+      if(fchD == 0 && fchM == 3){
+        isTrigger = true;
+        trigTime = getTime(fch, fbcid, ftdo, fpdoUC);
+        break;
+    }
+    if(!isTrigger)
+      continue;
+
+    MmCluster.clear();
+    mbytes = 0, mb = 0;
+
+    for (Long64_t kentry = jentry - nLoopEntriesAround; kentry <= jentry + nLoopEntriesAround; kentry++)
+    {
+      Long64_t iientry = LoadTree(kentry);
+      if (iientry < 0)
+        continue;
+      mb = fChain->GetEntry(kentry);
+      mbytes += mb;
+
+      for (int k = 0; k < channel->at(0).size(); k++)
+      {
+        int ffch = channel->at(0).at(k);
+        if(ffch == fch) continue;
+        int ffchD = getMappedDetector(ffch);
+        int ffchM = getMappedChannel(ffch);
+                      
+        int ffpdoUC = pdo->at(0).at(k); // Uncorrected PDO, used at time calibration
+        int ffpdo = correctPDO(ffch, ffpdoUC);
+        int fftdo = tdo->at(0).at(k);
+        int ffbcid = grayDecoded->at(0).at(k);
+        // double fft = getTimeByHand(ffbcid, fftdo, 110, 160); //'hand' limits
+        double fft = getTime(ffch, ffbcid, fftdo, ffpdoUC); // 'auto' limits
+
+        if(ffpdo < pdoThr) continue;
+
+        if(ffchD == 4) // All MM channels
+        { 
+          if (fabs(trigTime - fft) < 500)
+          {
+            array<double, 3> mM_hit = {{ffchM * 1.0, ffpdo * 1.0, fft}};
+            MmCluster.push_back(mM_hit);
+          }
+        }
+      }
+    }
+
+    double meanT = 0;
+    double meanCh = 0;
+    double sum1 = 0;
+    double sum2 = 0;
+    double w_sum = 0;
+
+    double minT_straw_mm = 600;
+    int mmCh_min = 0;
+
+    if (MmCluster.size() != 0)
+    {
+      for (size_t l = 0; l < MmCluster.size(); l++)
+      {
+        if (abs(MmCluster.at(l)[2] - trigTime) < minT_straw_mm)
+        {
+          minT_straw_mm = abs(MmCluster.at(l)[2] - trigTime);
+          mmCh_min = MmCluster.at(l)[0];
+        }
+      }
+
+      for (size_t l = 0; l < MmCluster.size(); l++)
+      {
+        if (abs(MmCluster.at(l)[0] - mmCh_min) > 5)
+        {
+          MmCluster.erase(MmCluster.begin()+l);
+        }
+      }
+    
+
+      for (size_t l = 0; l < MmCluster.size(); l++)
+      {
+        sum1 += MmCluster.at(l)[2] * MmCluster.at(l)[1] / 1024.0;
+        sum2 += MmCluster.at(l)[0] * MmCluster.at(l)[1] / 1024.0;
+        w_sum += MmCluster.at(l)[1] / 1024.0;
+      }
+      meanT = sum1 / w_sum;
+      meanCh = sum2 / w_sum;
+    }
+
+    printf("VERSO: time %d - %d, Event ID %d, MM hits: %f (time: meanCh %f)\n", daq_timestamp_s->at(0), daq_timestamp_ns->at(0),triggerCounter->at(0), meanCh, meanT);
+    }
+  }
 }
 
 void evBuilder::Loop()
@@ -106,23 +235,6 @@ void evBuilder::Loop()
 
    if (fChain == 0)
         return;
-
-    // map<int, float> firstStripForStraw = {
-    //   {24, 213 - 21 - 24/1.0},
-    //   {25, 213 - 21 - 24/2.0},
-    //   {26, 213 - 21         }, //(mmMax + 4) - 21
-    //   {27, 213 - 21 + 24/2.0},
-    //   {28, 213 - 21 + 24/1.0},
-    //   {29, 213 - 21 + 24/1.5},
-    // };
-    map<int, float> strawCenterMM = {
-      {24, 156}, // 213 - 21 - 24/1.0 - 12
-      {25, 165}, // 213 - 21 - 24/2.0 - 15
-      {26, 181}, // 213 - 21 - 12 + 1
-      {27, 189}, // 213 - 21 + 24/2.0 - 15
-      {28, 204}, // 213 - 21 + 24/1.0 - 12
-      {29, 216}, // 213 - 21 + 24/1.5 - 12
-    };
 
     TFile *out = new TFile("../out/out_" + file + ending, "RECREATE"); // PATH where to save out_*.root file
 
