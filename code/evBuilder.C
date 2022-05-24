@@ -174,7 +174,7 @@ void evBuilder::Loop()
      {{1,27}, 189}, // 213 - 21 + 24/2.0 - 15
      {{1,28}, 204}, // 213 - 21 + 24/1.0 - 12
      {{1,29}, 216}, // 213 - 21 + 24/1.5 - 12
-     {{6, 0}, 180}, // SHiP Straw
+     {{6, 0}, 170}, // SHiP Straw
      {{6, 1}, 180}, // Netron Straw
     };
    map<int, string> addStrawType = {
@@ -223,10 +223,10 @@ void evBuilder::Loop()
     for(auto i = addstrawMin; i <= addstrawMax; i++){
       straw_rt_add.emplace(i, new TH2D(Form("straw_%s_rt", addStrawType.at(i).c_str()),
                                        Form("%s: %s straw v-shape sci ch 60;R, mm;T, ns", file.Data(), addStrawType.at(i).c_str()),
-                                       60, -7.5, 7.5, 1000, -100, 900));
+                                       80, -10, 10, 1000, -100, 900));
       straw_rt_add_0.emplace(i, new TH2D(Form("straw_%s_rt_0", addStrawType.at(i).c_str()),
                                          Form("%s: %s straw v-shape sci ch 0;R, mm;T, ns", file.Data(), addStrawType.at(i).c_str()),
-                                         60, -7.5, 7.5, 1000, -100, 900));
+                                         80, -10, 10, 1000, -100, 900));
     }
     out->cd();
 
