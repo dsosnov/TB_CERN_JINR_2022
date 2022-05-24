@@ -97,6 +97,12 @@ public :
    int getMappedChannel(int channel);
 
    void threePlotDrawF(TH1D *h1, TH1D *h2, TH1D *h3, TString fileEnding = "");
+
+  struct mmHit {
+    double channel;
+    double pdo;
+    double time;
+  };
 };
 
 #endif

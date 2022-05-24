@@ -264,6 +264,8 @@ void evBuilder::Loop()
 
     Long64_t nbytes = 0, nb = 0;
 
+    vector<mmHit> MmCluster;
+
     // =============================== CORRELATION FINDING ===============================
     for (Long64_t jentry = 0; jentry < nentries; jentry++) // You can remove "/ 10" and use the whole dataset
     {
@@ -311,7 +313,6 @@ void evBuilder::Loop()
                 double sciT_ch0 = 0;
                 double minTsci60 = 1E3;
                 double sciT_ch60 = 0;
-                vector<array<double, 3> > MmCluster;
                 double neighborStrawTime = 0;
                 double neighborMinStrawTime = 1E3;
 
@@ -349,8 +350,7 @@ void evBuilder::Loop()
                         if (fabs(t_srtraw - fft) < 500)
                         {
                           straw_vs_mm ->Fill(t_srtraw - fft);
-                          array<double, 3> mM_hit = {{ffchM * 1.0, ffpdo * 1.0, fft}};
-                          MmCluster.push_back(mM_hit);
+                          MmCluster.push_back({ffchM * 1.0, ffpdo * 1.0, fft});
                         }
                       }
                       else if (ffchD == 0 && ffchM == 0) // Sci 0
@@ -398,16 +398,16 @@ void evBuilder::Loop()
                 {
                     for (size_t l = 0; l < MmCluster.size(); l++)
                     {
-                        if (abs(MmCluster.at(l)[2] - t_srtraw) < minT_straw_mm)
+                      if (abs(MmCluster.at(l).time - t_srtraw) < minT_straw_mm)
                         {
-                            minT_straw_mm = abs(MmCluster.at(l)[2] - t_srtraw);
-                            mmCh_min = MmCluster.at(l)[0];
+                            minT_straw_mm = abs(MmCluster.at(l).time - t_srtraw);
+                            mmCh_min = MmCluster.at(l).channel;
                         }
                     }
 
                     for (size_t l = 0; l < MmCluster.size(); l++)
                     {
-                        if (abs(MmCluster.at(l)[0] - mmCh_min) > 5)
+                        if (abs(MmCluster.at(l).channel - mmCh_min) > 5)
                         {
                             MmCluster.erase(MmCluster.begin()+l);
                         }
@@ -416,9 +416,9 @@ void evBuilder::Loop()
 
                     for (size_t l = 0; l < MmCluster.size(); l++)
                     {
-                        sum1 += MmCluster.at(l)[2] * MmCluster.at(l)[1] / 1024.0;
-                        sum2 += MmCluster.at(l)[0] * MmCluster.at(l)[1] / 1024.0;
-                        w_sum += MmCluster.at(l)[1] / 1024.0;
+                        sum1 += MmCluster.at(l).time * MmCluster.at(l).pdo / 1024.0;
+                        sum2 += MmCluster.at(l).channel * MmCluster.at(l).pdo / 1024.0;
+                        w_sum += MmCluster.at(l).pdo / 1024.0;
                     }
                     meanT = sum1 / w_sum;
                     meanCh = sum2 / w_sum;
@@ -491,7 +491,6 @@ void evBuilder::Loop()
                 double sciT_ch0 = 0;
                 double minTsci60 = 1E3;
                 double sciT_ch60 = 0;
-                vector<array<double, 3> > MmCluster;
                 double neighborStrawTime = 0;
                 double neighborMinStrawTime = 1E3;
 
@@ -529,8 +528,7 @@ void evBuilder::Loop()
                         if (fabs(t_srtraw - fft) < 500)
                         {
                                 // TODO straw_vs_mm ->Fill(t_srtraw - fft); // 
-                          array<double, 3> mM_hit = {{ffchM * 1.0, ffpdo * 1.0, fft}};
-                          MmCluster.push_back(mM_hit);
+                          MmCluster.push_back({ffchM * 1.0, ffpdo * 1.0, fft});
                         }
                       }
                       else if (ffchD == 0 && ffchM == 0) // Sci 0
@@ -578,16 +576,16 @@ void evBuilder::Loop()
                 {
                     for (size_t l = 0; l < MmCluster.size(); l++)
                     {
-                        if (abs(MmCluster.at(l)[2] - t_srtraw) < minT_straw_mm)
+                        if (abs(MmCluster.at(l).time - t_srtraw) < minT_straw_mm)
                         {
-                            minT_straw_mm = abs(MmCluster.at(l)[2] - t_srtraw);
-                            mmCh_min = MmCluster.at(l)[0];
+                            minT_straw_mm = abs(MmCluster.at(l).time - t_srtraw);
+                            mmCh_min = MmCluster.at(l).channel;
                         }
                     }
 
                     for (size_t l = 0; l < MmCluster.size(); l++)
                     {
-                        if (abs(MmCluster.at(l)[0] - mmCh_min) > 5)
+                        if (abs(MmCluster.at(l).channel - mmCh_min) > 5)
                         {
                             MmCluster.erase(MmCluster.begin()+l);
                         }
@@ -596,15 +594,13 @@ void evBuilder::Loop()
 
                     for (size_t l = 0; l < MmCluster.size(); l++)
                     {
-                        sum1 += MmCluster.at(l)[2] * MmCluster.at(l)[1] / 1024.0;
-                        sum2 += MmCluster.at(l)[0] * MmCluster.at(l)[1] / 1024.0;
-                        w_sum += MmCluster.at(l)[1] / 1024.0;
+                        sum1 += MmCluster.at(l).time * MmCluster.at(l).pdo / 1024.0;
+                        sum2 += MmCluster.at(l).channel * MmCluster.at(l).pdo / 1024.0;
+                        w_sum += MmCluster.at(l).pdo / 1024.0;
                     }
                     meanT = sum1 / w_sum;
                     meanCh = sum2 / w_sum;
                     straw_add_vs_mm_spatial_corr->Fill(fchM, meanCh);
-                    // straw_vs_mm ->Fill(t_srtraw - meanT);
-                    // hits_in_cluster->Fill( MmCluster.size());
                 }
 
                 // ============================= end of sci MM correlation finding ============================
