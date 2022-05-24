@@ -105,11 +105,10 @@ void evBuilder::LoopSecond(unsigned long long sec){
     nb = fChain->GetEntry(jentry);
     nbytes += nb;
 
-    printf("VERSO: time %d - %d\n", daq_timestamp_s->at(0), daq_timestamp_ns->at(0));
 
-    if(daq_timestamp_s->at(0) < sec-1)
+    if(daq_timestamp_s->at(0) < sec)
       continue;
-    else if(daq_timestamp_s->at(0) > sec+1)
+    else if(daq_timestamp_s->at(0) > sec)
       break;
 
     bool isTrigger = false;
@@ -119,6 +118,7 @@ void evBuilder::LoopSecond(unsigned long long sec){
       int fch = channel->at(0).at(j);
       int fchD = getMappedDetector(fch);
       int fchM = getMappedChannel(fch);
+      // printf("VERSO: ch %d -> %d %d\n", fch, fchD, fchM);
       
       int fpdoUC = pdo->at(0).at(j); // Uncorrected PDO, used at time calibration
       int fpdo = correctPDO(fch, fpdoUC);
@@ -130,6 +130,7 @@ void evBuilder::LoopSecond(unsigned long long sec){
         isTrigger = true;
         trigTime = getTime(fch, fbcid, ftdo, fpdoUC);
         break;
+      }
     }
     if(!isTrigger)
       continue;
@@ -148,7 +149,6 @@ void evBuilder::LoopSecond(unsigned long long sec){
       for (int k = 0; k < channel->at(0).size(); k++)
       {
         int ffch = channel->at(0).at(k);
-        if(ffch == fch) continue;
         int ffchD = getMappedDetector(ffch);
         int ffchM = getMappedChannel(ffch);
                       
@@ -212,7 +212,6 @@ void evBuilder::LoopSecond(unsigned long long sec){
     }
 
     printf("VERSO: time %d - %d, Event ID %d, MM hits: %f (time: meanCh %f)\n", daq_timestamp_s->at(0), daq_timestamp_ns->at(0),triggerCounter->at(0), meanCh, meanT);
-    }
   }
 }
 
