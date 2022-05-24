@@ -213,10 +213,10 @@ void evBuilder::Loop()
     for(auto i = addstrawMin; i <= addstrawMax; i++){
       straw_deltat_add.emplace(i,
                         new TH1D(Form("straw_%s_vs_sci60", addStrawType.at(i).c_str()),
-                                 Form("%s: %s straw_vs_sci60;#Delta t", file.Data(), addStrawType.at(i).c_str()), 1500, -5000, 1000));
+                                 Form("%s: %s straw_vs_sci60;#Delta t", file.Data(), addStrawType.at(i).c_str()), 1500, -500, 1000));
       straw_deltat_add_0.emplace(i,
                         new TH1D(Form("straw_%s_vs_sci0", addStrawType.at(i).c_str()),
-                                 Form("%s: %s straw_vs_sci0;#Delta t", file.Data(), addStrawType.at(i).c_str()), 1500, -5000, 1000));
+                                 Form("%s: %s straw_vs_sci0;#Delta t", file.Data(), addStrawType.at(i).c_str()), 1500, -500, 1000));
     }
     out->cd();
 
