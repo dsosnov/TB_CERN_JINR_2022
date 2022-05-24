@@ -90,6 +90,7 @@ void evBuilder::threePlotDrawF(TH1D *h1, TH1D *h2, TH1D *h3, TString fileEnding)
 void evBuilder::Loop()
 {
    int strawMin = -1, strawMax = -1, mmMin = -1, mmMax = -1;
+   int addstrawMin = -1, addstrawMax = -1;
    for(auto &s: channelMap){
      if(s.second.first == 1){
        if(strawMin < 0 || strawMin > s.second.second)
@@ -101,6 +102,11 @@ void evBuilder::Loop()
          mmMin = s.second.second;
        if(mmMax < 0 || mmMax < s.second.second)
          mmMax = s.second.second;
+     } else if(s.second.first == 6){
+       if(addstrawMin < 0 || addstrawMin > s.second.second)
+         addstrawMin = s.second.second;
+       if(addstrawMax < 0 || addstrawMax < s.second.second)
+         addstrawMax = s.second.second;
      }
    }
 
@@ -115,19 +121,26 @@ void evBuilder::Loop()
     //   {28, 213 - 21 + 24/1.0},
     //   {29, 213 - 21 + 24/1.5},
     // };
-    map<int, float> strawCenterMM = {
-      {24, 156}, // 213 - 21 - 24/1.0 - 12
-      {25, 165}, // 213 - 21 - 24/2.0 - 15
-      {26, 181}, // 213 - 21 - 12 + 1
-      {27, 189}, // 213 - 21 + 24/2.0 - 15
-      {28, 204}, // 213 - 21 + 24/1.0 - 12
-      {29, 216}, // 213 - 21 + 24/1.5 - 12
+   map<pair<int, int>, float> strawCenterMM = {
+     {{1,24}, 156}, // 213 - 21 - 24/1.0 - 12
+     {{1,25}, 165}, // 213 - 21 - 24/2.0 - 15
+     {{1,26}, 181}, // 213 - 21 - 12 + 1
+     {{1,27}, 189}, // 213 - 21 + 24/2.0 - 15
+     {{1,28}, 204}, // 213 - 21 + 24/1.0 - 12
+     {{1,29}, 216}, // 213 - 21 + 24/1.5 - 12
+     {{6, 0}, 180}, // SHiP Straw
+     {{6, 1}, 180}, // Netron Straw
     };
+   map<int, string> addStrawType = {
+     {0, "SHiP"},
+     {1, "Neutron"},
+   };
 
     TFile *out = new TFile("../out/out_" + file + ending, "RECREATE"); // PATH where to save out_*.root file
 
     auto straw_vs_sci = new TH1D("straw_vs_sci", Form("%s: straw vs scint;#Deltat, ns", file.Data()), 1000, -500, 500);
     auto straw_vs_mm = new TH1D("straw_vs_mm", Form("%s: straw vs microMegas;#Deltat, ns", file.Data()), 1000, -500, 500);
+    auto straw_vs_mm_cluster = new TH1D("straw_vs_mm_cluster", Form("%s: straw vs microMegas cluster time;#Deltat, ns", file.Data()), 1000, -500, 500);
     auto hits_in_cluster = new TH1D("hits_in_cluster", Form("%s: hits in microMegas per cluster;N", file.Data()), 100, 0, 100);
     auto mm_vs_sci = new TH1D("mm_vs_sci", Form("%s: microMegas vs scint;#Deltat, ns", file.Data()), 1000, -500, 500);
 
@@ -142,10 +155,15 @@ void evBuilder::Loop()
 
     auto straw_vs_mm_spatial_corr = new TH2D("straw_vs_mm_spatial_corr", Form("%s: microMegas vs straw spatial correaltion;straw ch;MM ch", file.Data()),
                                              strawMax - strawMin + 1, strawMin, strawMax + 1, mmMax - mmMin + 1, mmMin, mmMax);
+    auto straw_add_vs_mm_spatial_corr = new TH2D("straw_add_vs_mm_spatial_corr", Form("%s: microMegas vs additional straw spatial correaltion;straw ch;MM ch", file.Data()),
+                                             addstrawMax - addstrawMin + 1, addstrawMin, addstrawMax + 1, mmMax - mmMin + 1, mmMin, mmMax);
+    for(auto i = addstrawMin; i <= addstrawMax; i++)
+      if(addStrawType.count(i))
+        straw_add_vs_mm_spatial_corr->GetXaxis()->SetBinLabel(i+1, addStrawType.at(i).c_str());
 
     auto straw_rt_dir = out->mkdir("straw_rt");
     straw_rt_dir->cd();
-    map<int, TH2D*> straw_rt, straw_rt_0 ;
+    map<int, TH2D*> straw_rt, straw_rt_0, straw_rt_add, straw_rt_add_0 ;
     for(auto i = strawMin; i <= strawMax; i++){
       straw_rt.emplace(i,
                        new TH2D(Form("straw%d_rt", i),
@@ -156,24 +174,40 @@ void evBuilder::Loop()
                                   Form("%s: straw %d v-shape sci ch 0;R, mm;T, ns", file.Data(), i),
                                   32, -4, 4, 300, -100, 200));
     }
+    for(auto i = addstrawMin; i <= addstrawMax; i++){
+      straw_rt_add.emplace(i, new TH2D(Form("straw_%s_rt", addStrawType.at(i).c_str()),
+                                       Form("%s: %s straw v-shape sci ch 60;R, mm;T, ns", file.Data(), addStrawType.at(i).c_str()),
+                                       60, -7.5, 7.5, 1000, -100, 900));
+      straw_rt_add_0.emplace(i, new TH2D(Form("straw_%s_rt_0", addStrawType.at(i).c_str()),
+                                         Form("%s: %s straw v-shape sci ch 0;R, mm;T, ns", file.Data(), addStrawType.at(i).c_str()),
+                                         60, -7.5, 7.5, 1000, -100, 900));
+    }
     out->cd();
 
     auto straw_pdo_dir = out->mkdir("straw_pdo_corr");
     straw_pdo_dir->cd();
-    map<int, TH1D*> straw_pdo, straw_pdo_0 ;
+    map<int, TH1D*> straw_pdo, straw_pdo_0, straw_pdo_add, straw_pdo_add_0 ;
     for(auto i = strawMin; i <= strawMax; i++){
       straw_pdo.emplace(i,
                         new TH1D(Form("straw%d_pdo_corr", i),
                                  Form("%s: pdo for straw %d corellated with sci ch 60;pdo", file.Data(), i), 64, 0, 1024));
       straw_pdo_0.emplace(i,
                           new TH1D(Form("straw%d_pdo_corr_0", i),
-                                   Form("%s: pdo for straw %d corellated with sci ch 0;pdo", file.Data(), i), 64, 0, 1024));
+                                   Form("%s: pdo for additional straw %d corellated with sci ch 0;pdo", file.Data(), i), 64, 0, 1024));
+    }
+    for(auto i = addstrawMin; i <= addstrawMax; i++){
+      straw_pdo_add.emplace(i,
+                        new TH1D(Form("straw_%s_pdo_corr", addStrawType.at(i).c_str()),
+                                 Form("%s: pdo for %s straw corellated with sci ch 60;pdo", file.Data(), addStrawType.at(i).c_str()), 64, 0, 1024));
+      straw_pdo_add_0.emplace(i,
+                          new TH1D(Form("straw_%s_pdo_corr_0", addStrawType.at(i).c_str()),
+                                   Form("%s: pdo for %s straw corellated with sci ch 0;pdo", file.Data(), addStrawType.at(i).c_str()), 64, 0, 1024));
     }
     out->cd();
 
     auto straw_deltat_dir = out->mkdir("straw_deltat_corr");
     straw_deltat_dir->cd();
-    map<int, TH1D*> straw_deltat, straw_deltat_0 ;
+    map<int, TH1D*> straw_deltat, straw_deltat_0, straw_deltat_add, straw_deltat_add_0 ;
     for(auto i = strawMin; i <= strawMax; i++){
       straw_deltat.emplace(i,
                         new TH1D(Form("straw%d_vs_sci60", i),
@@ -181,6 +215,14 @@ void evBuilder::Loop()
       straw_deltat_0.emplace(i,
                         new TH1D(Form("straw%d_vs_sci0", i),
                                  Form("%s: straw%d_vs_sci0;#Delta t", file.Data(), i), 1000, -500, 500));
+    }
+    for(auto i = addstrawMin; i <= addstrawMax; i++){
+      straw_deltat_add.emplace(i,
+                        new TH1D(Form("straw_%s_vs_sci60", addStrawType.at(i).c_str()),
+                                 Form("%s: %s straw_vs_sci60;#Delta t", file.Data(), addStrawType.at(i).c_str()), 1500, -5000, 1000));
+      straw_deltat_add_0.emplace(i,
+                        new TH1D(Form("straw_%s_vs_sci0", addStrawType.at(i).c_str()),
+                                 Form("%s: %s straw_vs_sci0;#Delta t", file.Data(), addStrawType.at(i).c_str()), 1500, -5000, 1000));
     }
     out->cd();
 
@@ -271,13 +313,13 @@ void evBuilder::Loop()
 
                 Long64_t mbytes = 0, mb = 0;
                 double t30 = 0;
-                double minTsci0 = 3e2;
+                double minTsci0 = 1E3;
                 double sciT_ch0 = 0;
-                double minTsci60 = 3e2;
+                double minTsci60 = 1E3;
                 double sciT_ch60 = 0;
                 vector<array<double, 3> > MmCluster;
                 double neighborStrawTime = 0;
-                double neighborMinStrawTime = 1.0E2;
+                double neighborMinStrawTime = 1E3;
 
                 // ========================         LOOP OVER nLoopEntriesAround  events around         ========================
                 //                              jentry to find correlation with MM
@@ -387,7 +429,7 @@ void evBuilder::Loop()
                     meanT = sum1 / w_sum;
                     meanCh = sum2 / w_sum;
                     straw_vs_mm_spatial_corr->Fill(fchM, meanCh);
-                    // straw_vs_mm ->Fill(t_srtraw - meanT);
+                    straw_vs_mm_cluster ->Fill(t_srtraw - meanT);
                     hits_in_cluster->Fill( MmCluster.size());
                 }
 
@@ -415,7 +457,7 @@ void evBuilder::Loop()
                 }
                 if (sciT_ch0 != 0 && meanT != 0)
                 {
-                    straw_rt_0.at(fchM)->Fill((meanCh - strawCenterMM.at(fchM)) * 0.25, 100 + t_srtraw - sciT_ch0);
+                  straw_rt_0.at(fchM)->Fill((meanCh - strawCenterMM.at({fchD, fchM})) * 0.25, 100 + t_srtraw - sciT_ch0);
                     straw_vs_sci_3det_corr_0->Fill(t_srtraw - sciT_ch0);
                     straw_vs_mm_3det_corr_0->Fill(t_srtraw - meanT);
                     mm_vs_sci_3det_corr_0->Fill(meanT - sciT_ch0);
@@ -425,7 +467,7 @@ void evBuilder::Loop()
                     straw_vs_sci_3det_corr->Fill(t_srtraw - sciT_ch60);
                     straw_vs_mm_3det_corr->Fill(t_srtraw - meanT);
                     mm_vs_sci_3det_corr->Fill(meanT - sciT_ch60);
-                    straw_rt.at(fchM)->Fill((meanCh - strawCenterMM.at(fchM)) * 0.25, 100 + t_srtraw - sciT_ch60);
+                    straw_rt.at(fchM)->Fill((meanCh - strawCenterMM.at({fchD, fchM})) * 0.25, 100 + t_srtraw - sciT_ch60);
                 }
                 if(neighborStrawTime != 0)
                 {
@@ -439,6 +481,161 @@ void evBuilder::Loop()
                 // ============================= end of sci 0 correlation finding =============================
 
             }
+            else if (fchD == 6) // Additional straws
+            {
+                straw_bcid_ch_srtraw = fbcid;
+                straw_pdo_ch_srtraw = fpdo;
+                t_srtraw = getTime(fch, fbcid, ftdo, fpdoUC); // 'auto' limits
+                // t_srtraw = getTimeByHand(fbcid, ftdo, Y, Y); //'hand' limits
+
+                                // TODO straw_pdo_ucl_cr.at(fchM)->Fill(fpdo);
+                                // TODO straw_pdo_ucl_ucr.at(fchM)->Fill(fpdoUC);
+
+                Long64_t mbytes = 0, mb = 0;
+                double t30 = 0;
+                double minTsci0 = 1E3;
+                double sciT_ch0 = 0;
+                double minTsci60 = 1E3;
+                double sciT_ch60 = 0;
+                vector<array<double, 3> > MmCluster;
+                double neighborStrawTime = 0;
+                double neighborMinStrawTime = 1E3;
+
+                // ========================         LOOP OVER nLoopEntriesAround  events around         ========================
+                //                              jentry to find correlation with MM
+                MmCluster.clear();
+                mbytes = 0, mb = 0;
+
+                for (Long64_t kentry = jentry - nLoopEntriesAround; kentry <= jentry + nLoopEntriesAround; kentry++)
+                {
+                    Long64_t iientry = LoadTree(kentry);
+                    if (iientry < 0)
+                        continue;
+                    mb = fChain->GetEntry(kentry);
+                    mbytes += mb;
+
+                    for (int k = 0; k < channel->at(0).size(); k++)
+                    {
+                      int ffch = channel->at(0).at(k);
+                      if(ffch == fch) continue;
+                      int ffchD = getMappedDetector(ffch);
+                      int ffchM = getMappedChannel(ffch);
+                      
+                      int ffpdoUC = pdo->at(0).at(k); // Uncorrected PDO, used at time calibration
+                      int ffpdo = correctPDO(ffch, ffpdoUC);
+                      int fftdo = tdo->at(0).at(k);
+                      int ffbcid = grayDecoded->at(0).at(k);
+                      // double fft = getTimeByHand(ffbcid, fftdo, 110, 160); //'hand' limits
+                      double fft = getTime(ffch, ffbcid, fftdo, ffpdoUC); // 'auto' limits
+
+                      if(ffpdo < pdoThr) continue;
+
+                      if(ffchD == 4) // All MM channels
+                      { 
+                        if (fabs(t_srtraw - fft) < 500)
+                        {
+                                // TODO straw_vs_mm ->Fill(t_srtraw - fft); // 
+                          array<double, 3> mM_hit = {{ffchM * 1.0, ffpdo * 1.0, fft}};
+                          MmCluster.push_back(mM_hit);
+                        }
+                      }
+                      else if (ffchD == 0 && ffchM == 0) // Sci 0
+                      {
+                        fft = getTimeByHand(ffbcid, fftdo, 88, 140); //'hand' limits
+                        if (fabs(t_srtraw - fft) < minTsci0)
+                        {
+                          minTsci0 = fabs(t_srtraw - fft);
+                          sciT_ch0 = fft;
+                        }
+                      }
+                      else if (ffchD == 0 && ffchM == 3) // triple sci coinsidence
+                      {
+                        if (fabs(t_srtraw - fft) < minTsci60)
+                        {
+                          minTsci60 = fabs(t_srtraw - fft);
+                          sciT_ch60 = fft;
+                        }
+                      }
+                      else if (ffchD == 1 && ffchM == fchM + 1) // Next straw channel
+                      {
+                        if (fabs(t_srtraw - fft) < neighborMinStrawTime)
+                        {
+                          neighborMinStrawTime = fabs(t_srtraw - fft);
+                          neighborStrawTime = fft;
+                        }
+                      }
+                      else
+                      {
+                        continue;
+                      }
+                    }
+                }
+
+                double meanT = 0;
+                double meanCh = 0;
+                double sum1 = 0;
+                double sum2 = 0;
+                double w_sum = 0;
+
+                double minT_straw_mm = 600;
+                int mmCh_min = 0;
+
+                if (MmCluster.size() != 0)
+                {
+                    for (size_t l = 0; l < MmCluster.size(); l++)
+                    {
+                        if (abs(MmCluster.at(l)[2] - t_srtraw) < minT_straw_mm)
+                        {
+                            minT_straw_mm = abs(MmCluster.at(l)[2] - t_srtraw);
+                            mmCh_min = MmCluster.at(l)[0];
+                        }
+                    }
+
+                    for (size_t l = 0; l < MmCluster.size(); l++)
+                    {
+                        if (abs(MmCluster.at(l)[0] - mmCh_min) > 5)
+                        {
+                            MmCluster.erase(MmCluster.begin()+l);
+                        }
+                    }
+    
+
+                    for (size_t l = 0; l < MmCluster.size(); l++)
+                    {
+                        sum1 += MmCluster.at(l)[2] * MmCluster.at(l)[1] / 1024.0;
+                        sum2 += MmCluster.at(l)[0] * MmCluster.at(l)[1] / 1024.0;
+                        w_sum += MmCluster.at(l)[1] / 1024.0;
+                    }
+                    meanT = sum1 / w_sum;
+                    meanCh = sum2 / w_sum;
+                    straw_add_vs_mm_spatial_corr->Fill(fchM, meanCh);
+                    // straw_vs_mm ->Fill(t_srtraw - meanT);
+                    // hits_in_cluster->Fill( MmCluster.size());
+                }
+
+                // ============================= end of sci MM correlation finding ============================
+
+
+                if (sciT_ch0 != 0)
+                {
+                  straw_deltat_add_0.at(fchM)->Fill(t_srtraw - sciT_ch0);
+                  straw_pdo_add_0.at(fchM)->Fill(fpdo);
+                }
+                if (sciT_ch60 != 0)
+                {
+                    straw_deltat_add.at(fchM)->Fill(t_srtraw - sciT_ch60);
+                    straw_pdo_add.at(fchM)->Fill(fpdo);
+                }
+                if (sciT_ch0 != 0 && meanT != 0)
+                {
+                  straw_rt_add_0.at(fchM)->Fill((meanCh - strawCenterMM.at({fchD, fchM})) * 0.25, 100 + t_srtraw - sciT_ch0);
+                }
+                if (sciT_ch60 != 0 && meanT != 0)
+                {
+                    straw_rt_add.at(fchM)->Fill((meanCh - strawCenterMM.at({fchD, fchM})) * 0.25, 100 + t_srtraw - sciT_ch60);
+                }
+            }
+
             else
             {
                 continue;
@@ -477,6 +674,35 @@ void evBuilder::Loop()
       }
       straw_rt_0_normed.emplace(h.first, hnew);
     }
+    map<int, TH2D*> straw_rt_add_normed, straw_rt_add_0_normed ;
+    for(auto &h: straw_rt_add){
+      auto hnew = static_cast<TH2D*>(h.second->Clone(Form("%s_normed", h.second->GetTitle())));
+      for(auto i = 1; i <= hnew->GetNbinsX(); i++){
+        auto integ = hnew->Integral(i, i, 1, hnew->GetNbinsY());
+        if(!integ) continue;
+        for(auto j = 1; j <= hnew->GetNbinsY(); j++){
+          auto c = hnew->GetBinContent(i, j);
+          auto e = hnew->GetBinError(i, j);
+          hnew->SetBinContent(i, j, static_cast<float>(c) / static_cast<float>(integ));
+          hnew->SetBinError(i, j, static_cast<float>(e) / static_cast<float>(integ));
+        }
+      }
+      straw_rt_add_normed.emplace(h.first, hnew);
+    }
+    for(auto &h: straw_rt_add_0){
+      auto hnew = static_cast<TH2D*>(h.second->Clone(Form("%s_normed", h.second->GetTitle())));
+      for(auto i = 1; i <= hnew->GetNbinsX(); i++){
+        auto integ = hnew->Integral(i, i, 1, hnew->GetNbinsY());
+        if(!integ) continue;
+        for(auto j = 1; j <= hnew->GetNbinsY(); j++){
+          auto c = hnew->GetBinContent(i, j);
+          auto e = hnew->GetBinError(i, j);
+          hnew->SetBinContent(i, j, static_cast<float>(c) / static_cast<float>(integ));
+          hnew->SetBinError(i, j, static_cast<float>(e) / static_cast<float>(integ));
+        }
+      }
+      straw_rt_add_0_normed.emplace(h.first, hnew);
+    }
     out->cd();
 
     auto straw_rt_normed_proj_dir = out->mkdir("straw_rt_normed_proj");
@@ -511,6 +737,19 @@ void evBuilder::Loop()
       }
     }
     
+    auto straw_add_vs_mm_spatial_corr_normed = static_cast<TH2D*>(straw_add_vs_mm_spatial_corr->Clone("straw_add_vs_mm_spatial_corr_normed"));
+    straw_add_vs_mm_spatial_corr_normed->SetTitle(Form("%s: microMegas vs additional straw spatial correaltion (normed);straw ch;MM ch", file.Data()));
+    for(auto i = 1; i <= straw_add_vs_mm_spatial_corr_normed->GetNbinsX(); i++){
+      auto integ = straw_add_vs_mm_spatial_corr_normed->Integral(i, i, 1, straw_add_vs_mm_spatial_corr_normed->GetNbinsY());
+      if(!integ) continue;
+      for(auto j = 1; j <= straw_add_vs_mm_spatial_corr_normed->GetNbinsY(); j++){
+        auto c = straw_add_vs_mm_spatial_corr_normed->GetBinContent(i, j);
+        auto e = straw_add_vs_mm_spatial_corr_normed->GetBinError(i, j);
+        straw_add_vs_mm_spatial_corr_normed->SetBinContent(i, j, static_cast<float>(c) / static_cast<float>(integ));
+        straw_add_vs_mm_spatial_corr_normed->SetBinError(i, j, static_cast<float>(e) / static_cast<float>(integ));
+      }
+    }
+
     threePlotDrawF(mm_vs_sci_3det_corr, straw_vs_sci_3det_corr, straw_vs_mm_3det_corr);
     threePlotDrawF(mm_vs_sci_3det_corr_0, straw_vs_sci_3det_corr_0, straw_vs_mm_3det_corr_0, "_0");
 
