@@ -98,11 +98,13 @@ public :
 
    void threePlotDrawF(TH1D *h1, TH1D *h2, TH1D *h3, TString fileEnding = "");
 
-  struct mmHit {
-    double channel;
-    double pdo;
-    double time;
-  };
+   struct mmHit {
+     double channel;
+     double pdo;
+     double time;
+   };
+   vector<mmHit> MmCluster;
+   pair<double, double> getClusterParameters(double t_srtraw, double minT_straw_mm, int workType = 0);
 };
 
 #endif

@@ -89,6 +89,58 @@ void evBuilder::threePlotDrawF(TH1D *h1, TH1D *h2, TH1D *h3, TString fileEnding)
     three_plots->SaveAs("../out/3plots_" + file + fileEnding + ".pdf");
 }
 
+pair<double, double> evBuilder::getClusterParameters(double t_srtraw, double minT_straw_mm, int workType){
+  double meanT = 0;
+  double meanCh = 0;
+  double sum1 = 0;
+  double sum2 = 0;
+  double w_sum = 0;
+
+  // double minT_straw_mm = 600;
+  int mmCh_min = 0;
+
+  double maximalPdoHit = -1;
+  
+  if (MmCluster.size() != 0)
+  {
+    switch(workType){
+      case 0:
+        for (size_t l = 0; l < MmCluster.size(); l++)
+        {
+          if (abs(MmCluster.at(l).time - t_srtraw) < minT_straw_mm)
+          {
+            minT_straw_mm = abs(MmCluster.at(l).time - t_srtraw);
+            mmCh_min = MmCluster.at(l).channel;
+          }
+        }
+        for (size_t l = 0; l < MmCluster.size(); l++)
+        {
+          if (abs(MmCluster.at(l).channel - mmCh_min) > 5)
+          {
+            MmCluster.erase(MmCluster.begin()+l);
+          }
+        }
+        for (size_t l = 0; l < MmCluster.size(); l++)
+        {
+          sum1 += MmCluster.at(l).time * MmCluster.at(l).pdo / 1024.0;
+          sum2 += MmCluster.at(l).channel * MmCluster.at(l).pdo / 1024.0;
+          w_sum += MmCluster.at(l).pdo / 1024.0;
+        }
+        meanT = sum1 / w_sum;
+        meanCh = sum2 / w_sum;
+        break;
+      case 1:
+        for (size_t l = 0; l < MmCluster.size(); l++)
+          if(maximalPdoHit < 0 || MmCluster.at(l).pdo > MmCluster.at(maximalPdoHit).pdo)
+            maximalPdoHit = l;
+        meanT = MmCluster.at(maximalPdoHit).time;
+        meanCh = MmCluster.at(maximalPdoHit).channel;
+        break;
+    }
+  }
+  return {meanT, meanCh};
+}
+
 void evBuilder::Loop()
 {
    int strawMin = -1, strawMax = -1, mmMin = -1, mmMax = -1;
@@ -264,8 +316,6 @@ void evBuilder::Loop()
 
     Long64_t nbytes = 0, nb = 0;
 
-    vector<mmHit> MmCluster;
-
     // =============================== CORRELATION FINDING ===============================
     for (Long64_t jentry = 0; jentry < nentries; jentry++) // You can remove "/ 10" and use the whole dataset
     {
@@ -385,49 +435,13 @@ void evBuilder::Loop()
                     }
                 }
 
-                double meanT = 0;
-                double meanCh = 0;
-                double sum1 = 0;
-                double sum2 = 0;
-                double w_sum = 0;
-
                 double minT_straw_mm = 600;
-                int mmCh_min = 0;
-
-                if (MmCluster.size() != 0)
-                {
-                    for (size_t l = 0; l < MmCluster.size(); l++)
-                    {
-                      if (abs(MmCluster.at(l).time - t_srtraw) < minT_straw_mm)
-                        {
-                            minT_straw_mm = abs(MmCluster.at(l).time - t_srtraw);
-                            mmCh_min = MmCluster.at(l).channel;
-                        }
-                    }
-
-                    for (size_t l = 0; l < MmCluster.size(); l++)
-                    {
-                        if (abs(MmCluster.at(l).channel - mmCh_min) > 5)
-                        {
-                            MmCluster.erase(MmCluster.begin()+l);
-                        }
-                    }
-    
-
-                    for (size_t l = 0; l < MmCluster.size(); l++)
-                    {
-                        sum1 += MmCluster.at(l).time * MmCluster.at(l).pdo / 1024.0;
-                        sum2 += MmCluster.at(l).channel * MmCluster.at(l).pdo / 1024.0;
-                        w_sum += MmCluster.at(l).pdo / 1024.0;
-                    }
-                    meanT = sum1 / w_sum;
-                    meanCh = sum2 / w_sum;
+                auto [meanT, meanCh] = getClusterParameters(t_srtraw, minT_straw_mm);
+                if (MmCluster.size() != 0){
                     straw_vs_mm_spatial_corr->Fill(fchM, meanCh);
                     straw_vs_mm_cluster ->Fill(t_srtraw - meanT);
                     hits_in_cluster->Fill( MmCluster.size());
                 }
-
-                // ============================= end of sci MM correlation finding ============================
 
                 if (sciT_ch0 != 0 && sciT_ch60 != 0) // WARNING! this is not real scintillator corellation!
                 {
@@ -563,48 +577,11 @@ void evBuilder::Loop()
                     }
                 }
 
-                double meanT = 0;
-                double meanCh = 0;
-                double sum1 = 0;
-                double sum2 = 0;
-                double w_sum = 0;
-
                 double minT_straw_mm = 600;
-                int mmCh_min = 0;
-
-                if (MmCluster.size() != 0)
-                {
-                    for (size_t l = 0; l < MmCluster.size(); l++)
-                    {
-                        if (abs(MmCluster.at(l).time - t_srtraw) < minT_straw_mm)
-                        {
-                            minT_straw_mm = abs(MmCluster.at(l).time - t_srtraw);
-                            mmCh_min = MmCluster.at(l).channel;
-                        }
-                    }
-
-                    for (size_t l = 0; l < MmCluster.size(); l++)
-                    {
-                        if (abs(MmCluster.at(l).channel - mmCh_min) > 5)
-                        {
-                            MmCluster.erase(MmCluster.begin()+l);
-                        }
-                    }
-    
-
-                    for (size_t l = 0; l < MmCluster.size(); l++)
-                    {
-                        sum1 += MmCluster.at(l).time * MmCluster.at(l).pdo / 1024.0;
-                        sum2 += MmCluster.at(l).channel * MmCluster.at(l).pdo / 1024.0;
-                        w_sum += MmCluster.at(l).pdo / 1024.0;
-                    }
-                    meanT = sum1 / w_sum;
-                    meanCh = sum2 / w_sum;
+                auto [meanT, meanCh] = getClusterParameters(t_srtraw, minT_straw_mm);
+                if (MmCluster.size() != 0){
                     straw_add_vs_mm_spatial_corr->Fill(fchM, meanCh);
                 }
-
-                // ============================= end of sci MM correlation finding ============================
-
 
                 if (sciT_ch0 != 0)
                 {
