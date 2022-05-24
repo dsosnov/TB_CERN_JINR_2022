@@ -4,6 +4,8 @@
 
 void evBuilder::threePlotDrawF(TH1D *h1, TH1D *h2, TH1D *h3, TString fileEnding)
 {
+  if(!(h1->GetEntries()) || !(h2->GetEntries()) || !(h3->GetEntries()))
+    return;
     h1->SetLineColor(kGreen - 2);
     h2->SetLineColor(kMagenta);
     h3->SetLineColor(kBlack);
