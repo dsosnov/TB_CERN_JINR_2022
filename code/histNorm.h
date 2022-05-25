@@ -1,7 +1,7 @@
 #pragma once
 
 template<class T>
-T* normByX(T *hIn, T *hOut){
+void normByX(T *hIn, T *hOut){
   for(auto i = 1; i <= hOut->GetNbinsX(); i++){
     auto integ = hOut->Integral(i, i, 1, hOut->GetNbinsY());
     if(!integ) continue;
@@ -15,7 +15,7 @@ T* normByX(T *hIn, T *hOut){
 }
 
 template<class T>
-void normByX(T *hIn){
+T* normByX(T *hIn){
   auto hOut = static_cast<T*>(hIn->Clone(Form("%s_norm", hIn->GetName())));
   normByX(hIn, hOut);
   return hOut;
