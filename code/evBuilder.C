@@ -98,7 +98,6 @@ void evBuilder::LoopSecond(unsigned long long sec){
   Long64_t nbytes = 0, nb = 0, mbytes = 0, mb = 0;
 
   // =============================== CORRELATION FINDING ===============================
-  vector<array<double, 3> > MmCluster;
   for (Long64_t jentry = 0; jentry < nentries; jentry++) // You can remove "/ 10" and use the whole dataset
   {
     Long64_t ientry = LoadTree(jentry);
@@ -167,19 +166,19 @@ void evBuilder::LoopSecond(unsigned long long sec){
         { 
           if (fabs(trigTime - fft) < 500)
           {
-            array<double, 3> mM_hit = {{ffchM * 1.0, ffpdo * 1.0, fft}};
-            MmCluster.push_back(mM_hit);
+            MmCluster.push_back({ffchM * 1.0, ffpdo * 1.0, fft});
           }
         }
       }
     }
 
     double minT_straw_mm = 600;
-    auto [meanT, meanCh] = getClusterParameters(t_srtraw, minT_straw_mm);
+    auto [meanT, meanCh] = getClusterParameters(trigTime, minT_straw_mm);
 
-    if(meanCh != 0)
-      printf("VERSO: time %d - %d, Event ID %d:\n", daq_timestamp_s->at(0), daq_timestamp_ns->at(0),triggerCounter->at(0));
-      printf("  MM hits to %.1g (time: meanT %.2g)\n", triggerCounter->at(0), meanCh, meanT);
+    if(meanCh != 0){
+      printf("VERSO: time %d - %d, Event ID %d:\n", daq_timestamp_s->at(0), daq_timestamp_ns->at(0), triggerCounter->at(0));
+      printf("  MM hits to %g (time: meanT %.2g)\n", meanCh, meanT);
+    }
   }
 }
 
