@@ -22,7 +22,7 @@ public :
    virtual void     InitChain(TTree *tree) {};
    virtual void     Init() {};
    virtual void     Loop() {};
-   virtual void     LoopOnce(unsigned long long entry) {};
+   virtual void     LoopSecond(unsigned long long) {};
    virtual TChain* GetTree(TString filename = "", TString treeName = "vmm");
 
 };

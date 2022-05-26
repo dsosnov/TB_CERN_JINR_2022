@@ -92,7 +92,7 @@ public :
   virtual ~apv();
   virtual void     Init() override;
   virtual void     Loop() override;
-  virtual void     LoopSecond(unsigned long long sec);
+  virtual void     LoopSecond(unsigned long long sec) override;
 
   static unsigned long long unique_srs_time_stamp(int, int, int);
 
@@ -186,7 +186,14 @@ apv::apv(TString filename) : fChainPedestal(nullptr),
   Init();
 }
 
-apv::apv(vector<TString> filenames)
+apv::apv(vector<TString> filenames): fChainPedestal(nullptr),
+                                     srsFec(nullptr), srsChip(nullptr), srsChan(nullptr), mmChamber(nullptr),
+                                     mmLayer(nullptr), mmReadout(nullptr), mmStrip(nullptr),
+                                     raw_q(nullptr), max_q(nullptr), t_max_q(nullptr),
+                                     srsFecPed(nullptr), srsChipPed(nullptr), srsChanPed(nullptr), mmChamberPed(nullptr),
+                                     mmLayerPed(nullptr), mmReadoutPed(nullptr), mmStripPed(nullptr),
+                                     ped_meanPed(nullptr), ped_stdevPed(nullptr), ped_sigmaPed(nullptr),
+                                     clasterTree(nullptr)
 {
   file = filenames.at(0);
   folder = "../data-apv/";
@@ -220,6 +227,7 @@ apv::~apv(){
 
 void apv::Init(){
   printf("Init:: File: %s, tree %p, treePed %p\n", file.Data(), fChain, fChainPedestal);
+  fCurrent = -1;
   // Signal
   if(fChain){
     fChain->SetBranchAddress("evt", &evt, &b_evt);

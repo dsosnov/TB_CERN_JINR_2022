@@ -14,8 +14,8 @@ public :
    TString file = "run_0227";
    TString ending = ".root";
 
-   TString runType = "g1_p25_s100";
-   TString mapFile = "map-20220518.txt";
+   TString runType = "g1_p25_s100-0&60";
+   TString mapFile = "map-20220523.txt";
 
    TTree          *fChain;   //!pointer to the analyzed TTree or TChain
    Int_t           fCurrent; //!current Tree number in a TChain
@@ -69,7 +69,7 @@ public :
    TBranch        *b_art;   //!
    TBranch        *b_art_trigger;   //!
 
-   evBuilder(TString, TString runType_ = "g1_p25_s100", TString mapFile_ = "map-20220518.txt");
+   evBuilder(TString, TString runType_ = "g1_p25_s100-0&60", TString mapFile_ = "map-20220523.txt");
    evBuilder(TTree *tree=0);
    virtual ~evBuilder();
    virtual Int_t    GetEntry(Long64_t entry);
@@ -356,12 +356,17 @@ void evBuilder::Init(TTree *tree)
    } else {
    }
    if(runType == "g1_p25_s100"){
-     // addPDOCorrection("calibration_pdo_t@t_g3_p25_s100.txt");
-     addPDOCorrection("calibration_pdo_t@t_g1_p25_s100_sci0&60.txt");
+     addPDOCorrection("calibration_pdo_t@t_g3_p25_s100.txt");
+     // addPDOCorrection("calibration_pdo_t@t_g1_p25_s100_sci0&60.txt");
    } else if (runType == "g3_p25_s100"){
-     // addPDOCorrection("calibration_pdo_t@t_g1_p25_s100.txt");
+     addPDOCorrection("calibration_pdo_t@t_g1_p25_s100.txt");
+     // addPDOCorrection("calibration_pdo_t@t_g3_p25_s100_sci0&60.txt");
+   } else if(runType == "g1_p25_s100-0&60"){
+     addPDOCorrection("calibration_pdo_t@t_g1_p25_s100_sci0&60.txt");
+   } else if (runType == "g3_p25_s100-0&60"){
      addPDOCorrection("calibration_pdo_t@t_g3_p25_s100_sci0&60.txt");
    }
+
 
    if(!mapFile.EndsWith(".txt"))
      mapFile.Append(".txt");

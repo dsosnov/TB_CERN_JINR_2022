@@ -1,6 +1,8 @@
 #ifndef vmm_h
 #define vmm_h
 
+#include "analysisGeneral.h"
+
 #include <TROOT.h>
 #include <TChain.h>
 #include <TFile.h>
@@ -8,14 +10,10 @@
 // Header file for the classes stored in the TTree if any.
 //#include "c++/v1/vector"
 
-class vmm {
+class vmm : public analysisGeneral {
 public :
-   TString folder = "../data/";
-   TString file = "run_0057";
-   TString ending = ".root";
-
-   TTree          *fChain;   //!pointer to the analyzed TTree or TChain
-   Int_t           fCurrent; //!current Tree number in a TChain
+   TString runType = "g1_p25_s100";
+   TString mapFile = "map-20220518.txt";
 
    Int_t           eventFAFA;
    vector<int>     *triggerTimeStamp;
@@ -66,18 +64,17 @@ public :
    TBranch        *b_art;   //!
    TBranch        *b_art_trigger;   //!
 
-   vmm(TString);
-   vmm(TTree *tree=0);
+   vmm(TString, TString runType_ = "g1_p25_s100", TString mapFile_ = "map-strawOnly.txt");
+   vmm(vector<TString>, TString runType_ = "g1_p25_s100", TString mapFile_ = "map-strawOnly.txt");
+   vmm(TChain *tree = nullptr);
    virtual ~vmm();
-   virtual Int_t    GetEntry(Long64_t entry);
-   virtual Long64_t LoadTree(Long64_t entry);
-   virtual void     Init(TTree *tree);
-   virtual void     Loop();
+   virtual void     Init() override;
+   virtual void     Loop() override;
 
    map<unsigned int, vector<array<int, 2>>> TDOlimits;
    vector<array<float, 2>> pdoCorrection;
 
-  void addLimits(int minLimit, TString filename, bool verbose = false);
+   void addLimits(int minLimit, TString filename, bool verbose = false);
    array<int, 2> getLimits(int channel, int pdo);
    int getLimitLow(int channel, int pdo);
    int getLimitUp(int channel, int pdo);
@@ -96,61 +93,50 @@ public :
 
 #endif
 
-#ifdef vmm_cxx
-vmm::vmm(TString filename) : file(filename)
+vmm::vmm(TString filename, TString runType_, TString mapFile_) : runType(runType_), mapFile(mapFile_),
+                                                                 triggerTimeStamp(nullptr), triggerCounter(nullptr),
+                                                                 boardId(nullptr), chip(nullptr), eventSize(nullptr),
+                                                                 daq_timestamp_s(nullptr), daq_timestamp_ns(nullptr),
+                                                                 tdo(nullptr), pdo(nullptr), flag(nullptr), threshold(nullptr),
+                                                                 bcid(nullptr), relbcid(nullptr), overflow(nullptr), orbitCount(nullptr), grayDecoded(nullptr),
+                                                                 channel(nullptr), febChannel(nullptr), mappedChannel(nullptr),
+                                                                 art_valid(nullptr), art(nullptr), art_trigger(nullptr)
 {
-   TFile *f = (TFile*)gROOT->GetListOfFiles()->FindObject(folder + file + ending);
-   if (!f || !f->IsOpen()) {
-      f = new TFile(folder + file + ending);
-   }
-   if(!f->IsOpen()) {
-      std::cout << "Problem with opening data file" << std::endl;
-      exit(1);
-   }
-   TTree* tree = nullptr; 
-   f->GetObject("vmm",tree);
-   Init(tree);
+  file = filename;
+  fChain = GetTree(filename);
+  Init();
 }
 
-vmm::vmm(TTree *tree) : fChain(0) 
+vmm::vmm(vector<TString> filenames, TString runType_, TString mapFile_) : runType(runType_), mapFile(mapFile_),
+                                                                          triggerTimeStamp(nullptr), triggerCounter(nullptr),
+                                                                          boardId(nullptr), chip(nullptr), eventSize(nullptr),
+                                                                          daq_timestamp_s(nullptr), daq_timestamp_ns(nullptr),
+                                                                          tdo(nullptr), pdo(nullptr), flag(nullptr), threshold(nullptr),
+                                                                          bcid(nullptr), relbcid(nullptr), overflow(nullptr), orbitCount(nullptr), grayDecoded(nullptr),
+                                                                          channel(nullptr), febChannel(nullptr), mappedChannel(nullptr),
+                                                                          art_valid(nullptr), art(nullptr), art_trigger(nullptr)
 {
-   if (tree == 0) {
-      TFile *f = (TFile*)gROOT->GetListOfFiles()->FindObject(folder + file + ending);
-      if (!f || !f->IsOpen()) {
-         f = new TFile(folder + file + ending);
-      }
-      if(!f->IsOpen()) {
-         std::cout << "Problem with opening data file" << std::endl;
-         exit(1);
-      }
-      f->GetObject("vmm",tree);
+  file = filenames.at(0);
+  fChain = GetTree(filenames.at(0));
+  for(auto i = 1; i < filenames.size(); i++)
+    fChain->Add(folder + filenames.at(i) + ending);
+  Init();
+}
 
-   }
-   Init(tree);
+vmm::vmm(TChain *tree) : analysisGeneral(tree),  triggerTimeStamp(nullptr), triggerCounter(nullptr),
+   boardId(nullptr), chip(nullptr), eventSize(nullptr),
+   daq_timestamp_s(nullptr), daq_timestamp_ns(nullptr),
+   tdo(nullptr), pdo(nullptr), flag(nullptr), threshold(nullptr),
+   bcid(nullptr), relbcid(nullptr), overflow(nullptr), orbitCount(nullptr), grayDecoded(nullptr),
+   channel(nullptr), febChannel(nullptr), mappedChannel(nullptr),
+   art_valid(nullptr), art(nullptr), art_trigger(nullptr)
+{
+  fChain = (tree == nullptr) ? GetTree("") : tree;
+  Init();
 }
 
 vmm::~vmm()
 {
-   if (!fChain) return;
-   delete fChain->GetCurrentFile();
-}
-
-Int_t vmm::GetEntry(Long64_t entry)
-{
-// Read contents of entry.
-   if (!fChain) return 0;
-   return fChain->GetEntry(entry);
-}
-Long64_t vmm::LoadTree(Long64_t entry)
-{
-// Set the environment to read one entry
-   if (!fChain) return -5;
-   Long64_t centry = fChain->LoadTree(entry);
-   if (centry < 0) return centry;
-   if (fChain->GetTreeNumber() != fCurrent) {
-      fCurrent = fChain->GetTreeNumber();
-   }
-   return centry;
 }
 
 void vmm::addLimits(int minLimit, TString filename, bool verbose){
@@ -255,36 +241,12 @@ int vmm::getMappedChannel(int channel){
 }
 
 
-void vmm::Init(TTree *tree)
+void vmm::Init()
 {
-   triggerTimeStamp = 0;
-   triggerCounter = 0;
-   boardId = 0;
-   chip = 0;
-   eventSize = 0;
-   daq_timestamp_s = 0;
-   daq_timestamp_ns = 0;
-   tdo = 0;
-   pdo = 0;
-   flag = 0;
-   threshold = 0;
-   bcid = 0;
-   relbcid = 0;
-   overflow = 0;
-   orbitCount = 0;
-   grayDecoded = 0;
-   channel = 0;
-   febChannel = 0;
-   mappedChannel = 0;
-   art_valid = 0;
-   art = 0;
-   art_trigger = 0;
    // Set branch addresses and branch pointers
-   if (!tree) return;
-   fChain = tree;
+   if (!fChain) return;
    fCurrent = -1;
    fChain->SetMakeClass(1);
-
    fChain->SetBranchAddress("eventFAFA", &eventFAFA, &b_eventFAFA);
    fChain->SetBranchAddress("triggerTimeStamp", &triggerTimeStamp, &b_triggerTimeStamp);
    fChain->SetBranchAddress("triggerCounter", &triggerCounter, &b_triggerCounter);
@@ -309,19 +271,32 @@ void vmm::Init(TTree *tree)
    fChain->SetBranchAddress("art", &art, &b_art);
    fChain->SetBranchAddress("art_trigger", &art_trigger, &b_art_trigger);
 
-   // ================================== LIMITS SEARCH ================================== //or get from file
-   // addLimits(0, "calibration_25_100");
+   if(runType.EndsWith("_p25_s100")){
+     addLimits(100, "calibration_25_100_pdo100.txt");
+     addLimits(150, "calibration_25_100_pdo150.txt");
+     addLimits(200, "calibration_25_100_pdo200.txt");
+     addLimits(250, "calibration_25_100_pdo250.txt");
+     addLimits(300, "calibration_25_100_pdo300.txt");
+   } else {
+   }
+   if(runType == "g1_p25_s100"){
+     addPDOCorrection("calibration_pdo_t@t_g3_p25_s100.txt");
+     // addPDOCorrection("calibration_pdo_t@t_g1_p25_s100_sci0&60.txt");
+   } else if (runType == "g3_p25_s100"){
+     addPDOCorrection("calibration_pdo_t@t_g1_p25_s100.txt");
+     // addPDOCorrection("calibration_pdo_t@t_g3_p25_s100_sci0&60.txt");
+   } else if(runType == "g1_p25_s100-0&60"){
+     addPDOCorrection("calibration_pdo_t@t_g1_p25_s100_sci0&60.txt");
+   } else if (runType == "g3_p25_s100-0&60"){
+     addPDOCorrection("calibration_pdo_t@t_g3_p25_s100_sci0&60.txt");
+   }
 
-   addLimits(100, "calibration_25_100_pdo100.txt");
-   addLimits(150, "calibration_25_100_pdo150.txt");
-   addLimits(200, "calibration_25_100_pdo200.txt");
-   addLimits(250, "calibration_25_100_pdo250.txt");
-   addLimits(300, "calibration_25_100_pdo300.txt");
 
-   // addPDOCorrection("calibration_pdo_t@t_g3_p25_s100.txt");
-   addPDOCorrection("calibration_pdo_t@t_g1_p25_s100.txt");
-
-   addMap("map-strawOnly.txt");
+   if(!mapFile.EndsWith(".txt"))
+     mapFile.Append(".txt");
+   addMap(mapFile.Data());
 }
 
+#ifndef vmm_cxx
+void vmm::Loop(){}
 #endif // #ifdef vmm_cxx
