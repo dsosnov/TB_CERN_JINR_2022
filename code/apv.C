@@ -99,7 +99,7 @@ void apv::LoopSecond(unsigned long long sec){
       for(auto &t: tracks){
         auto x2 = get<2>(getHitsForTrack(t));
         if(x2 > 153 && x2 < 210){
-          printf("  Track hits to %g on layer 2: {%g, %.2g}\n", x2, t.first, t.second);
+          printf("  Track hits to %g on layer 2: {%g, %.2g} (%lu hits)\n", x2, t.intersect(), t.slope(), t.nClasters());
         }
       }
     }

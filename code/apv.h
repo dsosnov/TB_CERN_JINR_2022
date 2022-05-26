@@ -108,67 +108,61 @@ public :
     {1, {0.345, -18.23, 7.712}}, // layer 1 - layer 2, distance between layers [m], mean strip shift (claster_l0 - claster_l1), rms of strip shift -- from run76
     // Distance to straw: 523
   };
-  tuple<double,double,double> getHitsForTrack(pair<double, double> track);
-  vector<pair<double, double>> constructTracks(vector<apvClaster> clasters);
-    
+  tuple<double,double,double> getHitsForTrack(apvTrack track);
+  vector<apvTrack> constructTracks(vector<apvClaster> clasters);    
 };
 
-tuple<double,double,double> apv::getHitsForTrack(pair<double, double> track){
-  auto [x0, b] = track;
+tuple<double,double,double> apv::getHitsForTrack(apvTrack track){
+  auto x0 = track.intersect();
+  auto b = track.slope();
   auto x1 = x0 - get<1>(shiftBetweenLayels.at(0)) + b * get<0>(shiftBetweenLayels.at(0));
   auto x2 = x0 - (get<1>(shiftBetweenLayels.at(0)) + get<1>(shiftBetweenLayels.at(1))) +
     b * (get<0>(shiftBetweenLayels.at(0)) + get<0>(shiftBetweenLayels.at(1)));
   return {x0, x1, x2};
 }
 
-vector<pair<double, double>> apv::constructTracks(vector<apvClaster> clasters){
-  vector<pair<double, double>> tracks = {};
+vector<apvTrack> apv::constructTracks(vector<apvClaster> clasters){
+  vector<apvTrack> tracks = {};
   vector<apvClaster> clL0, clL1, clL2;
   std::copy_if(clasters.begin(), clasters.end(), std::back_inserter(clL0), [](auto c) { return c.getLayer() == 0; });
   std::copy_if(clasters.begin(), clasters.end(), std::back_inserter(clL1), [](auto c) { return c.getLayer() == 1; });
   std::copy_if(clasters.begin(), clasters.end(), std::back_inserter(clL2), [](auto c) { return c.getLayer() == 2; });
   if(!clL0.size() || !clL1.size())
     return tracks;
-
   
-  // x0, b, index of clasters
-  vector<tuple<double, double, vector<int>>> possibleTracks; // rough
+  vector<apvTrack> possibleTracks; // rough
   double bMax = 200; // 120 strips per 0.6m
-  for(auto i0 = 0; i0 < clL0.size(); i0++){
-    for(auto i1 = 0; i1 < clL1.size(); i1++){
-      auto x0 = clL0.at(i0).center();
-      auto x1 = clL1.at(i1).center();
+  for(auto &c0: clL0){
+    for(auto &c1: clL1){
+      auto x0 = c0.center();
+      auto x1 = c1.center();
       auto b = (x1 + get<1>(shiftBetweenLayels.at(0)) - x0) / get<0>(shiftBetweenLayels.at(0));
-      auto possibleX2 = get<2>(getHitsForTrack({x0, b}));
-      vector<int> hits = {i0, i1};
-      for(auto i2 = 0; i2 < clL2.size(); i2++){
-        if(fabs(clL2.at(i2).center() - possibleX2) < (get<2>(shiftBetweenLayels.at(0)) + get<2>(shiftBetweenLayels.at(1)))){
-          hits.push_back(i2);
+      auto possibleX2 = get<2>(getHitsForTrack(apvTrack(x0, b)));
+      vector<apvClaster> hits = {c0, c1};
+      for(auto &c2: clL2){
+        if(fabs(c2.center() - possibleX2) < (get<2>(shiftBetweenLayels.at(0)) + get<2>(shiftBetweenLayels.at(1)))){
+          hits.push_back(c2);
           break;
         }
       }
       if(fabs(b) < bMax)
-        possibleTracks.push_back({x0, b, hits});
+        possibleTracks.push_back(apvTrack(x0, b, hits));
     }
   }
   std::sort(possibleTracks.begin(), possibleTracks.end(),
-            [](auto t1, auto t2){return (get<2>(t1).size() != get<2>(t2).size()) ? get<2>(t1).size() > get<2>(t2).size() : fabs(get<1>(t1)) < fabs(get<1>(t2));});
+            [](auto t1, auto t2){return (t1.nClasters() != t2.nClasters()) ? t1.nClasters() > t2.nClasters() : fabs(t1.slope()) < fabs(t2.slope());});
 
-  set<pair<int,int>> usedHits;
+  set<apvClaster> usedClasters;
   for(auto &t: possibleTracks){
-    auto [x0, b, hits] = t;
-    bool h0Used = usedHits.count({0, hits.at(0)});
-    bool h1Used = usedHits.count({1, hits.at(1)});
-
-    if(h0Used || h1Used) continue;
-    usedHits.emplace(make_pair(0, hits.at(0)));
-    usedHits.emplace(make_pair(1, hits.at(1)));
-
-    if(hits.size() > 2){
-      bool h2Used = usedHits.count({2, hits.at(2)});
-    usedHits.emplace(make_pair(2, hits.at(2)));
-    }
-    tracks.push_back({x0, b});
+    bool used = false;
+    for(auto &c: t.getClasters())
+      if(usedClasters.count(c))
+        used = true;
+    // auto used = std::any_of(t.getClasters().begin(), t.getClasters().end(), [&usedClasters](auto c){return usedClasters.count(c);});
+    if(used) continue;
+    for(auto &c: t.getClasters())
+      usedClasters.emplace(c);
+    tracks.push_back(t);
   }
   return tracks;
 }
