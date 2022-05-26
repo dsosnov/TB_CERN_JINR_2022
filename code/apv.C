@@ -92,10 +92,10 @@ void apv::LoopSecond(unsigned long long sec){
     if(trackIn2Center){
       printf("Evevt parameters: evt %lld, time: %d & %d, timestamp: %d, trigger: %d;", evt, daqTimeSec, daqTimeMicroSec, srsTimeStamp, srsTrigger);
       printf("\n");
-      for(auto &c: clasters){
-        printf("     ");
-        c.print();
-      }
+      // for(auto &c: clasters){
+      //   printf("     ");
+      //   c.print();
+      // }
       for(auto &t: tracks){
         auto x2 = get<2>(getHitsForTrack(t));
         if(x2 > 153 && x2 < 210){
