@@ -13,7 +13,6 @@ void evBuilder::threePlotDrawF(TH1D *h1, TH1D *h2, TH1D *h3, TString fileEnding)
   h2->SetStats(0);
   h3->SetStats(0);
 
-
   TCanvas *three_plots = new TCanvas("3 det correlation", "3 det correlation", 1400, 900);
   three_plots->cd();
 
@@ -91,9 +90,14 @@ void evBuilder::threePlotDrawF(TH1D *h1, TH1D *h2, TH1D *h3, TString fileEnding)
 
 
 void evBuilder::LoopSecond(unsigned long long sec){
+  printf("evBuilder::LoopSecond(%llu)\n", sec);
+
+  if (fChain == 0)
+        return;
+
   unsigned int pdoThr = 100;
   unsigned int nLoopEntriesAround = 0;
-  Long64_t nentries = fChain->GetEntriesFast();
+  Long64_t nentries = fChain->GetEntries();
 
   Long64_t nbytes = 0, nb = 0, mbytes = 0, mb = 0;
 
@@ -236,6 +240,11 @@ pair<double, double> evBuilder::getClusterParameters(double t_srtraw, double min
 
 void evBuilder::Loop()
 {
+  printf("evBuilder::Loop()\n");
+
+  if (fChain == 0)
+        return;
+
    int strawMin = -1, strawMax = -1, mmMin = -1, mmMax = -1;
    int addstrawMin = -1, addstrawMax = -1;
    for(auto &s: channelMap){
@@ -256,9 +265,7 @@ void evBuilder::Loop()
          addstrawMax = s.second.second;
      }
    }
-
-   if (fChain == 0)
-        return;
+    printf("Straws: %d-%d, MM: %d-%d, additional straws: %d-%d\n", strawMin, strawMax, mmMin, mmMax, addstrawMin, addstrawMax);
 
     TFile *out = new TFile("../out/out_" + file + ending, "RECREATE"); // PATH where to save out_*.root file
 
@@ -298,13 +305,15 @@ void evBuilder::Loop()
                                   Form("%s: straw %d v-shape sci ch 0;R, mm;T, ns", file.Data(), i),
                                   32, -4, 4, 300, -100, 200));
     }
-    for(auto i = addstrawMin; i <= addstrawMax; i++){
-      straw_rt_add.emplace(i, new TH2D(Form("straw_%s_rt", addStrawType.at(i).c_str()),
-                                       Form("%s: %s straw v-shape sci ch 60;R, mm;T, ns", file.Data(), addStrawType.at(i).c_str()),
-                                       80, -10, 10, 1000, -100, 900));
-      straw_rt_add_0.emplace(i, new TH2D(Form("straw_%s_rt_0", addStrawType.at(i).c_str()),
-                                         Form("%s: %s straw v-shape sci ch 0;R, mm;T, ns", file.Data(), addStrawType.at(i).c_str()),
+    if(addstrawMin >= 0 && addstrawMax >= 0){
+      for(auto i = addstrawMin; i <= addstrawMax; i++){
+        straw_rt_add.emplace(i, new TH2D(Form("straw_%s_rt", addStrawType.at(i).c_str()),
+                                         Form("%s: %s straw v-shape sci ch 60;R, mm;T, ns", file.Data(), addStrawType.at(i).c_str()),
                                          80, -10, 10, 1000, -100, 900));
+        straw_rt_add_0.emplace(i, new TH2D(Form("straw_%s_rt_0", addStrawType.at(i).c_str()),
+                                           Form("%s: %s straw v-shape sci ch 0;R, mm;T, ns", file.Data(), addStrawType.at(i).c_str()),
+                                           80, -10, 10, 1000, -100, 900));
+      }
     }
     out->cd();
 
@@ -319,13 +328,15 @@ void evBuilder::Loop()
                           new TH1D(Form("straw%d_pdo_corr_0", i),
                                    Form("%s: pdo for additional straw %d corellated with sci ch 0;pdo", file.Data(), i), 64, 0, 1024));
     }
-    for(auto i = addstrawMin; i <= addstrawMax; i++){
-      straw_pdo_add.emplace(i,
-                        new TH1D(Form("straw_%s_pdo_corr", addStrawType.at(i).c_str()),
-                                 Form("%s: pdo for %s straw corellated with sci ch 60;pdo", file.Data(), addStrawType.at(i).c_str()), 64, 0, 1024));
-      straw_pdo_add_0.emplace(i,
-                          new TH1D(Form("straw_%s_pdo_corr_0", addStrawType.at(i).c_str()),
-                                   Form("%s: pdo for %s straw corellated with sci ch 0;pdo", file.Data(), addStrawType.at(i).c_str()), 64, 0, 1024));
+    if(addstrawMin >= 0 && addstrawMax >= 0){
+      for(auto i = addstrawMin; i <= addstrawMax; i++){
+        straw_pdo_add.emplace(i,
+                              new TH1D(Form("straw_%s_pdo_corr", addStrawType.at(i).c_str()),
+                                       Form("%s: pdo for %s straw corellated with sci ch 60;pdo", file.Data(), addStrawType.at(i).c_str()), 64, 0, 1024));
+        straw_pdo_add_0.emplace(i,
+                                new TH1D(Form("straw_%s_pdo_corr_0", addStrawType.at(i).c_str()),
+                                         Form("%s: pdo for %s straw corellated with sci ch 0;pdo", file.Data(), addStrawType.at(i).c_str()), 64, 0, 1024));
+      }
     }
     out->cd();
 
@@ -340,13 +351,15 @@ void evBuilder::Loop()
                         new TH1D(Form("straw%d_vs_sci0", i),
                                  Form("%s: straw%d_vs_sci0;#Delta t", file.Data(), i), 1000, -500, 500));
     }
-    for(auto i = addstrawMin; i <= addstrawMax; i++){
-      straw_deltat_add.emplace(i,
-                        new TH1D(Form("straw_%s_vs_sci60", addStrawType.at(i).c_str()),
-                                 Form("%s: %s straw_vs_sci60;#Delta t", file.Data(), addStrawType.at(i).c_str()), 1500, -500, 1000));
-      straw_deltat_add_0.emplace(i,
-                        new TH1D(Form("straw_%s_vs_sci0", addStrawType.at(i).c_str()),
-                                 Form("%s: %s straw_vs_sci0;#Delta t", file.Data(), addStrawType.at(i).c_str()), 1500, -500, 1000));
+    if(addstrawMin >= 0 && addstrawMax >= 0){
+      for(auto i = addstrawMin; i <= addstrawMax; i++){
+        straw_deltat_add.emplace(i,
+                                 new TH1D(Form("straw_%s_vs_sci60", addStrawType.at(i).c_str()),
+                                          Form("%s: %s straw_vs_sci60;#Delta t", file.Data(), addStrawType.at(i).c_str()), 1500, -500, 1000));
+        straw_deltat_add_0.emplace(i,
+                                   new TH1D(Form("straw_%s_vs_sci0", addStrawType.at(i).c_str()),
+                                            Form("%s: %s straw_vs_sci0;#Delta t", file.Data(), addStrawType.at(i).c_str()), 1500, -500, 1000));
+      }
     }
     out->cd();
 
@@ -390,7 +403,7 @@ void evBuilder::Loop()
 
     unsigned int pdoThr = 100;
     unsigned int nLoopEntriesAround = 0;
-    Long64_t nentries = fChain->GetEntriesFast();
+    Long64_t nentries = fChain->GetEntries();
 
     Long64_t nbytes = 0, nb = 0;
 

@@ -85,7 +85,7 @@ public :
    int correctPDO(int channel, int pdoIn);
 
    map<int, pair<int, int>> channelMap;
-   void addMap(TString filename);
+   void addMap(TString filename, bool verbose = false);
    pair<int,int> getMapped(int channel);
    int getMappedDetector(int channel);
    int getMappedChannel(int channel);
@@ -214,7 +214,7 @@ int vmm::correctPDO(int channel, int pdoIn){
   return static_cast<int>(p0 + pdoIn * p1);
 }
 
-void vmm::addMap(TString filename){
+void vmm::addMap(TString filename, bool verbose){
    ifstream infile(Form("../out/%s", filename.Data()));
    std::string line;
    int ch, d, dch;
@@ -225,6 +225,8 @@ void vmm::addMap(TString filename){
        continue;
      if (!(iss >> ch >> d >> dch))
        break; // error
+     if(verbose)
+       printf("Map: %d: %d - %d\n", ch, d, dch);
      channelMap.emplace(ch, make_pair(d, dch));
    }
 }
@@ -245,6 +247,7 @@ void vmm::Init()
 {
    // Set branch addresses and branch pointers
    if (!fChain) return;
+   printf("vmm::Init()\n");
    fCurrent = -1;
    fChain->SetMakeClass(1);
    fChain->SetBranchAddress("eventFAFA", &eventFAFA, &b_eventFAFA);
@@ -271,7 +274,7 @@ void vmm::Init()
    fChain->SetBranchAddress("art", &art, &b_art);
    fChain->SetBranchAddress("art_trigger", &art_trigger, &b_art_trigger);
 
-   if(runType.EndsWith("_p25_s100")){
+   if(runType.EndsWith("_p25_s100") || runType.EndsWith("_p25_s100-0&60")){
      addLimits(100, "calibration_25_100_pdo100.txt");
      addLimits(150, "calibration_25_100_pdo150.txt");
      addLimits(200, "calibration_25_100_pdo200.txt");
@@ -290,7 +293,6 @@ void vmm::Init()
    } else if (runType == "g3_p25_s100-0&60"){
      addPDOCorrection("calibration_pdo_t@t_g3_p25_s100_sci0&60.txt");
    }
-
 
    if(!mapFile.EndsWith(".txt"))
      mapFile.Append(".txt");

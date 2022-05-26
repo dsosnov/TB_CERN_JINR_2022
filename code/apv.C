@@ -6,6 +6,8 @@
 #include <limits>
 
 void apv::LoopSecond(unsigned long long sec){
+  printf("apv::LoopSecond(%llu)\n", sec);
+
   if(!isChain())
     return;
   Long64_t nentries = fChain->GetEntries();
