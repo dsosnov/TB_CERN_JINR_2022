@@ -187,13 +187,9 @@ public:
 class apvTrack : public TObject{
 private:
   double x0, b;
-  set<apvClaster> clasters;
+  std::set<apvClaster> clasters;
 public:
-  apvTrack(double intersect, double slope): x0(intersect), b(slope), clasters({}) {};
-  // apvTrack(double intersect, double slope, vector<apvClaster> clasters_): x0(intersect), b(slope){
-  //   for(auto &c: clasters_)
-  //     addClaster(c);
-  // };
+  apvTrack(double intersect = 0, double slope = 0): x0(intersect), b(slope), clasters({}) {};
   template <class T>
   apvTrack(double intersect, double slope, T clasters_): x0(intersect), b(slope){
     for(auto &c: clasters_)
@@ -201,7 +197,9 @@ public:
   };
   void addClaster(apvClaster claster){clasters.emplace(claster);}
   unsigned long nClasters(){return clasters.size();}
-  set<apvClaster> getClasters(){return clasters;}
-  double intersect(){return x0;}
-  double slope(){return b;}
+    std::set<apvClaster> getClasters(){return clasters;}
+  double intersect() const {return x0;}
+  double slope() const {return b;}
+  void setIntersect(double intersect){x0 = intersect;}
+  void setSlope(double slope){b = slope;}
 };

@@ -25,5 +25,7 @@ namespace {
   std::vector<std::vector<apvHit>> vector_vector_apvHit;
   std::vector<apvClaster> vector_apvClaster;
   std::vector<std::vector<apvClaster>> vector_vector_apvClaster;
+  std::vector<apvTrack> vector_apvTrack;
+  std::vector<std::vector<apvTrack>> vector_vector_apvTrack;
 
 };
