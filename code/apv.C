@@ -26,10 +26,6 @@ void apv::LoopSecond(unsigned long long sec){
     if(daqTimeSec > sec)
       break;
 
-    printf("Evevt parameters: evt %lld, time: %d & %d, timestamp: %d, trigger: %d;", evt, daqTimeSec, daqTimeMicroSec, srsTimeStamp, srsTrigger);
-    // printf(" Unique timestamp: %llu;", unique_srs_time_stamp(daqTimeSec, daqTimeMicroSec, srsTimeStamp));
-    printf("\n");
-
     /* Checking if there is any mapped channels */
     bool notErr = false;
     for (auto &r: *mmReadout)
@@ -83,23 +79,30 @@ void apv::LoopSecond(unsigned long long sec){
       else if(c.getLayer() == 2 && c.center() >= 150 && c.center() <= 209-16 && (c.center() < 170 || c.center() >173))
         clasterInRange2 = true;
     }
-    // if(clasterInRange0 && clasterInRange1){
-    //   nEventsWHitsTwoLayers++;
-    //   if(clasterInRange2)
-    //     nEventsWHitsThreeLayers++;
-    // }
 
-    for(auto &c: clasters){
-      printf(" ");
-      c.print();
+    auto tracks = constructTracks(clasters);
+    bool trackIn2Center = false;
+    for(auto &t: tracks){
+      auto x2 = get<2>(getHitsForTrack(t));
+      if(x2 > 153 && x2 < 210){
+        trackIn2Center = true;
+        break;
+      }
     }
-
-        // printf("Evevt parameters: evt %lld, time: %d & %d, timestamp: %d, trigger: %d;", evt, daqTimeSec, daqTimeMicroSec, srsTimeStamp, srsTrigger);
-    // // printf(" Unique timestamp: %llu;", unique_srs_time_stamp(daqTimeSec, daqTimeMicroSec, srsTimeStamp));
-    // printf("\n");
-
-
-
+    if(trackIn2Center){
+      printf("Evevt parameters: evt %lld, time: %d & %d, timestamp: %d, trigger: %d;", evt, daqTimeSec, daqTimeMicroSec, srsTimeStamp, srsTrigger);
+      printf("\n");
+      for(auto &c: clasters){
+        printf("     ");
+        c.print();
+      }
+      for(auto &t: tracks){
+        auto x2 = get<2>(getHitsForTrack(t));
+        if(x2 > 153 && x2 < 210){
+          printf("  Track hits to %g on layer 2: {%g, %.2g}\n", x2, t.first, t.second);
+        }
+      }
+    }
   }
 
 }

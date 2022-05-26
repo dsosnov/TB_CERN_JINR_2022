@@ -174,46 +174,12 @@ void evBuilder::LoopSecond(unsigned long long sec){
       }
     }
 
-    double meanT = 0;
-    double meanCh = 0;
-    double sum1 = 0;
-    double sum2 = 0;
-    double w_sum = 0;
-
     double minT_straw_mm = 600;
-    int mmCh_min = 0;
+    auto [meanT, meanCh] = getClusterParameters(t_srtraw, minT_straw_mm);
 
-    if (MmCluster.size() != 0)
-    {
-      for (size_t l = 0; l < MmCluster.size(); l++)
-      {
-        if (abs(MmCluster.at(l)[2] - trigTime) < minT_straw_mm)
-        {
-          minT_straw_mm = abs(MmCluster.at(l)[2] - trigTime);
-          mmCh_min = MmCluster.at(l)[0];
-        }
-      }
-
-      for (size_t l = 0; l < MmCluster.size(); l++)
-      {
-        if (abs(MmCluster.at(l)[0] - mmCh_min) > 5)
-        {
-          MmCluster.erase(MmCluster.begin()+l);
-        }
-      }
-    
-
-      for (size_t l = 0; l < MmCluster.size(); l++)
-      {
-        sum1 += MmCluster.at(l)[2] * MmCluster.at(l)[1] / 1024.0;
-        sum2 += MmCluster.at(l)[0] * MmCluster.at(l)[1] / 1024.0;
-        w_sum += MmCluster.at(l)[1] / 1024.0;
-      }
-      meanT = sum1 / w_sum;
-      meanCh = sum2 / w_sum;
-    }
-
-    printf("VERSO: time %d - %d, Event ID %d, MM hits: %f (time: meanCh %f)\n", daq_timestamp_s->at(0), daq_timestamp_ns->at(0),triggerCounter->at(0), meanCh, meanT);
+    if(meanCh != 0)
+      printf("VERSO: time %d - %d, Event ID %d:\n", daq_timestamp_s->at(0), daq_timestamp_ns->at(0),triggerCounter->at(0));
+      printf("  MM hits to %.1g (time: meanT %.2g)\n", triggerCounter->at(0), meanCh, meanT);
   }
 }
 
