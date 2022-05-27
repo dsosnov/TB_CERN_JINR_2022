@@ -734,7 +734,7 @@ void evBuilder::Loop()
     }
     map<int, TH2D*> straw_rt_add_normed, straw_rt_add_0_normed ;
     for(auto &h: straw_rt_add){
-      auto hnew = static_cast<TH2D*>(h.second->Clone(Form("%s_normed", h.second->GetTitle())));
+      auto hnew = static_cast<TH2D*>(h.second->Clone(Form("%s_normed", h.second->GetName())));
       for(auto i = 1; i <= hnew->GetNbinsX(); i++){
         auto integ = hnew->Integral(i, i, 1, hnew->GetNbinsY());
         if(!integ) continue;
@@ -748,7 +748,7 @@ void evBuilder::Loop()
       straw_rt_add_normed.emplace(h.first, hnew);
     }
     for(auto &h: straw_rt_add_0){
-      auto hnew = static_cast<TH2D*>(h.second->Clone(Form("%s_normed", h.second->GetTitle())));
+      auto hnew = static_cast<TH2D*>(h.second->Clone(Form("%s_normed", h.second->GetName())));
       for(auto i = 1; i <= hnew->GetNbinsX(); i++){
         auto integ = hnew->Integral(i, i, 1, hnew->GetNbinsY());
         if(!integ) continue;
