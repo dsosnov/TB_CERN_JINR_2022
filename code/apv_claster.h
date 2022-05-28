@@ -61,6 +61,8 @@ private:
   // int width_;
   int maxq_;
   long qsum_;
+  int maxqtime_;
+  float meanqtime_;
   void update(){
     if(sizeOnLastUpdate && sizeOnLastUpdate == nHits())
       return;
@@ -68,6 +70,8 @@ private:
     calcQ();
     calcMaxQ();
     calcCenter();
+    calcMaxQTime();
+    calcMeanQTime();
     sizeOnLastUpdate = nHits();
   }
   void sortHits(){
@@ -99,6 +103,26 @@ private:
     qsum_ = 0;
     for(auto &hit: hits)
       qsum_ += hit.max_q;
+  }
+  void calcMaxQTime(){
+    if(sizeOnLastUpdate && sizeOnLastUpdate == nHits())
+      return;
+    maxqtime_ = -1;
+    for(auto &hit: hits){
+      if(hit.max_q == maxq_)
+        maxqtime_ = hit.t_max_q;
+    }
+  }
+  void calcMeanQTime(){
+    if(sizeOnLastUpdate && sizeOnLastUpdate == nHits())
+      return;
+    meanqtime_ = -1;
+    long long sum = 0, sumw = 0;
+    for(auto &hit: hits){
+      sum += hit.t_max_q * hit.max_q;
+      sumw += hit.max_q;
+    }
+    meanqtime_ = static_cast<float>(sum) / static_cast<float>(sumw);
   }
 public:
   apvClaster(int clasterLayer = 0):
@@ -154,6 +178,8 @@ public:
   int lastStrip() const { return hits.back().strip; }
   int maxQ() const { return maxq_; }
   long q() const { return qsum_; }
+  int maxQTime() const { return maxqtime_; }
+  float meanQTime() const { return meanqtime_; }
 
   friend
   auto operator<( apvClaster const& a, apvClaster const& b ){
@@ -202,4 +228,42 @@ public:
   double slope() const {return b;}
   void setIntersect(double intersect){x0 = intersect;}
   void setSlope(double slope){b = slope;}
+  int maxQ() const {
+    int maxq = 0;
+    for(auto &c: clasters){
+      if(c.maxQ() > maxq)
+        maxq = c.maxQ();
+    }
+    return maxq;
+  }
+  float meanQTime(){
+    bool isX2 = false;
+    float meanqtime = 0;
+    int nhits = 0;
+    for(auto &c: clasters)
+      if(c.getLayer() == 2)
+        isX2 = true;
+    for(auto &c: clasters){
+      if(!isX2 || (isX2 && c.getLayer() == 2)){
+        meanqtime += c.meanQTime();
+        nhits++;
+      }
+    }
+    return meanqtime / nhits;
+  }
+  float maxQTime(){
+    bool isX2 = false;
+    float maxqtime = 0;
+    int nhits = 0;
+    for(auto &c: clasters)
+      if(c.getLayer() == 2)
+        isX2 = true;      
+    for(auto &c: clasters){
+      if(!isX2 || (isX2 && c.getLayer() == 2)){
+        maxqtime += c.maxQTime();
+        nhits++;
+      }
+    }
+    return maxqtime / nhits;
+  }
 };
