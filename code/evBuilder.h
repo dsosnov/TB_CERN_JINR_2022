@@ -43,7 +43,7 @@ public :
      double time;
    };
    vector<mmHit> MmCluster;
-   pair<double, double> getClusterParameters(double t_srtraw, double minT_straw_mm, int workType = 0);
+   tuple<double, double, double> getClusterParameters(double t_srtraw, double minT_straw_mm, int workType = 0);
 };
 
 evBuilder::evBuilder(TString filename, TString runType_, TString mapFile_) : vmm(filename, runType_, mapFile_)

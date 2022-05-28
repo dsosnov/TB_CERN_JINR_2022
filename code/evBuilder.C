@@ -177,7 +177,7 @@ void evBuilder::LoopSecond(unsigned long long sec){
     }
 
     double minT_straw_mm = 600;
-    auto [meanT, meanCh] = getClusterParameters(trigTime, minT_straw_mm);
+    auto [meanT, meanCh, maxPdo] = getClusterParameters(trigTime, minT_straw_mm);
 
     if(meanCh != 0){
       printf("VERSO: time %d - %d, Event ID %d:\n", daq_timestamp_s->at(0), daq_timestamp_ns->at(0), triggerCounter->at(0));
@@ -186,12 +186,13 @@ void evBuilder::LoopSecond(unsigned long long sec){
   }
 }
 
-pair<double, double> evBuilder::getClusterParameters(double t_srtraw, double minT_straw_mm, int workType){
+tuple<double, double, double> evBuilder::getClusterParameters(double t_srtraw, double minT_straw_mm, int workType){
   double meanT = 0;
   double meanCh = 0;
   double sum1 = 0;
   double sum2 = 0;
   double w_sum = 0;
+  double maxPdo = 0;
 
   // double minT_straw_mm = 600;
   int mmCh_min = 0;
@@ -222,6 +223,8 @@ pair<double, double> evBuilder::getClusterParameters(double t_srtraw, double min
           sum1 += MmCluster.at(l).time * MmCluster.at(l).pdo / 1024.0;
           sum2 += MmCluster.at(l).channel * MmCluster.at(l).pdo / 1024.0;
           w_sum += MmCluster.at(l).pdo / 1024.0;
+          if(MmCluster.at(l).pdo > maxPdo)
+            maxPdo = MmCluster.at(l).pdo;
         }
         meanT = sum1 / w_sum;
         meanCh = sum2 / w_sum;
@@ -232,10 +235,11 @@ pair<double, double> evBuilder::getClusterParameters(double t_srtraw, double min
             maximalPdoHit = l;
         meanT = MmCluster.at(maximalPdoHit).time;
         meanCh = MmCluster.at(maximalPdoHit).channel;
+        maxPdo = MmCluster.at(maximalPdoHit).pdo;
         break;
     }
   }
-  return {meanT, meanCh};
+  return {meanT, meanCh, maxPdo};
 }
 
 void evBuilder::Loop()
@@ -527,7 +531,7 @@ void evBuilder::Loop()
                 }
 
                 double minT_straw_mm = 600;
-                auto [meanT, meanCh] = getClusterParameters(t_srtraw, minT_straw_mm);
+                auto [meanT, meanCh, maxPdo] = getClusterParameters(t_srtraw, minT_straw_mm);
                 if (MmCluster.size() != 0){
                     straw_vs_mm_spatial_corr->Fill(fchM, meanCh);
                     straw_vs_mm_cluster ->Fill(t_srtraw - meanT);
@@ -669,7 +673,7 @@ void evBuilder::Loop()
                 }
 
                 double minT_straw_mm = 600;
-                auto [meanT, meanCh] = getClusterParameters(t_srtraw, minT_straw_mm);
+                auto [meanT, meanCh, maxPdo] = getClusterParameters(t_srtraw, minT_straw_mm);
                 if (MmCluster.size() != 0){
                     straw_add_vs_mm_spatial_corr->Fill(fchM, meanCh);
                 }
