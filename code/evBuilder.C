@@ -141,7 +141,6 @@ vector<analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentralHits(unsign
       }
     }
     if(!isTrigger){
-      hitsToPrev++;
       continue;
     }
 
