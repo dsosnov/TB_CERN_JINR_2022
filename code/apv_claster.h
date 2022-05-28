@@ -147,10 +147,10 @@ public:
     update();
     return true;
   }
-  bool addHitAdjacent(apvHit hit){
+  bool addHitAdjacent(apvHit hit, int neighborAccepted = 3){
     if(hit.layer != layer)
       return false;
-    if(hit.strip != hits.at(0).strip - 1 && hit.strip != hits.back().strip + 1)
+    if(hit.strip < hits.at(0).strip - neighborAccepted || hit.strip >= hits.back().strip + neighborAccepted)
       return false;
     addHit(hit);
     return true;
