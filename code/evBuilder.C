@@ -168,7 +168,7 @@ vector<analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentralHits(unsign
         // double fft = getTimeByHand(ffbcid, fftdo, 110, 160); //'hand' limits
         double fft = getTime(ffch, ffbcid, fftdo, ffpdoUC); // 'auto' limits
 
-        if(ffpdo < pdoThr) continue;
+        // if(ffpdo < pdoThr) continue;
 
         if(ffchD == 4) // All MM channels
         { 
@@ -674,7 +674,7 @@ void evBuilder::Loop(unsigned long n)
                       // double fft = getTimeByHand(ffbcid, fftdo, 110, 160); //'hand' limits
                       double fft = getTime(ffch, ffbcid, fftdo, ffpdoUC); // 'auto' limits
 
-                      if(ffpdo < pdoThr) continue;
+                      if(ffchD != 4 && ffpdo < pdoThr) continue; // only for non-mm
 
                       if(ffchD == 4) // All MM channels
                       { 
