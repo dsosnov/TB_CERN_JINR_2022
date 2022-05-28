@@ -96,7 +96,10 @@ public :
 
   static unsigned long long unique_srs_time_stamp(int, int, int);
 
+  vector<apvHit> hits;
+
   vector<apvClaster> clasters;
+  void constructClasters();
   bool addHitToClasters(int layer, int strip, short max_q, int t_max_q, vector<short> raw_q);
   bool addHitToClasters(apvHit hit);
 
@@ -167,9 +170,6 @@ vector<apvTrack> apv::constructTracks(vector<apvClaster> clasters){
   return tracks;
 }
 
-#endif
-
-#ifdef apv_cxx
 apv::apv(TString filename) : fChainPedestal(nullptr),
                              srsFec(nullptr), srsChip(nullptr), srsChan(nullptr), mmChamber(nullptr),
                              mmLayer(nullptr), mmReadout(nullptr), mmStrip(nullptr),
@@ -230,6 +230,7 @@ void apv::Init(){
   fCurrent = -1;
   // Signal
   if(fChain){
+    fChain->SetMakeClass(1);
     fChain->SetBranchAddress("evt", &evt, &b_evt);
     fChain->SetBranchAddress("error", &error, &b_error);
     fChain->SetBranchAddress("daqTimeSec", &daqTimeSec, &b_daqTimeSec);
@@ -250,6 +251,7 @@ void apv::Init(){
   // Pedestal
   if(fChainPedestal){
     // treePed->Print();
+    fChainPedestal->SetMakeClass(1);
     fChainPedestal->SetBranchAddress("evt", &evtPed);
     fChainPedestal->SetBranchAddress("error", &errorPed);
     fChainPedestal->SetBranchAddress("daqTimeSec", &daqTimeSecPed);
@@ -301,6 +303,36 @@ bool apv::addHitToClasters(apvHit hit){
   return true;
 }
 
+void apv::constructClasters(){
+  clasters.clear();
+  std::sort(hits.begin(), hits.end(), [](auto h1, auto h2){return h1.strip < h2.strip;});
+  for(auto &hit: hits)
+    addHitToClasters(hit);
+
+  /* Remove small clasters or clasters with small energy for the first layers only */
+  clasters.erase(std::remove_if(clasters.begin(), 
+                                clasters.end(),
+                                [](auto c){return c.getLayer() != 2 && c.nHits() < 3;}),
+                 clasters.end());
+  clasters.erase(std::remove_if(clasters.begin(), 
+                                clasters.end(),
+                                [](auto c){
+                                  auto qthr = (c.getLayer() == 2) ? 150 : 300;
+                                  return c.maxQ() < qthr;}),
+                 clasters.end());
+
+  std::stable_sort(clasters.begin(), clasters.end(), [](auto c1, auto c2){return (c1.getLayer() < c2.getLayer()) || (c1.center() < c2.center());});
+}
 
 
+
+#endif
+
+#ifndef apv_cxx
+void apv::Loop() {};
+void apv::LoopSecond(unsigned long long sec) {};
+vector<analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(unsigned long long fromSec = 0,
+                                                                    unsigned long long toSec = 0) {
+  return {};
+};
 #endif // #ifdef apv_cxx

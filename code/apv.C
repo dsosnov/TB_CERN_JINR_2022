@@ -13,7 +13,6 @@ void apv::LoopSecond(unsigned long long sec){
   Long64_t nentries = fChain->GetEntries();
 
   unsigned long long previousTimestamp = 0;
-  vector<apvHit> hits;
   
   for (auto event = 0; event < nentries; event++){
     Long64_t ientry = LoadTree(event);
@@ -53,24 +52,7 @@ void apv::LoopSecond(unsigned long long sec){
     }
 
     /* Constructing clasters */
-    clasters.clear();
-    std::sort(hits.begin(), hits.end(), [](auto h1, auto h2){return h1.strip < h2.strip;});
-    for(auto &hit: hits)
-      addHitToClasters(hit);
-
-    /* Remove small clasters or clasters with small energy for the first layers only */
-    clasters.erase(std::remove_if(clasters.begin(), 
-                                  clasters.end(),
-                                  [](auto c){return c.getLayer() != 2 && c.nHits() < 3;}),
-                   clasters.end());
-    clasters.erase(std::remove_if(clasters.begin(), 
-                                  clasters.end(),
-                                  [](auto c){
-                                    auto qthr = (c.getLayer() == 2) ? 150 : 300;
-                                    return c.maxQ() < qthr;}),
-                   clasters.end());
-
-    std::stable_sort(clasters.begin(), clasters.end(), [](auto c1, auto c2){return (c1.getLayer() < c2.getLayer()) || (c1.center() < c2.center());});
+    constructClasters();
     
     bool clasterInRange0 = false, clasterInRange1 = false, clasterInRange2 = false;
     for(auto &c: clasters){
@@ -193,7 +175,6 @@ void apv::Loop()
     Long64_t nentries = fChain->GetEntries();
 
     unsigned long long previousTimestamp = 0;
-    vector<apvHit> hits;
   
     // nentries = 2000;
     for (auto event = 0; event < nentries; event++){
@@ -268,24 +249,7 @@ void apv::Loop()
       // printf("\n");
 
       /* Constructing clasters */
-      clasters.clear();
-      std::sort(hits.begin(), hits.end(), [](auto h1, auto h2){return h1.strip < h2.strip;});
-      for(auto &hit: hits)
-        addHitToClasters(hit);
-
-      /* Remove small clasters or clasters with small energy for the first layers only */
-      clasters.erase(std::remove_if(clasters.begin(), 
-                                    clasters.end(),
-                                    [](auto c){return c.getLayer() != 2 && c.nHits() < 3;}),
-                     clasters.end());
-      clasters.erase(std::remove_if(clasters.begin(), 
-                                    clasters.end(),
-                                    [](auto c){
-                                      auto qthr = (c.getLayer() == 2) ? 150 : 300;
-                                      return c.maxQ() < qthr;}),
-                     clasters.end());
-
-      std::stable_sort(clasters.begin(), clasters.end(), [](auto c1, auto c2){return (c1.getLayer() < c2.getLayer()) || (c1.center() < c2.center());});
+      constructClasters();
     
       bool clasterInRange0 = false, clasterInRange1 = false, clasterInRange2 = false;
       for(auto &c: clasters){
