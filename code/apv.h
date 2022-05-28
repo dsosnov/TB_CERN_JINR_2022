@@ -313,12 +313,12 @@ void apv::constructClasters(){
   /* Remove small clasters or clasters with small energy for the first layers only */
   clasters.erase(std::remove_if(clasters.begin(), 
                                 clasters.end(),
-                                [](auto c){return c.getLayer() != 2 && c.nHits() < 3;}),
+                                [](auto c){return (c.getLayer() != 2 && c.nHits() < 3) || (n.nHits > 90);}),
                  clasters.end());
   clasters.erase(std::remove_if(clasters.begin(), 
                                 clasters.end(),
                                 [](auto c){
-                                  auto qthr = (c.getLayer() == 2) ? 150 : 300;
+                                  auto qthr = (c.getLayer() == 2) ? 100 : 300;
                                   return c.maxQ() < qthr;}),
                  clasters.end());
 
