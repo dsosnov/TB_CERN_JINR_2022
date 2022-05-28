@@ -3,13 +3,15 @@
 
 void merge_vmm_apv(){
   pair<string, string> run_pair = {"run_0258", "run166"};
-  string run_apv = "run166";
-  string run_vmm = "run_0258";
+
+  // unsigned long long from = 1653145627, to = 1653145627;
+  unsigned long long from = 0, to = 0;
 
   auto apvan = new apv(run_pair.second);
-  auto hits_apv = apvan->GetCentralHits(1653145627, 1653145627);
+  auto hits_apv = apvan->GetCentralHits(from, to);
   auto vmman = new evBuilder(run_pair.first, "g1_p25_s100-0&60", "map-20220518");
-  auto hits_vmm = vmman->GetCentralHits(1653145627, 1653145627);
+  vmman->Loop();
+  auto hits_vmm = vmman->GetCentralHits(from, to);
   {
     double pdoMax = 0.0;
     for(auto &h: hits_vmm)
@@ -27,8 +29,8 @@ void merge_vmm_apv(){
       h.pdoRelative /= pdoMax;          
   }
 
-  printf("APV hits:\n");
+  printf("APV hits (%lu)\n", hits_apv.size());
   for(auto &h: hits_apv) h.print();
-  printf("VMM hits:\n");
+  printf("VMM hits (%lu):\n", hits_vmm.size());
   for(auto &h: hits_vmm) h.print();
 }
