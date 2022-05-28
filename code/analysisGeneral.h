@@ -25,6 +25,19 @@ public :
    virtual void     LoopSecond(unsigned long long) {};
    virtual TChain* GetTree(TString filename = "", TString treeName = "vmm");
 
+   struct mm2CenterHitParameters{
+     unsigned long long timeSec;
+     unsigned long long timeMSec;
+     unsigned int strip;
+     unsigned int pdo;
+     double pdoRelative;
+     long long nHitsToPrev;
+     float time;
+     void print() const {
+       printf("Hit to straw %d with relative pdo %.3f and time %.2f at daq time %llu - %llu. Previous hit was %llu triggers ago.\n", strip, pdoRelative, time, timeSec, timeMSec, nHitsToPrev);
+     }
+   };
+   virtual vector<mm2CenterHitParameters> GetCentralHits(unsigned long long fromSec = 0, unsigned long long toSec = 0) {return {};};
 };
 
 TChain* analysisGeneral::GetTree(TString filename, TString treeName){

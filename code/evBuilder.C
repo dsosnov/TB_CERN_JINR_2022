@@ -2,6 +2,7 @@
 #include "evBuilder.h"
 #include <TH1.h>
 
+
 void evBuilder::threePlotDrawF(TH1D *h1, TH1D *h2, TH1D *h3, TString fileEnding)
 {
   if(!(h1->GetEntries()) || !(h2->GetEntries()) || !(h3->GetEntries()))
@@ -86,6 +87,189 @@ void evBuilder::threePlotDrawF(TH1D *h1, TH1D *h2, TH1D *h3, TString fileEnding)
   legend2->Draw("same");
 
   three_plots->SaveAs("../out/3plots_" + file + fileEnding + ".pdf");
+}
+
+vector<analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentralHits(unsigned long long fromSec, unsigned long long toSec){
+  printf("evBuilder::GetCentralHits(%llu, %llu)\n", fromSec, toSec);
+
+  vector<analysisGeneral::mm2CenterHitParameters> outputData = {};
+  unsigned long long hitsToPrev = 0;
+
+  if (fChain == 0)
+    return outputData;
+
+  unsigned int pdoThr = 100;
+  unsigned int nLoopEntriesAround = 0;
+  Long64_t nentries = fChain->GetEntries();
+
+  Long64_t nbytes = 0, nb = 0, mbytes = 0, mb = 0;
+
+  // =============================== CORRELATION FINDING ===============================
+  for (Long64_t jentry = 0; jentry < nentries; jentry++) // You can remove "/ 10" and use the whole dataset
+  {
+    Long64_t ientry = LoadTree(jentry);
+    if (ientry < 0)
+      break;
+    nb = fChain->GetEntry(jentry);
+    nbytes += nb;
+
+
+    if(fromSec > 0 && daq_timestamp_s->at(0) < fromSec)
+      continue;
+    else if(toSec > 0 && toSec >= fromSec && daq_timestamp_s->at(0) > toSec)
+      break;
+
+    bool isTrigger = false;
+    int trigTime = 0;
+    for (int j = 0; j < channel->at(0).size(); j++)
+    {
+      int fch = channel->at(0).at(j);
+      int fchD = getMappedDetector(fch);
+      int fchM = getMappedChannel(fch);
+      // printf("VERSO: ch %d -> %d %d\n", fch, fchD, fchM);
+      
+      int fpdoUC = pdo->at(0).at(j); // Uncorrected PDO, used at time calibration
+      int fpdo = correctPDO(fch, fpdoUC);
+      int ftdo = tdo->at(0).at(j);
+      int fbcid = grayDecoded->at(0).at(j);
+
+      // isTrigger = isTrigger || (ffchD == 0 && ffchM == 3);
+      if(fchD == 0 && fchM == 3){
+        isTrigger = true;
+        trigTime = getTime(fch, fbcid, ftdo, fpdoUC);
+        break;
+      }
+    }
+    if(!isTrigger){
+      hitsToPrev++;
+      continue;
+    }
+
+    MmCluster.clear();
+    mbytes = 0, mb = 0;
+
+    for (Long64_t kentry = jentry - nLoopEntriesAround; kentry <= jentry + nLoopEntriesAround; kentry++)
+    {
+      Long64_t iientry = LoadTree(kentry);
+      if (iientry < 0)
+        continue;
+      mb = fChain->GetEntry(kentry);
+      mbytes += mb;
+
+      for (int k = 0; k < channel->at(0).size(); k++)
+      {
+        int ffch = channel->at(0).at(k);
+        int ffchD = getMappedDetector(ffch);
+        int ffchM = getMappedChannel(ffch);
+                      
+        int ffpdoUC = pdo->at(0).at(k); // Uncorrected PDO, used at time calibration
+        int ffpdo = correctPDO(ffch, ffpdoUC);
+        int fftdo = tdo->at(0).at(k);
+        int ffbcid = grayDecoded->at(0).at(k);
+        // double fft = getTimeByHand(ffbcid, fftdo, 110, 160); //'hand' limits
+        double fft = getTime(ffch, ffbcid, fftdo, ffpdoUC); // 'auto' limits
+
+        if(ffpdo < pdoThr) continue;
+
+        if(ffchD == 4) // All MM channels
+        { 
+          if (fabs(trigTime - fft) < 500)
+          {
+            MmCluster.push_back({ffchM * 1.0, ffpdo * 1.0, fft});
+          }
+        }
+      }
+    }
+
+    double minT_straw_mm = 600;
+    auto [meanT, meanCh, maxPdo] = getClusterParameters(trigTime, minT_straw_mm);
+
+    if(meanCh == 0){
+        hitsToPrev++;
+        continue;
+    }
+
+    analysisGeneral::mm2CenterHitParameters hit;
+    hit.timeSec = daq_timestamp_s->at(0);
+    hit.timeMSec = daq_timestamp_ns->at(0) / 1000;
+    hit.strip = meanCh;
+    hit.pdo = static_cast<int>(maxPdo);
+    hit.pdoRelative = maxPdo / 1024.0;
+    hit.nHitsToPrev = hitsToPrev;
+    hit.time = trigTime - meanT;
+    hitsToPrev = 0;
+
+    outputData.push_back(hit);
+  }
+  
+  // for (auto event = 0; event < nentries; event++){
+  //   Long64_t ientry = LoadTree(event);
+  //   if (ientry < 0) break;
+  //   GetEntry(event);
+  //   // printf("Entry: %d: error - %d\n", event, error);
+  //   if(error)
+  //     continue;
+      
+  //   if(fromSec > 0 && daqTimeSec < fromSec)
+  //     continue;
+  //   if(toSec > 0 && toSec >= fromSec && daqTimeSec > toSec)
+  //     break;
+
+  //   /* Checking if there is any mapped channels */
+  //   bool notErr = false;
+  //   for (auto &r: *mmReadout)
+  //     notErr = notErr || (r != 'E');
+  //   if(!notErr) continue;
+    
+  //   unsigned long long currentTimestamp = daqTimeSec * 1E6 + daqTimeMicroSec;
+  //   previousTimestamp = currentTimestamp;
+
+  //   hits.clear();
+  //   for (int j = 0; j < max_q->size(); j++){
+  //     // printf("Record inside entry: %d\n", j);
+  //     auto readout = mmReadout->at(j);
+  //     if(readout == 'E') //non-mapped channel
+  //       continue;
+  //     auto layer = mmLayer->at(j);
+  //     auto strip = mmStrip->at(j);
+  //     auto maxQ = max_q->at(j);
+      
+  //     auto maxTime = t_max_q->at(j);
+      
+  //     hits.push_back({layer, strip, maxQ, maxTime, raw_q->at(j)});      
+  //   }
+
+  //   /* Constructing clasters */
+  //   constructClasters();
+    
+  //   auto tracks = constructTracks(clasters);
+  //   bool trackIn2Center = false;
+  //   apvTrack *highestTrack = nullptr;
+  //   for(auto &t: tracks){
+  //     auto x2 = get<2>(getHitsForTrack(t));
+  //     if(x2 > 153 && x2 < 210){
+  //       trackIn2Center = true;
+  //       if(highestTrack == nullptr || highestTrack->maxQ() < t.maxQ())
+  //         highestTrack = &t;
+  //     }
+  //   }
+  //   if(!trackIn2Center){
+  //     hitsToPrev++;
+  //     continue;
+  //   }
+
+  //   analysisGeneral::mm2CenterHitParameters hit;
+  //   hit.timeSec = daqTimeSec;
+  //   hit.timeMSec = daqTimeMicroSec;
+  //   hit.strip = get<2>(getHitsForTrack(*highestTrack));
+  //   hit.pdo = highestTrack->maxQ();
+  //   hit.pdoRelative = static_cast<double>(hit.pdo) / 2048;
+  //   hit.nHitsToPrev = hitsToPrev;
+  //   hitsToPrev = 0;
+
+  //   outputData.push_back(hit);
+  // }
+  return outputData;
 }
 
 

@@ -93,6 +93,7 @@ public :
   virtual void     Init() override;
   virtual void     Loop() override;
   virtual void     LoopSecond(unsigned long long sec) override;
+  virtual vector<analysisGeneral::mm2CenterHitParameters> GetCentralHits(unsigned long long fromSec = 0, unsigned long long toSec = 0) override;
 
   static unsigned long long unique_srs_time_stamp(int, int, int);
 

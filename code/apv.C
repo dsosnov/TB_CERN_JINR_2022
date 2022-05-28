@@ -5,6 +5,89 @@
 #include <TF1.h>
 #include <limits>
 
+vector<analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(unsigned long long fromSec, unsigned long long toSec){
+  printf("apv::GetCentralHits(%llu, %llu)\n", fromSec, toSec);
+
+  vector<analysisGeneral::mm2CenterHitParameters> outputData = {};
+
+  if(!isChain())
+    return outputData;
+  Long64_t nentries = fChain->GetEntries();
+
+  unsigned long long previousTimestamp = 0;
+  unsigned long long hitsToPrev = 0;
+  
+  for (auto event = 0; event < nentries; event++){
+    Long64_t ientry = LoadTree(event);
+    if (ientry < 0) break;
+    GetEntry(event);
+    // printf("Entry: %d: error - %d\n", event, error);
+    if(error)
+      continue;
+      
+    if(fromSec > 0 && daqTimeSec < fromSec)
+      continue;
+    if(toSec > 0 && toSec >= fromSec && daqTimeSec > toSec)
+      break;
+
+    /* Checking if there is any mapped channels */
+    bool notErr = false;
+    for (auto &r: *mmReadout)
+      notErr = notErr || (r != 'E');
+    if(!notErr) continue;
+    
+    unsigned long long currentTimestamp = daqTimeSec * 1E6 + daqTimeMicroSec;
+    previousTimestamp = currentTimestamp;
+
+    hits.clear();
+    for (int j = 0; j < max_q->size(); j++){
+      // printf("Record inside entry: %d\n", j);
+      auto readout = mmReadout->at(j);
+      if(readout == 'E') //non-mapped channel
+        continue;
+      auto layer = mmLayer->at(j);
+      auto strip = mmStrip->at(j);
+      auto maxQ = max_q->at(j);
+      
+      auto maxTime = t_max_q->at(j);
+      
+      hits.push_back({layer, strip, maxQ, maxTime, raw_q->at(j)});      
+    }
+
+    /* Constructing clasters */
+    constructClasters();
+    
+    auto tracks = constructTracks(clasters);
+    bool trackIn2Center = false;
+    apvTrack *highestTrack = nullptr;
+    for(auto &t: tracks){
+      auto x2 = get<2>(getHitsForTrack(t));
+      if(x2 > 153 && x2 < 210){
+        trackIn2Center = true;
+        if(highestTrack == nullptr || highestTrack->maxQ() < t.maxQ())
+          highestTrack = &t;
+      }
+    }
+    if(!trackIn2Center){
+      hitsToPrev++;
+      continue;
+    }
+
+    analysisGeneral::mm2CenterHitParameters hit;
+    hit.timeSec = daqTimeSec;
+    hit.timeMSec = daqTimeMicroSec;
+    hit.strip = get<2>(getHitsForTrack(*highestTrack));
+    hit.pdo = highestTrack->maxQ();
+    hit.pdoRelative = static_cast<double>(hit.pdo) / 2048;
+    hit.nHitsToPrev = hitsToPrev;
+    hit.time = highestTrack->maxQTime() * 25;
+    hitsToPrev = 0;
+
+    outputData.push_back(hit);
+  }
+  return outputData;
+}
+
 void apv::LoopSecond(unsigned long long sec){
   printf("apv::LoopSecond(%llu)\n", sec);
 
