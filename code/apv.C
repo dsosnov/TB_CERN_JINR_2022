@@ -174,7 +174,7 @@ void apv::LoopSecond(unsigned long long sec){
 
 }
 
-void apv::Loop()
+void apv::Loop(unsigned long n)
 {
   clasterTree->Reset();
 
@@ -256,6 +256,9 @@ void apv::Loop()
   if(isChain()){
     printf("Chain n events: %lld\n", fChain->GetEntries());
     Long64_t nentries = fChain->GetEntries();
+
+    if(n > 0 && nentries > n)
+      nentries = n;
 
     unsigned long long previousTimestamp = 0;
   

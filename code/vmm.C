@@ -4,7 +4,7 @@
 #include <TH1.h>
 #include <TF1.h>
 
-void vmm::Loop()
+void vmm::Loop(unsigned long n)
 {
 
   int strawMin = -1, strawMax = -1, mmMin = -1, mmMax = -1;
@@ -96,6 +96,8 @@ void vmm::Loop()
       return;
 
    Long64_t nentries = fChain->GetEntries();
+   if(n > 0 && nentries > n)
+     nentries = n;
 
    Long64_t nbytes = 0, nb = 0;
    // for (Long64_t jentry = 0; jentry < nentries; jentry++)

@@ -425,7 +425,7 @@ tuple<double, double, double> evBuilder::getClusterParameters(double t_srtraw, d
   return {meanT, meanCh, maxPdo};
 }
 
-void evBuilder::Loop()
+void evBuilder::Loop(unsigned long n)
 {
   printf("evBuilder::Loop()\n");
 
@@ -591,6 +591,9 @@ void evBuilder::Loop()
     unsigned int pdoThr = 100;
     unsigned int nLoopEntriesAround = 0;
     Long64_t nentries = fChain->GetEntries();
+
+    if(n > 0 && nentries > n)
+      nentries = n;
 
     Long64_t nbytes = 0, nb = 0;
 

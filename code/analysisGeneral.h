@@ -21,7 +21,7 @@ public :
    virtual Long64_t LoadTree(Long64_t entry);
    virtual void     InitChain(TTree *tree) {};
    virtual void     Init() {};
-   virtual void     Loop() {};
+   virtual void     Loop(unsigned long n = 0) {};
    virtual void     LoopSecond(unsigned long long) {};
    virtual TChain* GetTree(TString filename = "", TString treeName = "vmm");
 

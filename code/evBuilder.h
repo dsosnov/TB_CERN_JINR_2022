@@ -17,7 +17,7 @@ public :
    evBuilder(TChain *tree = nullptr);
    virtual ~evBuilder();
    // virtual void     Init() override;
-   virtual void     Loop() override;
+   virtual void     Loop(unsigned long n = 0) override;
    virtual void     LoopSecond(unsigned long long sec) override;
    virtual vector<mm2CenterHitParameters> GetCentralHits(unsigned long long fromSec = 0, unsigned long long toSec = 0) override;
 
@@ -64,7 +64,7 @@ evBuilder::~evBuilder()
 
 #endif
 #ifndef evBuilder_cxx
-void evBuilder::Loop() {};
+void evBuilder::Loop(unsigned long n) {};
 void evBuilder::LoopSecond(unsigned long long sec) {};
 void evBuilder::threePlotDrawF(TH1D *h1, TH1D *h2, TH1D *h3, TString fileEnding) {};
 vector<analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentralHits(unsigned long long fromSec = 0,
