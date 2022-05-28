@@ -185,7 +185,7 @@ void apv::Loop()
   TFile *out = new TFile("../out/out_apv_" + file + ending, "RECREATE"); // PATH where to save out_*.root file
 
   vector<TDirectory*> dirs;
-  for(auto &i: {0, 1, 2}){
+  for(auto &i: {0, 1, 2, 3}){
     dirs.push_back(out->mkdir(Form("Layer %d", i)));
   }
 
@@ -204,7 +204,7 @@ void apv::Loop()
   
   vector<shared_ptr<TH1F>> hMaxQ, hMaxQTime, hProfile /*, hTriggerShiftByMaxQ*/;
   vector<shared_ptr<TH2F>> hPositionVSMaxQ, hPositionVSMaxQTime /*, hTriggerShiftByMaxQ*/;
-  for(auto &i: {0, 1, 2}){
+  for(auto &i: {0, 1, 2, 3}){
     dirs.at(i)->cd();
     hMaxQ.push_back(make_shared<TH1F>(Form("l%d_maxQ", i), Form("Run %s: l%d_maxQ", file.Data(), i), 2500, 0, 2500));
     hMaxQTime.push_back(make_shared<TH1F>(Form("l%d_maxQTime", i), Form("Run %s: l%d_maxQTime", file.Data(), i), 30, 0, 30*25));
@@ -218,7 +218,7 @@ void apv::Loop()
 
   vector<shared_ptr<TH1F>> hClasterMaxQ, hClasterQ, hClasterPosition, hClasterSize;
   vector<shared_ptr<TH2F>> hClasterPositionVSSize, hClasterPositionVSMaxQ, hClasterPositionVSQ;
-  for(auto &i: {0, 1, 2}){
+  for(auto &i: {0, 1, 2, 3}){
     dirs.at(i)->cd();
     hClasterPosition.push_back(make_shared<TH1F>(Form("l%d_clasterPosition", i), Form("Run %s: l%d_clasterPosition", file.Data(), i), 361, 0, 361));
     hClasterMaxQ.push_back(make_shared<TH1F>(Form("l%d_hClasterMaxQ", i), Form("Run %s: l%d_hClasterMaxQ", file.Data(), i), 4096, 0, 4096));
@@ -238,7 +238,7 @@ void apv::Loop()
   // auto hClasterPositionVSSizeAll = make_shared<TH2F>(Form("hClasterPositionVSSize"), Form("Run %s: hClasterPositionVSSize", file.Data()), 361, 0, 361, 40, 0, 40);
 
   vector<shared_ptr<TH1F>> hPedMeanVal, hPedStdevVal, hPedSigmaVal, hPed;
-  for(auto &i: {0, 1, 2}){
+  for(auto &i: {0, 1, 2, 3}){
     dirs.at(i)->cd();
     hPedMeanVal.push_back(make_shared<TH1F>(Form("l%d_hPedMeanVal", i), Form("Run %s: l%d_hPedMeanVal", file.Data(), i), 361, 0, 361));
     hPedStdevVal.push_back(make_shared<TH1F>(Form("l%d_hPedStdevVal", i), Form("Run %s: l%d_hPedStdevVal", file.Data(), i), 361, 0, 361));
