@@ -421,6 +421,6 @@ void apv::Loop(unsigned long n)
 
   // straw31_vs_straw30_banana_bcid->Write();
   out->Write();
-  out->Print();
+  // out->Print();
   out->Close();
 }
