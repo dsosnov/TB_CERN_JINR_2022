@@ -77,6 +77,7 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
     hit.timeSec = daqTimeSec;
     hit.timeMSec = daqTimeMicroSec;
     hit.nHitsToPrev = hitsToPrev;
+    
     hit.approximated = !highestTrack->isX2();
     if(highestTrack->isX2()){
       auto c = highestTrack->getX2Claster();

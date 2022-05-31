@@ -8,11 +8,11 @@ vector<map<unsigned long, unsigned long>> tryToMerge(vector<pair<unsigned long, 
                                                      bool verbose = false){
   if(verbose)
     printf("tryToMerge({%lu}, {%lu}, %lld, %d, %d)\n", hits_vmm.size() - i_vmm, hits_apv.size() - i_apv, nHitsAfterTrigVMM, ignoreCountersVMM, ignoreCountersAPV);
-  double limitsTime = 1E6 / 100; // MSec
+  double limitsTime = 1E4; // MSec
   int limitsStrips = 5; // 10;
-  double limitTrigCount = 0.1;  // relative
-  unsigned int trigTimeDiff = 25;
-  double pdoDifference = 0.25;  //
+  // double limitTrigCount = 0.1;  // relative
+  // unsigned int trigTimeDiff = 25;
+  // double pdoDifference = 0.25;  //
 
   // WARNING: temporary
   bool checkCounters = !(ignoreCountersVMM || ignoreCountersAPV);
@@ -76,7 +76,7 @@ vector<map<unsigned long, unsigned long>> tryToMerge(vector<pair<unsigned long, 
 
     // hit_apv.second.print();
 
-    auto tryOption = tryToMerge(hits_vmm, hits_apv, i_vmm+1, i+1, 0, false, false);
+    auto tryOption = tryToMerge(hits_vmm, hits_apv, i_vmm+1, i+1, 0, false, false, verbose);
     if(tryOption.empty()){
       tryOption.push_back({{hit_vmm.first, hit_apv.first}});
     } else {
@@ -87,7 +87,7 @@ vector<map<unsigned long, unsigned long>> tryToMerge(vector<pair<unsigned long, 
   }
 
   /* No such hit in APV data */
-  auto option_pass = tryToMerge(hits_vmm, hits_apv, i_vmm+1, i_apv, nHitsAfterTrigVMM + hit_vmm.second.nHitsToPrev, ignoreCountersVMM, ignoreCountersAPV);
+  auto option_pass = tryToMerge(hits_vmm, hits_apv, i_vmm+1, i_apv, nHitsAfterTrigVMM + hit_vmm.second.nHitsToPrev, ignoreCountersVMM, ignoreCountersAPV, verbose);
   std::copy(option_pass.begin(), option_pass.end(), std::back_inserter(options));
 
   return options;
@@ -100,8 +100,8 @@ void merge_vmm_apv(){
   auto out = TFile::Open("merge_vmm_apv.root", "recreate");
 
   // unsigned long long from = 1653145627, to = 1653145628;
-  // unsigned long long from = 1653145640, to = 1653145640;
-  unsigned long long from = 0, to = 0;
+  unsigned long long from = 1653145640, to = 1653145640;
+  // unsigned long long from = 0, to = 0;
 
   auto hTrigTimeAPV = make_shared<TH1F>("hTrigTimeAPV", "hTrigTimeAPV", 27, 0, 27*25);
   auto hTrigTimeVMM = make_shared<TH1F>("hTrigTimeVMM", "hTrigTimeVMM", 27, 0, 27*25);
@@ -111,46 +111,69 @@ void merge_vmm_apv(){
   auto vmman = new evBuilder(run_pair.first, "g1_p25_s100-0&60", "map-20220518");
   // vmman->Loop();
   auto hits_vmm = vmman->GetCentralHits(from, to);
-  for(auto &hh: {&hits_vmm, &hits_apv}){
-    double pdoMax = 0.0;
-    for(auto &h: *hh)
-      if((!h.second.approximated) && h.second.pdoRelative > pdoMax)
-        pdoMax = h.second.pdoRelative;
-    for(auto &h: *hh)
-      h.second.pdoRelative /= pdoMax;          
-  }
+  // for(auto &hh: {&hits_vmm, &hits_apv}){
+  //   double pdoMax = 0.0;
+  //   for(auto &h: *hh)
+  //     if((!h.second.approximated) && h.second.pdoRelative > pdoMax)
+  //       pdoMax = h.second.pdoRelative;
+  //   for(auto &h: *hh)
+  //     h.second.pdoRelative /= pdoMax;          
+  // }
   for(auto &h: hits_vmm)
     h.second.time += 325;
-
-  printf("APV hits (%lu)\n", hits_apv.size());
-  for(auto &h: hits_apv){
-    hTrigTimeAPV->Fill(h.second.time);
-    h.second.print();
-  }
-  printf("VMM hits (%lu):\n", hits_vmm.size());
-  for(auto &h: hits_vmm){
-    hTrigTimeVMM->Fill(h.second.time);
-    h.second.print();
-  }
-
-  hTrigTimeVMM->SaveAs("hTrigTimeVMM.root");
-  hTrigTimeAPV->SaveAs("hTrigTimeAPV.root");
-
-  return;
 
   vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>> hits_vmm_v;
   hits_vmm_v.assign(hits_vmm.begin(), hits_vmm.end());
   vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>> hits_apv_v;
   hits_apv_v.assign(hits_apv.begin(), hits_apv.end());
 
-  auto options = tryToMerge(hits_vmm_v, hits_apv_v, 0, 0, 0, true, true);
+  printf("APV hits (%lu) -- VMM hits (%lu)\n", hits_apv.size(), hits_vmm.size());
+  for(auto i = 0; i < hits_apv_v.size() && i < hits_vmm_v.size(); i++){
+    printf("%2llu - %7lld - %.3f - %.2f - %3d",
+           hits_apv_v.at(i).second.nHitsToPrev, hits_apv_v.at(i).second.timeFull() % int(1E7), hits_apv_v.at(i).second.pdoRelative, hits_apv_v.at(i).second.time, hits_apv_v.at(i).second.stripX);
 
-  std::sort(options.begin(), options.end(), [](auto &a, auto &b){return a.size() > b.size();});
+    printf(" | %c %*c %4d %*c | ", (hits_apv_v.at(i).second.approximated ? '*' : ' ' ), 10, ' ', i, 10, ' ');
+
+    printf("%3d - %.2f - %.3f - %7lld - %2llu\n",
+           hits_vmm_v.at(i).second.stripX, hits_vmm_v.at(i).second.time, hits_vmm_v.at(i).second.pdoRelative, hits_vmm_v.at(i).second.timeFull() % int(1E7), hits_vmm_v.at(i).second.nHitsToPrev);
+  }
+  printf("\n\n");
+  
+  for(auto &h: hits_apv){
+    hTrigTimeAPV->Fill(h.second.time);
+    // h.second.print();
+  }
+  for(auto &h: hits_vmm){
+    hTrigTimeVMM->Fill(h.second.time);
+    // h.second.print();
+  }
+
+  hTrigTimeVMM->SaveAs("hTrigTimeVMM.root");
+  hTrigTimeAPV->SaveAs("hTrigTimeAPV.root");
+
+  // return;
+
+  auto options = tryToMerge(hits_vmm_v, hits_apv_v, 0, 0, 0, true, true, true);
+  
+  std::sort(options.begin(), options.end(), [&hits_apv, &hits_vmm](auto &a, auto &b){
+    if(a.size() != b.size())
+      return a.size() > b.size();
+    else{
+      double meanA = 0.0, meanB = 0.0;
+      for(auto &o: a)
+        meanA += (hits_vmm.at(o.first).stripX - hits_apv.at(o.second).stripX);
+      for(auto &o: b)
+        meanB += (hits_vmm.at(o.first).stripX - hits_apv.at(o.second).stripX);
+      meanA /= a.size();
+      meanB /= b.size();
+      return meanA < meanB;
+    }
+    });
 
   printf("Possible options size: %lu\n", options.size());
 
-  if(options.size() > 50)
-    options.resize(50);
+  if(options.size() > 150)
+    options.resize(150);
 
   auto dir_timediff = out->mkdir("daq_time_diff");
   auto dir_maxqtimediff = out->mkdir("maxq_time_diff");
