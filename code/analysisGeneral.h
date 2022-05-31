@@ -26,18 +26,25 @@ public :
    virtual TChain* GetTree(TString filename = "", TString treeName = "vmm");
 
    struct mm2CenterHitParameters{
-     unsigned long long timeSec;
-     unsigned long long timeMSec;
-     unsigned int strip;
+     unsigned long timeSec;
+     unsigned int timeMSec;
+     unsigned int stripX, stripY;
      unsigned int pdo;
      double pdoRelative;
      long long nHitsToPrev;
      float time;
+     bool approximated;
+     long long timeFull() const {
+       return timeMSec + timeSec * 1E6;
+     }
      void print() const {
-       printf("Hit to straw %d with relative pdo %.3f and time %.2f at daq time %llu - %llu. Previous hit was %llu triggers ago.\n", strip, pdoRelative, time, timeSec, timeMSec, nHitsToPrev);
+       // printf("Hit to straw %d with relative pdo %.3f and time %.2f at daq time %lu - %u. %s Previous hit was %llu triggers ago.\n",
+       //        stripX, pdoRelative, time, timeSec, timeMSec, (approximated ? "[approx]" : "        " ), nHitsToPrev);
+       printf("Hit to straw %d with relative pdo %.3f and time %.2f at daq time %lld. %s Previous hit was %llu triggers ago.\n",
+              stripX, pdoRelative, time, timeFull(), (approximated ? "[approx]" : "        " ), nHitsToPrev);
      }
    };
-   virtual vector<mm2CenterHitParameters> GetCentralHits(unsigned long long fromSec = 0, unsigned long long toSec = 0) {return {};};
+  virtual map<unsigned long, mm2CenterHitParameters> GetCentralHits(unsigned long long fromSec = 0, unsigned long long toSec = 0) {return {};};
 };
 
 TChain* analysisGeneral::GetTree(TString filename, TString treeName){

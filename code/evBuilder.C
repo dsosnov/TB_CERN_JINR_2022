@@ -89,10 +89,10 @@ void evBuilder::threePlotDrawF(TH1D *h1, TH1D *h2, TH1D *h3, TString fileEnding)
   three_plots->SaveAs("../out/3plots_" + file + fileEnding + ".pdf");
 }
 
-vector<analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentralHits(unsigned long long fromSec, unsigned long long toSec){
+map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentralHits(unsigned long long fromSec, unsigned long long toSec){
   printf("evBuilder::GetCentralHits(%llu, %llu)\n", fromSec, toSec);
 
-  vector<analysisGeneral::mm2CenterHitParameters> outputData = {};
+  map<unsigned long, analysisGeneral::mm2CenterHitParameters> outputData = {};
   unsigned long long hitsToPrev = 0;
 
   if (fChain == 0)
@@ -189,16 +189,17 @@ vector<analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentralHits(unsign
     }
 
     analysisGeneral::mm2CenterHitParameters hit;
+    hit.approximated = false;
     hit.timeSec = daq_timestamp_s->at(0);
     hit.timeMSec = daq_timestamp_ns->at(0) / 1000;
-    hit.strip = meanCh;
+    hit.stripX = meanCh;
     hit.pdo = static_cast<int>(maxPdo);
     hit.pdoRelative = maxPdo / 1024.0;
     hit.nHitsToPrev = hitsToPrev;
     hit.time = trigTime - meanT;
     hitsToPrev = 0;
 
-    outputData.push_back(hit);
+    outputData.emplace(jentry, hit);
   }
   
   return outputData;

@@ -5,10 +5,10 @@
 #include <TF1.h>
 #include <limits>
 
-vector<analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(unsigned long long fromSec, unsigned long long toSec){
+map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(unsigned long long fromSec, unsigned long long toSec){
   printf("apv::GetCentralHits(%llu, %llu)\n", fromSec, toSec);
 
-  vector<analysisGeneral::mm2CenterHitParameters> outputData = {};
+  map<unsigned long, analysisGeneral::mm2CenterHitParameters> outputData = {};
 
   if(!isChain())
     return outputData;
@@ -68,22 +68,31 @@ vector<analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(unsigned lon
           highestTrack = &t;
       }
     }
-    if(!trackIn2Center){
-      hitsToPrev++;
-      continue;
-    }
+
+    hitsToPrev++;
+    if(!trackIn2Center)
+      continue;    
 
     analysisGeneral::mm2CenterHitParameters hit;
     hit.timeSec = daqTimeSec;
     hit.timeMSec = daqTimeMicroSec;
-    hit.strip = get<2>(getHitsForTrack(*highestTrack));
-    hit.pdo = highestTrack->maxQ();
-    hit.pdoRelative = static_cast<double>(hit.pdo) / 2048;
     hit.nHitsToPrev = hitsToPrev;
-    hit.time = highestTrack->maxQTime() * 25;
+    hit.approximated = !highestTrack->isX2();
+    if(highestTrack->isX2()){
+      auto c = highestTrack->getX2Claster();
+      hit.stripX = c->center();
+      hit.pdo = c->maxQ();
+      hit.time = c->maxQTime() * 25;
+    } else {
+      hit.stripX = get<2>(getHitsForTrack(*highestTrack));
+      hit.pdo = highestTrack->maxQ();
+      hit.time = highestTrack->maxQTime() * 25;
+    }
+    hit.pdoRelative = static_cast<double>(hit.pdo) / 2048;
     hitsToPrev = 0;
+    
 
-    outputData.push_back(hit);
+    outputData.emplace(event, hit);
   }
   return outputData;
 }
