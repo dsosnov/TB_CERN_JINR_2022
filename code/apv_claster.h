@@ -236,30 +236,37 @@ public:
     }
     return maxq;
   }
-  float meanQTime(){
-    bool isX2 = false;
-    float meanqtime = 0;
-    int nhits = 0;
+  bool isX2() const {
     for(auto &c: clasters)
       if(c.getLayer() == 2)
-        isX2 = true;
+        return true;
+    return false;
+  }
+  apvClaster* getX2Claster() const {
+    if(!isX2())
+      return nullptr;
+    for(auto &&c: clasters){
+      if(c.getLayer() == 2)
+        return const_cast<apvClaster*>(&c);
+    }
+    return nullptr;
+  }
+  float meanQTime() const {
+    float meanqtime = 0;
+    int nhits = 0;
     for(auto &c: clasters){
-      if(!isX2 || (isX2 && c.getLayer() == 2)){
+      if(!isX2() || (isX2() && c.getLayer() == 2)){
         meanqtime += c.meanQTime();
         nhits++;
       }
     }
     return meanqtime / nhits;
   }
-  float maxQTime(){
-    bool isX2 = false;
+  float maxQTime() const {
     float maxqtime = 0;
     int nhits = 0;
-    for(auto &c: clasters)
-      if(c.getLayer() == 2)
-        isX2 = true;      
     for(auto &c: clasters){
-      if(!isX2 || (isX2 && c.getLayer() == 2)){
+      if(!isX2() || (isX2() && c.getLayer() == 2)){
         maxqtime += c.maxQTime();
         nhits++;
       }
