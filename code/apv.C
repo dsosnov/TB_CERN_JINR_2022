@@ -86,8 +86,14 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
     } else {
       hit.stripX = get<2>(getHitsForTrack(*highestTrack));
       hit.pdo = highestTrack->maxQ();
-      hit.time = highestTrack->maxQTime() * 25;
+      hit.time = (highestTrack->getClasters().begin())->maxQTime() * 25; // highestTrack->maxQTime() * 25;
     }
+
+    // hit.approximated = true;
+    // hit.stripX = get<2>(getHitsForTrack(*highestTrack));
+    // hit.pdo = highestTrack->maxQ();
+    // hit.time = (highestTrack->getClasters().begin())->maxQTime() * 25; // highestTrack->maxQTime() * 25;
+
     hit.pdoRelative = static_cast<double>(hit.pdo) / 2048;
     hitsToPrev = 0;
     
