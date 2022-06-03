@@ -279,6 +279,7 @@ void apv::Init(){
     clasterTree->Reset();
   clasterBranch = clasterTree->Branch("clasters", &clasters);
   clasterTree->AddFriend(fChain, "signals");
+  clasterTree->SetMakeClass(1);
   
   if(fChainPedestal)
     clasterTree->AddFriend(fChainPedestal, "pedestals");

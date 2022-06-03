@@ -94,6 +94,19 @@ vector<map<unsigned long, unsigned long>> tryToMerge(vector<pair<unsigned long, 
   
 }
 
+void printfBrief(pair<unsigned long, analysisGeneral::mm2CenterHitParameters> hit, bool revert = false){
+  if(revert)
+    printf("%c %3d - %.2f - %.3f - %7lld - %2llu | %5lu",
+           (hit.second.approximated ? '*' : ' ' ),
+           hit.second.stripX, hit.second.time, hit.second.pdoRelative,
+           hit.second.timeFull() % int(1E7), hit.second.nHitsToPrev, hit.first);
+  else
+    printf("%5lu | %2llu - %7lld - %.3f - %.2f - %3d %c",
+           hit.first, hit.second.nHitsToPrev, hit.second.timeFull() % int(1E7),
+           hit.second.pdoRelative, hit.second.time, hit.second.stripX,
+           (hit.second.approximated ? '*' : ' ' ));
+}
+
 void merge_vmm_apv(){
   pair<string, string> run_pair = {"run_0258", "run166"};
 
@@ -127,15 +140,21 @@ void merge_vmm_apv(){
   vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>> hits_apv_v;
   hits_apv_v.assign(hits_apv.begin(), hits_apv.end());
 
+  // hits_apv_v.resize(10);
+  // hits_vmm_v.resize(10);
+
   printf("APV hits (%lu) -- VMM hits (%lu)\n", hits_apv.size(), hits_vmm.size());
-  for(auto i = 0; i < hits_apv_v.size() && i < hits_vmm_v.size(); i++){
-    printf("%2llu - %7lld - %.3f - %.2f - %3d",
-           hits_apv_v.at(i).second.nHitsToPrev, hits_apv_v.at(i).second.timeFull() % int(1E7), hits_apv_v.at(i).second.pdoRelative, hits_apv_v.at(i).second.time, hits_apv_v.at(i).second.stripX);
-
-    printf(" | %c %*c %4d %*c | ", (hits_apv_v.at(i).second.approximated ? '*' : ' ' ), 10, ' ', i, 10, ' ');
-
-    printf("%3d - %.2f - %.3f - %7lld - %2llu\n",
-           hits_vmm_v.at(i).second.stripX, hits_vmm_v.at(i).second.time, hits_vmm_v.at(i).second.pdoRelative, hits_vmm_v.at(i).second.timeFull() % int(1E7), hits_vmm_v.at(i).second.nHitsToPrev);
+  for(ulong i = 0; i < hits_apv_v.size() || i < hits_vmm_v.size(); i++){
+    if(i < hits_apv_v.size())
+      printfBrief(hits_apv_v.at(i), false);
+    else
+      printf("%5c | %2c - %7c - %6c - %6c - %3c %c", ' ', ' ', ' ', ' ', ' ', ' ', ' ');
+    printf(" | %*c %4lu %*c | ", 10, ' ', i, 10, ' ');
+    if(i < hits_vmm_v.size())
+      printfBrief(hits_vmm_v.at(i), true);
+    else
+      printf("%c %3c - %6c - %6c - %7c - %2c | %5c", ' ', ' ', ' ', ' ', ' ', ' ', ' ');
+    printf("\n");
   }
   printf("\n\n");
   
@@ -153,7 +172,7 @@ void merge_vmm_apv(){
 
   // return;
 
-  auto options = tryToMerge(hits_vmm_v, hits_apv_v, 0, 0, 0, true, true, true);
+  auto options = tryToMerge(hits_vmm_v, hits_apv_v, 0, 0, 0, true, true, false);
   
   std::sort(options.begin(), options.end(), [&hits_apv, &hits_vmm](auto &a, auto &b){
     if(a.size() != b.size())
@@ -171,6 +190,7 @@ void merge_vmm_apv(){
     });
 
   printf("Possible options size: %lu\n", options.size());
+  auto maximum_size = options.begin()->size();
 
   if(options.size() > 150)
     options.resize(150);
@@ -207,6 +227,26 @@ void merge_vmm_apv(){
         h_pdodiff_existed->Fill(hit_vmm.pdoRelative - hit_apv.pdoRelative);
     }    
   }
+
+  options.erase(std::remove_if(options.begin(), 
+                               options.end(),
+                               [maximum_size](auto c){return c.size() != maximum_size;}),
+                options.end());
+
+  for(ulong i = 0; i < options.size(); i++){
+    printf("Sution %lu:\n", i);
+    int j = 0;
+    for(auto &o: options.at(i)){
+      auto event_vmm = o.first;
+      auto event_apv = o.second;
+      printfBrief({event_apv, hits_apv.at(event_apv)}, false);
+      printf(" | %*c %4d %*c | ", 10, ' ', j++, 10, ' ');
+      printfBrief({event_vmm, hits_vmm.at(event_vmm)}, true);
+      printf("\n");
+    }
+      printf("\n");    
+  }
+
 
   out->Write();
   out->Close();

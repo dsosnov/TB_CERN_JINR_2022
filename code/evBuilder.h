@@ -28,7 +28,7 @@ public :
      {{1,27}, 189}, // 213 - 21 + 24/2.0 - 15
      {{1,28}, 204}, // 213 - 21 + 24/1.0 - 12
      {{1,29}, 216}, // 213 - 21 + 24/1.5 - 12
-     {{6, 0}, 170}, // SHiP Straw
+     {{6, 0}, 198}, // SHiP Straw // 170 before June 1st, 198 after
      {{6, 1}, 180}, // Netron Straw
     };
    map<int, string> addStrawType = {

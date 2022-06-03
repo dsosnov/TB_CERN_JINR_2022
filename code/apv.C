@@ -263,6 +263,13 @@ void apv::Loop(unsigned long n)
     out->cd();
   }
 
+  vector<shared_ptr<TH2F>> hClasterPositionXY, hClasterPositionXY_all;
+  for(auto &i: {0, 1, 2}){
+    dirs.at(i)->cd();
+    hClasterPositionXY.push_back(make_shared<TH2F>(Form("l%d_hClasterPositionXY", i), Form("Run %s: l%d_hClasterPositionXY", file.Data(), i), 361, 0, 361, 361, 0, 361));
+    hClasterPositionXY_all.push_back(make_shared<TH2F>(Form("l%d_hClasterPositionXY_all", i), Form("Run %s: l%d_hClasterPositionXY_all", file.Data(), i), 361, 0, 361, 361, 0, 361));
+    out->cd();
+  }
 
   ulong nEventsWHitsTwoLayers = 0, nEventsWHitsThreeLayers = 0;
   /* Claster histograms */
@@ -305,7 +312,7 @@ void apv::Loop(unsigned long n)
         hdaqTimeDifference->Fill(currentTimestamp - previousTimestamp);
       previousTimestamp = currentTimestamp;
 
-      printf("Evevt parameters: evt %lld, time: %d & %d, timestamp: %d, trigger: %d;", evt, daqTimeSec, daqTimeMicroSec, srsTimeStamp, srsTrigger);
+      printf("Event parameters: evt %lld, time: %d & %d, timestamp: %d, trigger: %d;", evt, daqTimeSec, daqTimeMicroSec, srsTimeStamp, srsTrigger);
       // printf(" Unique timestamp: %llu;", unique_srs_time_stamp(daqTimeSec, daqTimeMicroSec, srsTimeStamp));
       printf("\n");
 
@@ -366,6 +373,29 @@ void apv::Loop(unsigned long n)
         nEventsWHitsTwoLayers++;
         if(clasterInRange2)
           nEventsWHitsThreeLayers++;
+      }
+
+      {
+        vector<ulong> clastersY;
+        for(ulong i = 0; i < clasters.size(); i++){
+          if(clasters.at(i).getLayer() == 3)
+            clastersY.push_back(i);
+        }
+        for(auto &c:clasters){
+          if(c.getLayer() == 3)
+            continue;
+          vector<ulong> clastersY_selected;
+          for(auto &i: clastersY){
+            hClasterPositionXY_all.at(c.getLayer())->Fill(c.center(), clasters.at(i).center());
+            if(c.maxQTime() == clasters.at(i).maxQTime())
+              clastersY_selected.push_back(i);
+          }
+          if(clastersY_selected.size() != 1)
+            continue;
+          for(auto &i: clastersY_selected){
+            hClasterPositionXY.at(c.getLayer())->Fill(c.center(), clasters.at(i).center());
+          }
+        }
       }
 
       for(auto &c: clasters){
