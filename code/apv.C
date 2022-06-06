@@ -211,7 +211,7 @@ void apv::Loop(unsigned long n)
   auto hdaqTimeMSec = make_shared<TH1F>("daqTimeMSec", Form("Run %s: daqTimeMSec", file.Data()), 1000, 0, 1000E3);
   auto hsrsTrigger = make_shared<TH1F>("srsTrigger", Form("Run %s: srsTrigger", file.Data()), 500, srsTrigger, srsTrigger + 5000);
 
-  auto hdaqTimeDifference = make_shared<TH1F>("hdaqTimeDifference", Form("Run %s: hdaqTimeDifference", file.Data()), 10000, 0, 10000);
+  auto hdaqTimeDifference = make_shared<TH1F>("hdaqTimeDifference", Form("Run %s: hdaqTimeDifference", file.Data()), 10000, 0, 100000);
   
   auto hClasterShiftBetweenLayers01 = make_shared<TH1F>("hClasterShiftBetweenLayers01", Form("Run %s: hClasterShiftBetweenLayers01", file.Data()), 200, -100, 100);
   auto hClasterShiftBetweenLayers02 = make_shared<TH1F>("hClasterShiftBetweenLayers02", Form("Run %s: hClasterShiftBetweenLayers02", file.Data()), 200, -100, 100);
