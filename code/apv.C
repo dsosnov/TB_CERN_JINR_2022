@@ -95,7 +95,7 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
     // hit.pdo = highestTrack->maxQ();
     // hit.time = (highestTrack->getClasters().begin())->maxQTime() * 25; // highestTrack->maxQTime() * 25;
 
-    hit.pdoRelative = static_cast<double>(hit.pdo) / 2048;
+    hit.pdoRelative = static_cast<double>(hit.pdo) / 4096;
     hitsToPrev = 0;
     
 
