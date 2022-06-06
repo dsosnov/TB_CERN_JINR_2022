@@ -113,7 +113,6 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentra
     nb = fChain->GetEntry(jentry);
     nbytes += nb;
 
-
     if(fromSec > 0 && daq_timestamp_s->at(0) < fromSec)
       continue;
     else if(toSec > 0 && toSec >= fromSec && daq_timestamp_s->at(0) > toSec)

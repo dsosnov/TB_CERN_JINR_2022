@@ -113,7 +113,9 @@ public :
     // Distance to straw: 523
   };
   tuple<double,double,double> getHitsForTrack(apvTrack track);
-  vector<apvTrack> constructTracks(vector<apvClaster> clasters);    
+  vector<apvTrack> constructTracks(vector<apvClaster> clasters);
+
+  unsigned int nAPVs = 5;
 };
 
 tuple<double,double,double> apv::getHitsForTrack(apvTrack track){
