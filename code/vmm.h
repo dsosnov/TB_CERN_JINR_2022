@@ -283,10 +283,10 @@ void vmm::Init()
    } else {
    }
    if(runType == "g1_p25_s100"){
-     addPDOCorrection("calibration_pdo_t@t_g3_p25_s100.txt");
+     addPDOCorrection("calibration_pdo_t@t_g1_p25_s100.txt");
      // addPDOCorrection("calibration_pdo_t@t_g1_p25_s100_sci0&60.txt");
    } else if (runType == "g3_p25_s100"){
-     addPDOCorrection("calibration_pdo_t@t_g1_p25_s100.txt");
+     addPDOCorrection("calibration_pdo_t@t_g3_p25_s100.txt");
      // addPDOCorrection("calibration_pdo_t@t_g3_p25_s100_sci0&60.txt");
    } else if(runType == "g1_p25_s100-0&60"){
      addPDOCorrection("calibration_pdo_t@t_g1_p25_s100_sci0&60.txt");
