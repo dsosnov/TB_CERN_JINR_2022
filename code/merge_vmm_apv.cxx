@@ -108,6 +108,7 @@ void printfBrief(pair<unsigned long, analysisGeneral::mm2CenterHitParameters> hi
 }
 
 void merge_vmm_apv(){
+  bool REMOVE_APPROX = true;
   pair<string, string> run_pair = {"run_0258", "run166"};
 
   auto out = TFile::Open("merge_vmm_apv.root", "recreate");
@@ -139,6 +140,14 @@ void merge_vmm_apv(){
   hits_vmm_v.assign(hits_vmm.begin(), hits_vmm.end());
   vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>> hits_apv_v;
   hits_apv_v.assign(hits_apv.begin(), hits_apv.end());
+
+  /* Removing approximate hits */
+  if(REMOVE_APPROX)
+    hits_apv_v.erase(std::remove_if(hits_apv_v.begin(), 
+                                    hits_apv_v.end(),
+                                    [](auto c){return c.second.approximated;}),
+                     hits_apv_v.end());
+
 
   // hits_apv_v.resize(10);
   // hits_vmm_v.resize(10);
