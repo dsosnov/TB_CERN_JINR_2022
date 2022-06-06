@@ -125,14 +125,6 @@ void merge_vmm_apv(){
   auto vmman = new evBuilder(run_pair.first, "g1_p25_s100-0&60", "map-20220518");
   // vmman->Loop();
   auto hits_vmm = vmman->GetCentralHits(from, to);
-  // for(auto &hh: {&hits_vmm, &hits_apv}){
-  //   double pdoMax = 0.0;
-  //   for(auto &h: *hh)
-  //     if((!h.second.approximated) && h.second.pdoRelative > pdoMax)
-  //       pdoMax = h.second.pdoRelative;
-  //   for(auto &h: *hh)
-  //     h.second.pdoRelative /= pdoMax;          
-  // }
   for(auto &h: hits_vmm)
     h.second.time += 325;
 
