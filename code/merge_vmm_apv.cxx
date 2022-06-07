@@ -173,7 +173,19 @@ void merge_vmm_apv(){
 
   // return;
 
-  auto options = tryToMerge(hits_vmm_v, hits_apv_v, 0, 0, 0, true, true, false);
+  vector<map<unsigned long, unsigned long>> options;
+    options = tryToMerge(hits_vmm_v, hits_apv_v, 0, 0, 0, true, true, false);
+  // if(hits_vmm_v.size() < hits_apv_v.size())
+  //   options = tryToMerge(hits_vmm_v, hits_apv_v, 0, 0, 0, true, true, false);
+  // else{
+  //   auto options_rev = tryToMerge(hits_apv_v, hits_vmm_v, 0, 0, 0, true, true, false);
+  //   for(auto &o: options_rev){
+  //     map<unsigned long, unsigned long> option;
+  //     for(auto &p: o)
+  //       option.emplace(p.second, p.first);
+  //     options.push_back(option);
+  //   }
+  // }
   
   std::sort(options.begin(), options.end(), [&hits_apv, &hits_vmm](auto &a, auto &b){
     if(a.size() != b.size())
