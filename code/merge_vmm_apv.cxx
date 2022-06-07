@@ -228,6 +228,8 @@ void merge_vmm_apv(){
     auto h_pdodiff_existed = new TH1F(Form("h_pdodiff_existed_%lu", i), Form("h_pdodiff_existed_%lu (%lu hits)", i, option.size()), 400, -2, 2);
     printf("Option -- %lu pairs\n", option.size());
 
+    auto h_pdo2d = new TH2F(Form("h_pdo2d_%lu", i), Form("h_pdo2d_%lu (%lu hits); vmm pdo; apv pdo", i, option.size()), 400, -2, 2, 400, -2, 2);
+    dir_pdodiff_existed->cd();
     for(auto &o: option){
       auto hit_vmm = hits_vmm.at(o.first);
       auto hit_apv = hits_apv.at(o.second);
@@ -236,6 +238,7 @@ void merge_vmm_apv(){
       h_maxqtimediff->Fill(hit_vmm.time - hit_apv.time);
       h_stripdiff->Fill(hit_vmm.stripX - hit_apv.stripX);
       h_pdodiff->Fill(hit_vmm.pdoRelative - hit_apv.pdoRelative);
+      h_pdo2d->Fill(hit_vmm.pdoRelative, hit_apv.pdoRelative);
       if(!hit_vmm.approximated && !hit_apv.approximated)
         h_pdodiff_existed->Fill(hit_vmm.pdoRelative - hit_apv.pdoRelative);
     }    
