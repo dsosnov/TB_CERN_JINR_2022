@@ -524,7 +524,7 @@ void evBuilder::Loop(unsigned long n)
 
   auto hdaqTimeDifference0 = make_shared<TH1F>("hdaqTimeDifference0", Form("Run %s: hdaqTimeDifference0; [ns]", file.Data()), 300, 0, 300000); // up to 10 ms per 100ns
   auto hdaqTimeDifference60 = make_shared<TH1F>("hdaqTimeDifference60", Form("Run %s: hdaqTimeDifference60; [#mus]", file.Data()), 500, 0, 5000);
-  auto htimeDifference60 = make_shared<TH1F>("htimeDifference60", Form("Run %s: htimeDifference60; [bcid]", file.Data()), 500, 0, 200000);
+  auto hbcidDifference63 = make_shared<TH1F>("hbcidDifference63", Form("Run %s: hbcidDifference63; [bcid]", file.Data()), 8000, 0, 8000);
   auto his0 = make_shared<TH1F>("his0", Form("Run %s: his0", file.Data()), 2, 0, 2);
 
   unsigned int pdoThr = 100;
@@ -533,14 +533,14 @@ void evBuilder::Loop(unsigned long n)
   double timeSincePrevious60 = 0;
   double prev0 = 0;
   long long prevbcid0;
-  long long bcidSincePrevious60;
+  long long bcidSincePrevious63;
 
   if(n > 0 && nentries > n)
     nentries = n;
 
   Long64_t nbytes = 0, nb = 0;
 
-  unsigned long long daqPrevTime60 = 0, daqPrevTime0 = 0;
+  unsigned long long daqPrevTime60 = 0, daqPrevTime0 = 0, prevbcid63 = 0;
 
   // =============================== CORRELATION FINDING ===============================
   for (Long64_t jentry = 0; jentry < nentries; jentry++) // You can remove "/ 10" and use the whole dataset
@@ -836,30 +836,6 @@ void evBuilder::Loop(unsigned long n)
         if(daqPrevTime0 > 0)
           hdaqTimeDifference0->Fill(daqCurrTime - daqPrevTime0);
         daqPrevTime0 = daqCurrTime;
-
-        bool is60 = false;
-        for (int k = 0; k < channel->at(0).size(); k++){
-          int ffch = channel->at(0).at(k);
-          int ffchD = getMappedDetector(ffch);
-          int ffchM = getMappedChannel(ffch);
-          if(ffchD == 0 && ffchM == 3){
-            is60 = true;
-            break;
-          }
-        }
-        // timeSincePrevious60 += (t_srtraw > prev0) ? t_srtraw - prev0 : t_srtraw - prev0 + 4096*25.0;
-        // if(is60){
-        //   htimeDifference60->Fill(double(timeSincePrevious60) / 1E3);
-        //   timeSincePrevious60 = 0;
-        // }
-        // prev0 = t_srtraw;
-        bcidSincePrevious60 += (fbcid > prevbcid0) ? fbcid - prevbcid0 : fbcid - prevbcid0 + 4096;
-        if(is60){
-          htimeDifference60->Fill(bcidSincePrevious60);
-          // htimeDifference60->Fill(double(bcidSincePrevious60 * 25) / 1E3);
-          bcidSincePrevious60 = 0;
-        }
-        prevbcid0 = fbcid;
       }
       else if (fchD == 0 && fchM == 3){
         t_srtraw = getTime(fch, fbcid, ftdo, fpdoUC); // 'auto' limits
@@ -880,6 +856,12 @@ void evBuilder::Loop(unsigned long n)
         }
         his0->Fill(is0);
 
+      }
+      else if (fchD == 0 && fchM == 4){
+        if(fpdo < 250) continue;
+        auto bcidSincePrevious63 = (fbcid > prevbcid63) ? fbcid - prevbcid63 : fbcid - prevbcid63 + 4096;
+        hbcidDifference63->Fill(bcidSincePrevious63);
+        prevbcid63 = fbcid;
       }
       else
       {
