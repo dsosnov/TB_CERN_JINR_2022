@@ -270,6 +270,8 @@ void apv::Loop(unsigned long n)
     out->cd();
   }
 
+  auto hapv102Multiplicity = make_shared<TH1F>("hapv102Multiplicity", Form("Run %s: hapv102Multiplicity", file.Data()), 129, 0, 129);
+
   ulong nEventsWHitsTwoLayers = 0, nEventsWHitsThreeLayers = 0;
   /* Claster histograms */
   // =============================== TDO & distributions ===============================
@@ -283,6 +285,7 @@ void apv::Loop(unsigned long n)
       nentries = n;
 
     unsigned long long previousTimestamp = 0;
+    set<uint> channelsAPV2 = {};
   
     // nentries = 2000;
     for (auto event = 0; event < nentries; event++){
@@ -294,11 +297,11 @@ void apv::Loop(unsigned long n)
       if(error)
         continue;
 
-      /* Checking if there is any mapped channels */
-      bool notErr = false;
-      for (auto &r: *mmReadout)
-        notErr = notErr || (r != 'E');
-      if(!notErr) continue;
+      // /* Checking if there is any mapped channels */
+      // bool notErr = false;
+      // for (auto &r: *mmReadout)
+      //   notErr = notErr || (r != 'E');
+      // if(!notErr) continue;
     
       /* Filling entry histogram */
       hevts->Fill(evt);
@@ -318,8 +321,13 @@ void apv::Loop(unsigned long n)
       // printf("  Channels (%lu):", max_q->size());
       /* Per-channel */
       hits.clear();
+      channelsAPV2.clear();
       for (int j = 0; j < max_q->size(); j++){
         // printf("Record inside entry: %d\n", j);
+        auto chip = srsChip->at(j);
+        auto chan = srsChan->at(j);
+        if(chip == 2) channelsAPV2.emplace(chan);
+
         auto readout = mmReadout->at(j);
         if(readout == 'E') //non-mapped channel
           continue;
@@ -355,6 +363,7 @@ void apv::Loop(unsigned long n)
         // // hmaxQTimeFullHistory.at(layer)->Fill(maxADCBin*25);
       }
       // printf("\n");
+      hapv102Multiplicity->Fill(channelsAPV2.size());
 
       /* Constructing clasters */
       constructClasters();
