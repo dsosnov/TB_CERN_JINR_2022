@@ -278,9 +278,10 @@ void apv::Init(){
     clusterTree = new TTree("clusters", "clusters");
   else
     clusterTree->Reset();
-  clusterBranch = clusterTree->Branch("clusters", &clusters);
-  clusterTree->AddFriend(fChain, "signals");
-  clusterTree->SetMakeClass(1);
+  // Temporary disabled. TODO: enable
+  // clusterBranch = clusterTree->Branch("clusters", &clusters);
+  // clusterTree->AddFriend(fChain, "signals");
+  // clusterTree->SetMakeClass(1);
   
   if(fChainPedestal)
     clusterTree->AddFriend(fChainPedestal, "pedestals");
