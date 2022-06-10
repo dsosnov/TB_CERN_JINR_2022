@@ -21,8 +21,8 @@
 
 #pragma link C++ class vector<apvHit>+;
 #pragma link C++ class vector<vector<apvHit>>+;
-#pragma link C++ class vector<apvClaster>+;
-#pragma link C++ class vector<vector<apvClaster>>+;
+#pragma link C++ class vector<apvCluster>+;
+#pragma link C++ class vector<vector<apvCluster>>+;
 #pragma link C++ class vector<apvTrack>+;
 #pragma link C++ class vector<vector<apvTrack>>+;
 

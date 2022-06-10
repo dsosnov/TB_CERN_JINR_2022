@@ -60,10 +60,10 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
       hits.push_back({layer, strip, maxQ, maxTime, raw_q->at(j)});      
     }
 
-    /* Constructing clasters */
-    constructClasters();
+    /* Constructing clusters */
+    constructClusters();
     
-    auto tracks = constructTracks(clasters);
+    auto tracks = constructTracks(clusters);
     bool trackIn2Center = false;
     apvTrack *highestTrack = nullptr;
     for(auto &t: tracks){
@@ -96,14 +96,14 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
     if(highestTrack != nullptr){
       hit.approx = !highestTrack->isX2();
       if(highestTrack->isX2()){
-        auto c = highestTrack->getX2Claster();
+        auto c = highestTrack->getX2Cluster();
         hit.stripX = c->center();
         hit.pdo = c->maxQ();
         hit.time = c->maxQTime() * 25;
       } else {
         hit.stripX = get<2>(getHitsForTrack(*highestTrack));
         hit.pdo = highestTrack->maxQ();
-        hit.time = (highestTrack->getClasters().begin())->maxQTime() * 25; // highestTrack->maxQTime() * 25;
+        hit.time = (highestTrack->getClusters().begin())->maxQTime() * 25; // highestTrack->maxQTime() * 25;
       }
     } else {
       hit.stripX = 0;
@@ -114,7 +114,7 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
     // hit.approximated = true;
     // hit.stripX = get<2>(getHitsForTrack(*highestTrack));
     // hit.pdo = highestTrack->maxQ();
-    // hit.time = (highestTrack->getClasters().begin())->maxQTime() * 25; // highestTrack->maxQTime() * 25;
+    // hit.time = (highestTrack->getClusters().begin())->maxQTime() * 25; // highestTrack->maxQTime() * 25;
 
     hit.pdoRelative = static_cast<double>(hit.pdo) / 4096;
     hitsToPrev = 0;
@@ -130,7 +130,7 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
 
 void apv::Loop(unsigned long n)
 {
-  clasterTree->Reset();
+  clusterTree->Reset();
 
   printf("apv::Loop\n");
   if (isChain())
@@ -151,9 +151,9 @@ void apv::Loop(unsigned long n)
 
   auto hdaqTimeDifference = make_shared<TH1F>("hdaqTimeDifference", Form("Run %s: hdaqTimeDifference", file.Data()), 10000, 0, 100000);
   
-  auto hClasterShiftBetweenLayers01 = make_shared<TH1F>("hClasterShiftBetweenLayers01", Form("Run %s: hClasterShiftBetweenLayers01", file.Data()), 200, -100, 100);
-  auto hClasterShiftBetweenLayers02 = make_shared<TH1F>("hClasterShiftBetweenLayers02", Form("Run %s: hClasterShiftBetweenLayers02", file.Data()), 200, -100, 100);
-  auto hClasterShiftBetweenLayers12 = make_shared<TH1F>("hClasterShiftBetweenLayers12", Form("Run %s: hClasterShiftBetweenLayers12", file.Data()), 200, -100, 100);
+  auto hClusterShiftBetweenLayers01 = make_shared<TH1F>("hClusterShiftBetweenLayers01", Form("Run %s: hClusterShiftBetweenLayers01", file.Data()), 200, -100, 100);
+  auto hClusterShiftBetweenLayers02 = make_shared<TH1F>("hClusterShiftBetweenLayers02", Form("Run %s: hClusterShiftBetweenLayers02", file.Data()), 200, -100, 100);
+  auto hClusterShiftBetweenLayers12 = make_shared<TH1F>("hClusterShiftBetweenLayers12", Form("Run %s: hClusterShiftBetweenLayers12", file.Data()), 200, -100, 100);
   
   vector<shared_ptr<TH1F>> hMaxQ, hMaxQTime, hProfile /*, hTriggerShiftByMaxQ*/;
   vector<shared_ptr<TH2F>> hPositionVSMaxQ, hPositionVSMaxQTime /*, hTriggerShiftByMaxQ*/;
@@ -169,26 +169,26 @@ void apv::Loop(unsigned long n)
   // auto hMaxQAll = make_shared<TH1F>(Form("maxQ"), Form("Run %s: maxQ", file.Data()), 2500, 0, 2500);
   // auto hMaxQTimeAll = make_shared<TH1F>(Form("maxQTime"), Form("Run %s: maxQTime", file.Data()), 30, 0, 30*25);
 
-  vector<shared_ptr<TH1F>> hClasterMaxQ, hClasterQ, hClasterPosition, hClasterSize;
-  vector<shared_ptr<TH2F>> hClasterPositionVSSize, hClasterPositionVSMaxQ, hClasterPositionVSQ;
+  vector<shared_ptr<TH1F>> hClusterMaxQ, hClusterQ, hClusterPosition, hClusterSize;
+  vector<shared_ptr<TH2F>> hClusterPositionVSSize, hClusterPositionVSMaxQ, hClusterPositionVSQ;
   for(auto i = 0; i < nAPVs; i++){
     dirs.at(i)->cd();
-    hClasterPosition.push_back(make_shared<TH1F>(Form("l%d_clasterPosition", i), Form("Run %s: l%d_clasterPosition", file.Data(), i), 361, 0, 361));
-    hClasterMaxQ.push_back(make_shared<TH1F>(Form("l%d_hClasterMaxQ", i), Form("Run %s: l%d_hClasterMaxQ", file.Data(), i), 4096, 0, 4096));
-    hClasterQ.push_back(make_shared<TH1F>(Form("l%d_hClasterQ", i), Form("Run %s: l%d_hClasterQ", file.Data(), i), 10240, 0, 10240));
-    hClasterSize.push_back(make_shared<TH1F>(Form("l%d_clasterSize", i), Form("Run %s: l%d_clasterSize", file.Data(), i), 50, 0, 50));
-    hClasterPositionVSMaxQ.push_back(make_shared<TH2F>(Form("l%d_clasterPositionVSMaxQ", i), Form("Run %s: l%d_clasterPositionVSMaxQ", file.Data(), i), 361, 0, 361, 4096, 0, 4096));
-    hClasterPositionVSQ.push_back(make_shared<TH2F>(Form("l%d_clasterPositionVSQ", i), Form("Run %s: l%d_clasterPositionVSQ", file.Data(), i), 361, 0, 361, 10240, 0, 10240));
-    hClasterPositionVSSize.push_back(make_shared<TH2F>(Form("l%d_clasterPositionVSSize", i), Form("Run %s: l%d_clasterPositionVSSize", file.Data(), i), 361, 0, 361, 40, 0, 40));
+    hClusterPosition.push_back(make_shared<TH1F>(Form("l%d_clusterPosition", i), Form("Run %s: l%d_clusterPosition", file.Data(), i), 361, 0, 361));
+    hClusterMaxQ.push_back(make_shared<TH1F>(Form("l%d_hClusterMaxQ", i), Form("Run %s: l%d_hClusterMaxQ", file.Data(), i), 4096, 0, 4096));
+    hClusterQ.push_back(make_shared<TH1F>(Form("l%d_hClusterQ", i), Form("Run %s: l%d_hClusterQ", file.Data(), i), 10240, 0, 10240));
+    hClusterSize.push_back(make_shared<TH1F>(Form("l%d_clusterSize", i), Form("Run %s: l%d_clusterSize", file.Data(), i), 50, 0, 50));
+    hClusterPositionVSMaxQ.push_back(make_shared<TH2F>(Form("l%d_clusterPositionVSMaxQ", i), Form("Run %s: l%d_clusterPositionVSMaxQ", file.Data(), i), 361, 0, 361, 4096, 0, 4096));
+    hClusterPositionVSQ.push_back(make_shared<TH2F>(Form("l%d_clusterPositionVSQ", i), Form("Run %s: l%d_clusterPositionVSQ", file.Data(), i), 361, 0, 361, 10240, 0, 10240));
+    hClusterPositionVSSize.push_back(make_shared<TH2F>(Form("l%d_clusterPositionVSSize", i), Form("Run %s: l%d_clusterPositionVSSize", file.Data(), i), 361, 0, 361, 40, 0, 40));
     out->cd();
   }
-  // auto hClasterPositionAll = make_shared<TH1F>(Form("hClasterPosition"), Form("Run %s: hClasterPosition", file.Data()), 361, 0, 361);
-  // auto hClasterMaxQAll = make_shared<TH1F>(Form("hClasterQ"), Form("Run %s: hClasterQ", file.Data()), 4096, 0, 4096);
-  // auto hClasterQAll = make_shared<TH1F>(Form("hClasterQ"), Form("Run %s: hClasterQ", file.Data()), 10240, 0, 10240);
-  // auto hClasterSizeAll = make_shared<TH1F>(Form("hClasterSize"), Form("Run %s: hClasterSize", file.Data()), 50, 0, 50);
-  // auto hClasterPositionVSMaxQAll = make_shared<TH2F>(Form("hClasterPositionVSMaxQ"), Form("Run %s: hClasterPositionVSMaxQ", file.Data()), 361, 0, 361, 4096, 0, 4096);
-  // auto hClasterPositionVSQAll = make_shared<TH2F>(Form("hClasterPositionVSQ"), Form("Run %s: hClasterPositionVSQ", file.Data()), 361, 0, 361, 10240, 0, 10240);
-  // auto hClasterPositionVSSizeAll = make_shared<TH2F>(Form("hClasterPositionVSSize"), Form("Run %s: hClasterPositionVSSize", file.Data()), 361, 0, 361, 40, 0, 40);
+  // auto hClusterPositionAll = make_shared<TH1F>(Form("hClusterPosition"), Form("Run %s: hClusterPosition", file.Data()), 361, 0, 361);
+  // auto hClusterMaxQAll = make_shared<TH1F>(Form("hClusterQ"), Form("Run %s: hClusterQ", file.Data()), 4096, 0, 4096);
+  // auto hClusterQAll = make_shared<TH1F>(Form("hClusterQ"), Form("Run %s: hClusterQ", file.Data()), 10240, 0, 10240);
+  // auto hClusterSizeAll = make_shared<TH1F>(Form("hClusterSize"), Form("Run %s: hClusterSize", file.Data()), 50, 0, 50);
+  // auto hClusterPositionVSMaxQAll = make_shared<TH2F>(Form("hClusterPositionVSMaxQ"), Form("Run %s: hClusterPositionVSMaxQ", file.Data()), 361, 0, 361, 4096, 0, 4096);
+  // auto hClusterPositionVSQAll = make_shared<TH2F>(Form("hClusterPositionVSQ"), Form("Run %s: hClusterPositionVSQ", file.Data()), 361, 0, 361, 10240, 0, 10240);
+  // auto hClusterPositionVSSizeAll = make_shared<TH2F>(Form("hClusterPositionVSSize"), Form("Run %s: hClusterPositionVSSize", file.Data()), 361, 0, 361, 40, 0, 40);
 
   vector<shared_ptr<TH1F>> hPedMeanVal, hPedStdevVal, hPedSigmaVal, hPed;
   for(auto i = 0; i < nAPVs; i++){
@@ -200,18 +200,18 @@ void apv::Loop(unsigned long n)
     out->cd();
   }
 
-  vector<shared_ptr<TH2F>> hClasterPositionXY, hClasterPositionXY_all;
+  vector<shared_ptr<TH2F>> hClusterPositionXY, hClusterPositionXY_all;
   for(auto &i: {0, 1, 2}){
     dirs.at(i)->cd();
-    hClasterPositionXY.push_back(make_shared<TH2F>(Form("l%d_hClasterPositionXY", i), Form("Run %s: l%d_hClasterPositionXY", file.Data(), i), 361, 0, 361, 361, 0, 361));
-    hClasterPositionXY_all.push_back(make_shared<TH2F>(Form("l%d_hClasterPositionXY_all", i), Form("Run %s: l%d_hClasterPositionXY_all", file.Data(), i), 361, 0, 361, 361, 0, 361));
+    hClusterPositionXY.push_back(make_shared<TH2F>(Form("l%d_hClusterPositionXY", i), Form("Run %s: l%d_hClusterPositionXY", file.Data(), i), 361, 0, 361, 361, 0, 361));
+    hClusterPositionXY_all.push_back(make_shared<TH2F>(Form("l%d_hClusterPositionXY_all", i), Form("Run %s: l%d_hClusterPositionXY_all", file.Data(), i), 361, 0, 361, 361, 0, 361));
     out->cd();
   }
 
   auto hapv102Multiplicity = make_shared<TH1F>("hapv102Multiplicity", Form("Run %s: hapv102Multiplicity", file.Data()), 129, 0, 129);
 
   ulong nEventsWHitsTwoLayers = 0, nEventsWHitsThreeLayers = 0;
-  /* Claster histograms */
+  /* Cluster histograms */
   // =============================== TDO & distributions ===============================
 
   // printf("Chain tree: %p\n", fChain);
@@ -303,75 +303,75 @@ void apv::Loop(unsigned long n)
       // printf("\n");
       hapv102Multiplicity->Fill(channelsAPV2.size());
 
-      /* Constructing clasters */
-      constructClasters();
+      /* Constructing clusters */
+      constructClusters();
     
-      bool clasterInRange0 = false, clasterInRange1 = false, clasterInRange2 = false;
-      for(auto &c: clasters){
+      bool clusterInRange0 = false, clusterInRange1 = false, clusterInRange2 = false;
+      for(auto &c: clusters){
         if(c.getLayer() == 0 && c.center() >= 124 && c.center() <= 168-16)
-          clasterInRange0 = true;
+          clusterInRange0 = true;
         else if(c.getLayer() == 1 && c.center() >= 134 && c.center() <= 184-16)
-          clasterInRange1 = true;
+          clusterInRange1 = true;
         else if(c.getLayer() == 2 && c.center() >= 150 && c.center() <= 209-16 && (c.center() < 170 || c.center() >173))
-          clasterInRange2 = true;
+          clusterInRange2 = true;
       }
-      if(clasterInRange0 && clasterInRange1){
+      if(clusterInRange0 && clusterInRange1){
         nEventsWHitsTwoLayers++;
-        if(clasterInRange2)
+        if(clusterInRange2)
           nEventsWHitsThreeLayers++;
       }
 
       {
-        vector<ulong> clastersY;
-        for(ulong i = 0; i < clasters.size(); i++){
-          if(clasters.at(i).getLayer() == 3)
-            clastersY.push_back(i);
+        vector<ulong> clustersY;
+        for(ulong i = 0; i < clusters.size(); i++){
+          if(clusters.at(i).getLayer() == 3)
+            clustersY.push_back(i);
         }
-        for(auto &c:clasters){
+        for(auto &c:clusters){
           if(c.getLayer() == 3)
             continue;
-          vector<ulong> clastersY_selected;
-          for(auto &i: clastersY){
-            hClasterPositionXY_all.at(c.getLayer())->Fill(c.center(), clasters.at(i).center());
-            if(c.maxQTime() == clasters.at(i).maxQTime())
-              clastersY_selected.push_back(i);
+          vector<ulong> clustersY_selected;
+          for(auto &i: clustersY){
+            hClusterPositionXY_all.at(c.getLayer())->Fill(c.center(), clusters.at(i).center());
+            if(c.maxQTime() == clusters.at(i).maxQTime())
+              clustersY_selected.push_back(i);
           }
-          if(clastersY_selected.size() != 1)
+          if(clustersY_selected.size() != 1)
             continue;
-          for(auto &i: clastersY_selected){
-            hClasterPositionXY.at(c.getLayer())->Fill(c.center(), clasters.at(i).center());
+          for(auto &i: clustersY_selected){
+            hClusterPositionXY.at(c.getLayer())->Fill(c.center(), clusters.at(i).center());
           }
         }
       }
 
-      for(auto &c: clasters){
+      for(auto &c: clusters){
         printf(" ");
         c.print();
       
-        hClasterPosition.at(c.getLayer())->Fill(c.center());
-        hClasterMaxQ.at(c.getLayer())->Fill(c.maxQ());
-        hClasterQ.at(c.getLayer())->Fill(c.q());
-        hClasterSize.at(c.getLayer())->Fill(c.nHits());
+        hClusterPosition.at(c.getLayer())->Fill(c.center());
+        hClusterMaxQ.at(c.getLayer())->Fill(c.maxQ());
+        hClusterQ.at(c.getLayer())->Fill(c.q());
+        hClusterSize.at(c.getLayer())->Fill(c.nHits());
 
-        hClasterPositionVSMaxQ.at(c.getLayer())->Fill(c.center(), c.maxQ());;
-        hClasterPositionVSQ.at(c.getLayer())->Fill(c.center(), c.q());;
-        hClasterPositionVSSize.at(c.getLayer())->Fill(c.center(), c.nHits());
+        hClusterPositionVSMaxQ.at(c.getLayer())->Fill(c.center(), c.maxQ());;
+        hClusterPositionVSQ.at(c.getLayer())->Fill(c.center(), c.q());;
+        hClusterPositionVSSize.at(c.getLayer())->Fill(c.center(), c.nHits());
       }
 
-      if(clasters.size() == 3){
-        if(clasters.at(0).getLayer() == 0 &&
-           clasters.at(1).getLayer() == 1 &&
-           clasters.at(2).getLayer() == 2 &&
-           (clasters.at(2).center() <= 122 || clasters.at(2).center() > 238)){
-          hClasterShiftBetweenLayers01->Fill(clasters.at(0).center() - clasters.at(1).center());
-          hClasterShiftBetweenLayers02->Fill(clasters.at(0).center() - clasters.at(2).center());
-          hClasterShiftBetweenLayers12->Fill(clasters.at(1).center() - clasters.at(2).center());
+      if(clusters.size() == 3){
+        if(clusters.at(0).getLayer() == 0 &&
+           clusters.at(1).getLayer() == 1 &&
+           clusters.at(2).getLayer() == 2 &&
+           (clusters.at(2).center() <= 122 || clusters.at(2).center() > 238)){
+          hClusterShiftBetweenLayers01->Fill(clusters.at(0).center() - clusters.at(1).center());
+          hClusterShiftBetweenLayers02->Fill(clusters.at(0).center() - clusters.at(2).center());
+          hClusterShiftBetweenLayers12->Fill(clusters.at(1).center() - clusters.at(2).center());
         }
       }
       // printf("::N events with hits in two   layers: %lu (of %lld events -> %.2f)\n", nEventsWHitsTwoLayers, event+1, static_cast<double>(nEventsWHitsTwoLayers) / static_cast<double>(event+1));  
       // printf("::N events with hits in three layers: %lu (of %lld events -> %.2f)\n", nEventsWHitsThreeLayers, event+1, static_cast<double>(nEventsWHitsThreeLayers) / static_cast<double>(event+1));  
     
-      // clasterTree->Fill();
+      // clusterTree->Fill();
     }
   
     printf("N events with hits in two   layers to region double-readed wyth mu2E: %lu (of %lld events -> %.2f)\n", nEventsWHitsTwoLayers, nentries, static_cast<double>(nEventsWHitsTwoLayers) / static_cast<double>(nentries));

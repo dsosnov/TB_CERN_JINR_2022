@@ -52,7 +52,7 @@ struct apvHit{
   }
 };
 
-class apvClaster: public TObject{
+class apvCluster: public TObject{
 private:
   int layer;
   vector<apvHit> hits;
@@ -125,16 +125,16 @@ private:
     meanqtime_ = static_cast<float>(sum) / static_cast<float>(sumw);
   }
 public:
-  apvClaster(int clasterLayer = 0):
-    layer(clasterLayer), hits({}), sizeOnLastUpdate(0){
+  apvCluster(int clusterLayer = 0):
+    layer(clusterLayer), hits({}), sizeOnLastUpdate(0){
     update();
   }
-  apvClaster(apvHit hit):
+  apvCluster(apvHit hit):
     layer(hit.layer), hits({}), sizeOnLastUpdate(0){
     addHit(hit);
     update();
   }
-  ~apvClaster(){
+  ~apvCluster(){
     hits.clear();
     update();
   }
@@ -157,17 +157,17 @@ public:
   }
   unsigned long nHits() const { return hits.size(); }
   void print(bool verbose = false) const {
-    printf("Claster: %lu hits on layer %d, with center %.2f, width %d and Q %ld (maximal: %d)\n", nHits(), layer, center(), width(), q(), maxQ());
+    printf("Cluster: %lu hits on layer %d, with center %.2f, width %d and Q %ld (maximal: %d)\n", nHits(), layer, center(), width(), q(), maxQ());
     if(verbose)
       for(auto &h: hits)
         h.print(true);
   }
-  bool merge(apvClaster claster){
-    if(claster.layer != layer)
+  bool merge(apvCluster cluster){
+    if(cluster.layer != layer)
       return false;
-    if(claster.lastStrip() != hits.at(0).strip - 1 && claster.firstStrip() != hits.back().strip + 1)
+    if(cluster.lastStrip() != hits.at(0).strip - 1 && cluster.firstStrip() != hits.back().strip + 1)
       return false;
-    hits.insert(hits.end(), claster.hits.begin(), claster.hits.end());
+    hits.insert(hits.end(), cluster.hits.begin(), cluster.hits.end());
     update();
     return true;
   }
@@ -182,7 +182,7 @@ public:
   float meanQTime() const { return meanqtime_; }
 
   friend
-  auto operator<( apvClaster const& a, apvClaster const& b ){
+  auto operator<( apvCluster const& a, apvCluster const& b ){
     if(a.getLayer() != b.getLayer())
       return a.getLayer() < b.getLayer();
     else if(a.hits.size() != b.hits.size())
@@ -201,7 +201,7 @@ public:
     }
   }
   friend
-  auto operator==( apvClaster const& a, apvClaster const& b ){
+  auto operator==( apvCluster const& a, apvCluster const& b ){
     if(a.getLayer() != b.getLayer())
       return false;
     else
@@ -213,49 +213,49 @@ public:
 class apvTrack : public TObject{
 private:
   double x0, b;
-  std::set<apvClaster> clasters;
-  std::set<apvClaster> clastersY; // TODO
+  std::set<apvCluster> clusters;
+  std::set<apvCluster> clustersY; // TODO
 public:
-  apvTrack(double intersect = 0, double slope = 0): x0(intersect), b(slope), clasters({}) {};
+  apvTrack(double intersect = 0, double slope = 0): x0(intersect), b(slope), clusters({}) {};
   template <class T>
-  apvTrack(double intersect, double slope, T clasters_): x0(intersect), b(slope){
-    for(auto &c: clasters_)
-      addClaster(c);
+  apvTrack(double intersect, double slope, T clusters_): x0(intersect), b(slope){
+    for(auto &c: clusters_)
+      addCluster(c);
   };
-  void addClaster(apvClaster claster){clasters.emplace(claster);}
-  unsigned long nClasters(){return clasters.size();}
-    std::set<apvClaster> getClasters(){return clasters;}
+  void addCluster(apvCluster cluster){clusters.emplace(cluster);}
+  unsigned long nClusters(){return clusters.size();}
+    std::set<apvCluster> getClusters(){return clusters;}
   double intersect() const {return x0;}
   double slope() const {return b;}
   void setIntersect(double intersect){x0 = intersect;}
   void setSlope(double slope){b = slope;}
   int maxQ() const {
     int maxq = 0;
-    for(auto &c: clasters){
+    for(auto &c: clusters){
       if(c.maxQ() > maxq)
         maxq = c.maxQ();
     }
     return maxq;
   }
   bool isX2() const {
-    for(auto &c: clasters)
+    for(auto &c: clusters)
       if(c.getLayer() == 2)
         return true;
     return false;
   }
-  apvClaster* getX2Claster() const {
+  apvCluster* getX2Cluster() const {
     if(!isX2())
       return nullptr;
-    for(auto &&c: clasters){
+    for(auto &&c: clusters){
       if(c.getLayer() == 2)
-        return const_cast<apvClaster*>(&c);
+        return const_cast<apvCluster*>(&c);
     }
     return nullptr;
   }
   float meanQTime() const {
     float meanqtime = 0;
     int nhits = 0;
-    for(auto &c: clasters){
+    for(auto &c: clusters){
       if(!isX2() || (isX2() && c.getLayer() == 2)){
         meanqtime += c.meanQTime();
         nhits++;
@@ -266,7 +266,7 @@ public:
   float maxQTime() const {
     float maxqtime = 0;
     int nhits = 0;
-    for(auto &c: clasters){
+    for(auto &c: clusters){
       if(!isX2() || (isX2() && c.getLayer() == 2)){
         maxqtime += c.maxQTime();
         nhits++;

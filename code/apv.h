@@ -15,7 +15,7 @@
 
 #include <algorithm> // max_element, sort
 
-#include "apv_claster.h"
+#include "apv_cluster.h"
 
 using std::vector;
 using std::map;
@@ -98,21 +98,21 @@ public :
 
   vector<apvHit> hits;
 
-  vector<apvClaster> clasters;
-  void constructClasters();
-  bool addHitToClasters(int layer, int strip, short max_q, int t_max_q, vector<short> raw_q);
-  bool addHitToClasters(apvHit hit);
+  vector<apvCluster> clusters;
+  void constructClusters();
+  bool addHitToClusters(int layer, int strip, short max_q, int t_max_q, vector<short> raw_q);
+  bool addHitToClusters(apvHit hit);
 
-  TTree* clasterTree;
-  TBranch* clasterBranch;
+  TTree* clusterTree;
+  TBranch* clusterBranch;
 
   map<int, tuple<double, double, double>> shiftBetweenLayels = {
-    {0, {0.255, -13.83, 3.516}}, // layer 0 - layer 1: distance between layers [m], mean strip shift (claster_l0 - claster_l1), rms of strip shift -- from run76
-    {1, {0.345, -18.23, 7.712}}, // layer 1 - layer 2, distance between layers [m], mean strip shift (claster_l0 - claster_l1), rms of strip shift -- from run76
+    {0, {0.255, -13.83, 3.516}}, // layer 0 - layer 1: distance between layers [m], mean strip shift (cluster_l0 - cluster_l1), rms of strip shift -- from run76
+    {1, {0.345, -18.23, 7.712}}, // layer 1 - layer 2, distance between layers [m], mean strip shift (cluster_l0 - cluster_l1), rms of strip shift -- from run76
     // Distance to straw: 523
   };
   tuple<double,double,double> getHitsForTrack(apvTrack track);
-  vector<apvTrack> constructTracks(vector<apvClaster> clasters);
+  vector<apvTrack> constructTracks(vector<apvCluster> clusters);
 
   unsigned int nAPVs = 5;
 };
@@ -126,12 +126,12 @@ tuple<double,double,double> apv::getHitsForTrack(apvTrack track){
   return {x0, x1, x2};
 }
 
-vector<apvTrack> apv::constructTracks(vector<apvClaster> clasters){
+vector<apvTrack> apv::constructTracks(vector<apvCluster> clusters){
   vector<apvTrack> tracks = {};
-  vector<apvClaster> clL0, clL1, clL2;
-  std::copy_if(clasters.begin(), clasters.end(), std::back_inserter(clL0), [](auto c) { return c.getLayer() == 0; });
-  std::copy_if(clasters.begin(), clasters.end(), std::back_inserter(clL1), [](auto c) { return c.getLayer() == 1; });
-  std::copy_if(clasters.begin(), clasters.end(), std::back_inserter(clL2), [](auto c) { return c.getLayer() == 2; });
+  vector<apvCluster> clL0, clL1, clL2;
+  std::copy_if(clusters.begin(), clusters.end(), std::back_inserter(clL0), [](auto c) { return c.getLayer() == 0; });
+  std::copy_if(clusters.begin(), clusters.end(), std::back_inserter(clL1), [](auto c) { return c.getLayer() == 1; });
+  std::copy_if(clusters.begin(), clusters.end(), std::back_inserter(clL2), [](auto c) { return c.getLayer() == 2; });
   if(!clL0.size() || !clL1.size())
     return tracks;
   
@@ -143,7 +143,7 @@ vector<apvTrack> apv::constructTracks(vector<apvClaster> clasters){
       auto x1 = c1.center();
       auto b = (x1 + get<1>(shiftBetweenLayels.at(0)) - x0) / get<0>(shiftBetweenLayels.at(0));
       auto possibleX2 = get<2>(getHitsForTrack(apvTrack(x0, b)));
-      vector<apvClaster> hits = {c0, c1};
+      vector<apvCluster> hits = {c0, c1};
       for(auto &c2: clL2){
         if(fabs(c2.center() - possibleX2) < (get<2>(shiftBetweenLayels.at(0)) + get<2>(shiftBetweenLayels.at(1)))){
           hits.push_back(c2);
@@ -155,18 +155,18 @@ vector<apvTrack> apv::constructTracks(vector<apvClaster> clasters){
     }
   }
   std::sort(possibleTracks.begin(), possibleTracks.end(),
-            [](auto t1, auto t2){return (t1.nClasters() != t2.nClasters()) ? t1.nClasters() > t2.nClasters() : fabs(t1.slope()) < fabs(t2.slope());});
+            [](auto t1, auto t2){return (t1.nClusters() != t2.nClusters()) ? t1.nClusters() > t2.nClusters() : fabs(t1.slope()) < fabs(t2.slope());});
 
-  set<apvClaster> usedClasters;
+  set<apvCluster> usedClusters;
   for(auto &t: possibleTracks){
     bool used = false;
-    for(auto &c: t.getClasters())
-      if(usedClasters.count(c))
+    for(auto &c: t.getClusters())
+      if(usedClusters.count(c))
         used = true;
-    // auto used = std::any_of(t.getClasters().begin(), t.getClasters().end(), [&usedClasters](auto c){return usedClasters.count(c);});
+    // auto used = std::any_of(t.getClusters().begin(), t.getClusters().end(), [&usedClusters](auto c){return usedClusters.count(c);});
     if(used) continue;
-    for(auto &c: t.getClasters())
-      usedClasters.emplace(c);
+    for(auto &c: t.getClusters())
+      usedClusters.emplace(c);
     tracks.push_back(t);
   }
   return tracks;
@@ -179,7 +179,7 @@ apv::apv(TString filename) : fChainPedestal(nullptr),
                              srsFecPed(nullptr), srsChipPed(nullptr), srsChanPed(nullptr), mmChamberPed(nullptr),
                              mmLayerPed(nullptr), mmReadoutPed(nullptr), mmStripPed(nullptr),
                              ped_meanPed(nullptr), ped_stdevPed(nullptr), ped_sigmaPed(nullptr),
-                             clasterTree(nullptr)
+                             clusterTree(nullptr)
 {
   file = filename;
   folder = "../data-apv/";
@@ -195,7 +195,7 @@ apv::apv(vector<TString> filenames): fChainPedestal(nullptr),
                                      srsFecPed(nullptr), srsChipPed(nullptr), srsChanPed(nullptr), mmChamberPed(nullptr),
                                      mmLayerPed(nullptr), mmReadoutPed(nullptr), mmStripPed(nullptr),
                                      ped_meanPed(nullptr), ped_stdevPed(nullptr), ped_sigmaPed(nullptr),
-                                     clasterTree(nullptr)
+                                     clusterTree(nullptr)
 {
   file = filenames.at(0);
   folder = "../data-apv/";
@@ -214,7 +214,7 @@ apv::apv(TChain *tree, TChain *treePed) : analysisGeneral(tree), fChainPedestal(
                                         srsFecPed(nullptr), srsChipPed(nullptr), srsChanPed(nullptr), mmChamberPed(nullptr),
                                         mmLayerPed(nullptr), mmReadoutPed(nullptr), mmStripPed(nullptr),
                                         ped_meanPed(nullptr), ped_stdevPed(nullptr), ped_sigmaPed(nullptr),
-                                        clasterTree(nullptr)
+                                        clusterTree(nullptr)
 {
   folder = "../data-apv/";
   fChain = (tree == nullptr) ? GetTree("", "apv_raw") : tree;
@@ -274,16 +274,16 @@ void apv::Init(){
     // printf("PedEntries: %lld\n", treePed->GetEntries());
   }
 
-  if(clasterTree == nullptr)
-    clasterTree = new TTree("clasters", "clasters");
+  if(clusterTree == nullptr)
+    clusterTree = new TTree("clusters", "clusters");
   else
-    clasterTree->Reset();
-  clasterBranch = clasterTree->Branch("clasters", &clasters);
-  clasterTree->AddFriend(fChain, "signals");
-  clasterTree->SetMakeClass(1);
+    clusterTree->Reset();
+  clusterBranch = clusterTree->Branch("clusters", &clusters);
+  clusterTree->AddFriend(fChain, "signals");
+  clusterTree->SetMakeClass(1);
   
   if(fChainPedestal)
-    clasterTree->AddFriend(fChainPedestal, "pedestals");
+    clusterTree->AddFriend(fChainPedestal, "pedestals");
 }
 
 //daq epoch timestamp in upper 32 bits, 8 bits for tenths of second, followed by srs time stamp of 25 ns clock cycles counter, bizzare
@@ -294,37 +294,37 @@ unsigned long long apv::unique_srs_time_stamp(int daq_time_stamp_seconds, int da
   return (b1 | b2 | m_srs_time_stamp);
 }
 
-bool apv::addHitToClasters(int layer, int strip, short max_q, int t_max_q, vector<short> raw_q){
-  return addHitToClasters({layer, strip, max_q, t_max_q, raw_q});
+bool apv::addHitToClusters(int layer, int strip, short max_q, int t_max_q, vector<short> raw_q){
+  return addHitToClusters({layer, strip, max_q, t_max_q, raw_q});
 }
 
-bool apv::addHitToClasters(apvHit hit){
-  for(auto &c: clasters)
+bool apv::addHitToClusters(apvHit hit){
+  for(auto &c: clusters)
     if(c.addHitAdjacent(hit))
       return true;
-  clasters.push_back(apvClaster(hit));
+  clusters.push_back(apvCluster(hit));
   return true;
 }
 
-void apv::constructClasters(){
-  clasters.clear();
+void apv::constructClusters(){
+  clusters.clear();
   std::sort(hits.begin(), hits.end(), [](auto h1, auto h2){return h1.strip < h2.strip;});
   for(auto &hit: hits)
-    addHitToClasters(hit);
+    addHitToClusters(hit);
 
-  /* Remove small clasters or clasters with small energy for the first layers only */
-  clasters.erase(std::remove_if(clasters.begin(), 
-                                clasters.end(),
+  /* Remove small clusters or clusters with small energy for the first layers only */
+  clusters.erase(std::remove_if(clusters.begin(), 
+                                clusters.end(),
                                 [](auto c){return (c.getLayer() != 2 && c.nHits() < 3) || (c.nHits() > 90);}),
-                 clasters.end());
-  clasters.erase(std::remove_if(clasters.begin(), 
-                                clasters.end(),
+                 clusters.end());
+  clusters.erase(std::remove_if(clusters.begin(), 
+                                clusters.end(),
                                 [](auto c){
                                   auto qthr = (c.getLayer() == 2) ? 100 : 300;
                                   return c.maxQ() < qthr;}),
-                 clasters.end());
+                 clusters.end());
 
-  std::stable_sort(clasters.begin(), clasters.end(), [](auto c1, auto c2){return (c1.getLayer() < c2.getLayer()) || (c1.center() < c2.center());});
+  std::stable_sort(clusters.begin(), clusters.end(), [](auto c1, auto c2){return (c1.getLayer() < c2.getLayer()) || (c1.center() < c2.center());});
 }
 
 
