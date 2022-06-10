@@ -92,7 +92,6 @@ public :
   virtual ~apv();
   virtual void     Init() override;
   virtual void     Loop(unsigned long n = 0) override;
-  virtual void     LoopSecond(unsigned long long sec) override;
   virtual map<unsigned long, analysisGeneral::mm2CenterHitParameters> GetCentralHits(unsigned long long fromSec = 0, unsigned long long toSec = 0) override;
 
   static unsigned long long unique_srs_time_stamp(int, int, int);
@@ -334,7 +333,6 @@ void apv::constructClasters(){
 
 #ifndef apv_cxx
 void apv::Loop(unsigned long n) {};
-void apv::LoopSecond(unsigned long long sec) {};
 map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(unsigned long long fromSec,
                                                                                 unsigned long long toSec) {
   return {};

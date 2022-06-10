@@ -30,7 +30,6 @@ public :
    virtual void     InitChain(TTree *tree) {};
    virtual void     Init() {};
    virtual void     Loop(unsigned long n = 0) {};
-   virtual void     LoopSecond(unsigned long long) {};
    virtual TChain* GetTree(TString filename = "", TString treeName = "vmm");
 
    bool syncSignal = false;
