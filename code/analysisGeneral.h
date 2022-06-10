@@ -4,6 +4,14 @@
 #include <TChain.h>
 #include <TFile.h>
 
+#include <vector>
+#include <string>
+#include <map>
+
+using std::vector;
+using std::string;
+using std::map;
+
 class analysisGeneral {
 public :
    TString folder = "../data/";
@@ -25,7 +33,11 @@ public :
    virtual void     LoopSecond(unsigned long long) {};
    virtual TChain* GetTree(TString filename = "", TString treeName = "vmm");
 
+   bool syncSignal = false;
+   void useSyncSignal(bool use = true) {syncSignal = use;}
+
    struct mm2CenterHitParameters{
+     bool approx, sync;
      unsigned long timeSec;
      unsigned int timeMSec;
      unsigned int stripX, stripY;
@@ -33,16 +45,38 @@ public :
      double pdoRelative;
      long long nHitsToPrev;
      float time;
-     bool approximated;
+     double timeSinceSync;
      long long timeFull() const {
        return timeMSec + timeSec * 1E6;
      }
-     void print() const {
-       // printf("Hit to straw %d with relative pdo %.3f and time %.2f at daq time %lu - %u. %s Previous hit was %llu triggers ago.\n",
-       //        stripX, pdoRelative, time, timeSec, timeMSec, (approximated ? "[approx]" : "        " ), nHitsToPrev);
-       printf("Hit to straw %d with relative pdo %.3f and time %.2f at daq time %lld. %s Previous hit was %llu triggers ago.\n",
-              stripX, pdoRelative, time, timeFull(), (approximated ? "[approx]" : "        " ), nHitsToPrev);
+     string getSignalTypeText() const {
+       string signalTypeText = ""; // = "        ";
+       if(approx)
+         signalTypeText += string(signalTypeText.empty() ? "" : " ") + "a";
+       else if(sync)
+         signalTypeText += string(signalTypeText.empty() ? "" : " ") + "s";
+       if(!signalTypeText.empty())
+         signalTypeText = string() + "["+ signalTypeText + "]";
+       signalTypeText += string(" ", 5 - signalTypeText.size());
+       return signalTypeText;
      }
+     void print() const {
+       printf("Hit to straw %d with relative pdo %.3f and time %.2f at daq time %lld. %s Previous synchrosignal was %.2f us ago.\n",
+              stripX, pdoRelative, time, timeFull(), getSignalTypeText().c_str(), timeSinceSync);
+     }
+     void printfBrief(bool revert = false) const {
+       if(revert)
+         printf("%s %3d - %.2f - %.3f - %7lld - %.2g",
+                getSignalTypeText().c_str(),
+                stripX, time, pdoRelative,
+                timeFull() % int(1E7), timeSinceSync);
+       else
+         printf("%.2g - %7lld - %.3f - %.2f - %3d %s",
+                timeSinceSync, timeFull() % int(1E7),
+                pdoRelative, time, stripX,
+                getSignalTypeText().c_str());
+     }
+
    };
   virtual map<unsigned long, mm2CenterHitParameters> GetCentralHits(unsigned long long fromSec = 0, unsigned long long toSec = 0) {return {};};
 };

@@ -101,6 +101,7 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentra
   unsigned int pdoThr = 100;
   unsigned int nLoopEntriesAround = 0;
   Long64_t nentries = fChain->GetEntries();
+  double lastSyncTime = -1;
 
   Long64_t nbytes = 0, nb = 0, mbytes = 0, mb = 0;
 
@@ -119,7 +120,9 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentra
       break;
 
     bool isTrigger = false;
-    int trigTime = 0;
+    bool isSync = false;
+    double syncTime = 0;
+    double trigTime = 0;
     for (int j = 0; j < channel->at(0).size(); j++)
     {
       int fch = channel->at(0).at(j);
@@ -136,12 +139,17 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentra
       if(fchD == 0 && fchM == 3){
         isTrigger = true;
         trigTime = getTime(fch, fbcid, ftdo, fpdoUC);
-        break;
+      }
+      if(fchD == 0 && fchM == 4){
+        isSync = true;
+        syncTime = getTime(fch, fbcid, ftdo, fpdoUC);
       }
     }
-    if(!isTrigger){
+    if(!isTrigger && !isSync){
       continue;
     }
+    if(!isTrigger)
+      trigTime = syncTime;
 
     MmCluster.clear();
     mbytes = 0, mb = 0;
@@ -176,19 +184,24 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentra
             MmCluster.push_back({ffchM * 1.0, ffpdo * 1.0, fft});
           }
         }
+        else if(ffchD == 0 && ffchM == 4){ // master clock
+          if(ffpdo < 250) continue;
+        }
       }
     }
 
     double minT_straw_mm = 600;
-    auto [meanT, meanCh, maxPdo] = getClusterParameters(trigTime, minT_straw_mm);
+    auto [meanT, meanCh, maxPdo] = getClusterParameters(trigTime, minT_straw_mm, 1);
 
-    if(meanCh == 0){
+    if(meanCh == 0 && !isSync){
       hitsToPrev++;
       continue;
     }
 
+
     analysisGeneral::mm2CenterHitParameters hit;
-    hit.approximated = false;
+    hit.approx = false;
+    hit.sync = isSync;
     hit.timeSec = daq_timestamp_s->at(0);
     hit.timeMSec = daq_timestamp_ns->at(0) / 1000;
     hit.stripX = meanCh;
@@ -196,9 +209,20 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentra
     hit.pdoRelative = maxPdo / 1024.0;
     hit.nHitsToPrev = hitsToPrev;
     hit.time = trigTime - meanT;
-    hitsToPrev = 0;
+
+    if(meanCh != 0)
+      hitsToPrev = 0;
+
+    double syncTimeDiff = lastSyncTime - syncTime;
+    if(lastSyncTime < 0)
+      syncTimeDiff;
+    else if(syncTime > lastSyncTime)
+      syncTimeDiff += 4096 * 25.0;
+    hit.timeSinceSync = syncTimeDiff / 1000.0;
 
     outputData.emplace(jentry, hit);
+
+    lastSyncTime = syncTime;
   }
   
   return outputData;
@@ -572,6 +596,7 @@ void evBuilder::Loop(unsigned long n)
       int fbcid = grayDecoded->at(0).at(j);
 
       if(fpdo < pdoThr) continue;
+      if(fchD == -1) continue;
 
 
       if (fchD == 1) // All straw ch

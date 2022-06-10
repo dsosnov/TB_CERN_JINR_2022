@@ -14,8 +14,9 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
     return outputData;
   Long64_t nentries = fChain->GetEntries();
 
-  unsigned long long previousTimestamp = 0;
+  unsigned long long previousSyncTimestamp = 0;
   unsigned long long hitsToPrev = 0;
+  set<uint> channelsAPV2 = {};
   
   for (auto event = 0; event < nentries; event++){
     Long64_t ientry = LoadTree(event);
@@ -34,14 +35,19 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
     bool notErr = false;
     for (auto &r: *mmReadout)
       notErr = notErr || (r != 'E');
-    if(!notErr) continue;
+    if(!syncSignal && !notErr) continue;
     
     unsigned long long currentTimestamp = daqTimeSec * 1E6 + daqTimeMicroSec;
-    previousTimestamp = currentTimestamp;
 
     hits.clear();
+    channelsAPV2.clear();
     for (int j = 0; j < max_q->size(); j++){
       // printf("Record inside entry: %d\n", j);
+      if (syncSignal){
+        auto chip = srsChip->at(j);
+        auto chan = srsChan->at(j);
+        if(chip == 2) channelsAPV2.emplace(chan);
+      }
       auto readout = mmReadout->at(j);
       if(readout == 'E') //non-mapped channel
         continue;
@@ -70,24 +76,39 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
     }
 
     hitsToPrev++;
-    if(!trackIn2Center)
-      continue;    
+    bool isSyncSignal = channelsAPV2.size() == 128;
+    if(!isSyncSignal && !trackIn2Center)
+      continue;
 
     analysisGeneral::mm2CenterHitParameters hit;
     hit.timeSec = daqTimeSec;
     hit.timeMSec = daqTimeMicroSec;
     hit.nHitsToPrev = hitsToPrev;
     
-    hit.approximated = !highestTrack->isX2();
-    if(highestTrack->isX2()){
-      auto c = highestTrack->getX2Claster();
-      hit.stripX = c->center();
-      hit.pdo = c->maxQ();
-      hit.time = c->maxQTime() * 25;
+    hit.timeSinceSync = (previousSyncTimestamp < 0) ? -1.0 : static_cast<double>(currentTimestamp - previousSyncTimestamp);
+
+    hit.sync = false;
+    hit.approx = false;
+
+    if(isSyncSignal)
+      hit.sync = true;
+
+    if(highestTrack != nullptr){
+      hit.approx = !highestTrack->isX2();
+      if(highestTrack->isX2()){
+        auto c = highestTrack->getX2Claster();
+        hit.stripX = c->center();
+        hit.pdo = c->maxQ();
+        hit.time = c->maxQTime() * 25;
+      } else {
+        hit.stripX = get<2>(getHitsForTrack(*highestTrack));
+        hit.pdo = highestTrack->maxQ();
+        hit.time = (highestTrack->getClasters().begin())->maxQTime() * 25; // highestTrack->maxQTime() * 25;
+      }
     } else {
-      hit.stripX = get<2>(getHitsForTrack(*highestTrack));
-      hit.pdo = highestTrack->maxQ();
-      hit.time = (highestTrack->getClasters().begin())->maxQTime() * 25; // highestTrack->maxQTime() * 25;
+      hit.stripX = 0;
+      hit.pdo = 0;
+      hit.time = 0;
     }
 
     // hit.approximated = true;
@@ -100,6 +121,9 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
     
 
     outputData.emplace(event, hit);
+    if(isSyncSignal)
+      previousSyncTimestamp = currentTimestamp;
+
   }
   return outputData;
 }

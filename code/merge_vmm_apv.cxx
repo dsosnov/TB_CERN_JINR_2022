@@ -94,36 +94,39 @@ vector<map<unsigned long, unsigned long>> tryToMerge(vector<pair<unsigned long, 
   
 }
 
-void printfBrief(pair<unsigned long, analysisGeneral::mm2CenterHitParameters> hit, bool revert = false){
-  if(revert)
-    printf("%c %3d - %.2f - %.3f - %7lld - %2llu | %5lu",
-           (hit.second.approximated ? '*' : ' ' ),
-           hit.second.stripX, hit.second.time, hit.second.pdoRelative,
-           hit.second.timeFull() % int(1E7), hit.second.nHitsToPrev, hit.first);
-  else
-    printf("%5lu | %2llu - %7lld - %.3f - %.2f - %3d %c",
-           hit.first, hit.second.nHitsToPrev, hit.second.timeFull() % int(1E7),
-           hit.second.pdoRelative, hit.second.time, hit.second.stripX,
-           (hit.second.approximated ? '*' : ' ' ));
-}
+// void printfBrief(pair<unsigned long, analysisGeneral::mm2CenterHitParameters> hit, bool revert = false){
+//   if(revert)
+//     printf("%c %3d - %.2f - %.3f - %7lld - %2llu | %5lu",
+//            (hit.second.approximated ? '*' : ' ' ),
+//            hit.second.stripX, hit.second.time, hit.second.pdoRelative,
+//            hit.second.timeFull() % int(1E7), hit.second.nHitsToPrev, hit.first);
+//   else
+//     printf("%5lu | %2llu - %7lld - %.3f - %.2f - %3d %c",
+//            hit.first, hit.second.nHitsToPrev, hit.second.timeFull() % int(1E7),
+//            hit.second.pdoRelative, hit.second.time, hit.second.stripX,
+//            (hit.second.approximated ? '*' : ' ' ));
+// }
 
 void merge_vmm_apv(){
-  bool REMOVE_APPROX = true;
-  pair<string, string> run_pair = {"run_0258", "run166"};
+  bool REMOVE_APPROX = false;
+  // pair<string, string> run_pair = {"run_0258", "run166"};
+  pair<string, string> run_pair = {"run_0814", "run407"};
 
   auto out = TFile::Open("merge_vmm_apv.root", "recreate");
 
   // unsigned long long from = 1653145627, to = 1653145628;
-  unsigned long long from = 1653145640, to = 1653145640;
-  // unsigned long long from = 0, to = 0;
+  // unsigned long long from = 1653145640, to = 1653145640;
+  unsigned long long from = 0, to = 0;
 
   auto hTrigTimeAPV = make_shared<TH1F>("hTrigTimeAPV", "hTrigTimeAPV", 27, 0, 27*25);
   auto hTrigTimeVMM = make_shared<TH1F>("hTrigTimeVMM", "hTrigTimeVMM", 27, 0, 27*25);
 
   auto apvan = new apv(run_pair.second);
+  apvan->useSyncSignal();
   auto hits_apv = apvan->GetCentralHits(from, to);
-  auto vmman = new evBuilder(run_pair.first, "g1_p25_s100-0&60", "map-20220518");
-  // vmman->Loop();
+  // auto vmman = new evBuilder(run_pair.first, "g1_p25_s100-0&60", "map-20220518");
+  auto vmman = new evBuilder(run_pair.first, "g1_p25_s100-0&60", "map-20220605");
+  vmman->useSyncSignal();
   auto hits_vmm = vmman->GetCentralHits(from, to);
   for(auto &h: hits_vmm)
     h.second.time += 325;
@@ -137,7 +140,7 @@ void merge_vmm_apv(){
   if(REMOVE_APPROX)
     hits_apv_v.erase(std::remove_if(hits_apv_v.begin(), 
                                     hits_apv_v.end(),
-                                    [](auto c){return c.second.approximated;}),
+                                    [](auto c){return c.second.approx;}),
                      hits_apv_v.end());
 
 
@@ -146,19 +149,23 @@ void merge_vmm_apv(){
 
   printf("APV hits (%lu) -- VMM hits (%lu)\n", hits_apv.size(), hits_vmm.size());
   for(ulong i = 0; i < hits_apv_v.size() || i < hits_vmm_v.size(); i++){
-    if(i < hits_apv_v.size())
-      printfBrief(hits_apv_v.at(i), false);
-    else
+    if(i < hits_apv_v.size()){
+      // printfBrief(hits_apv_v.at(i), false);
+      printf("%5lu | ", hits_vmm_v.at(i).first);
+      hits_apv_v.at(i).second.printfBrief();
+    } else
       printf("%5c | %2c - %7c - %6c - %6c - %3c %c", ' ', ' ', ' ', ' ', ' ', ' ', ' ');
     printf(" | %*c %4lu %*c | ", 10, ' ', i, 10, ' ');
-    if(i < hits_vmm_v.size())
-      printfBrief(hits_vmm_v.at(i), true);
-    else
+    if(i < hits_vmm_v.size()){
+      // printfBrief(hits_vmm_v.at(i), true);
+      hits_vmm_v.at(i).second.printfBrief(true);
+      printf(" | %5lu", hits_vmm_v.at(i).first);
+    } else
       printf("%c %3c - %6c - %6c - %7c - %2c | %5c", ' ', ' ', ' ', ' ', ' ', ' ', ' ');
     printf("\n");
   }
   printf("\n\n");
-  
+
   for(auto &h: hits_apv){
     hTrigTimeAPV->Fill(h.second.time);
     // h.second.print();
@@ -171,7 +178,7 @@ void merge_vmm_apv(){
   hTrigTimeVMM->SaveAs("hTrigTimeVMM.root");
   hTrigTimeAPV->SaveAs("hTrigTimeAPV.root");
 
-  // return;
+  return; // TODO delete
 
   vector<map<unsigned long, unsigned long>> options;
     options = tryToMerge(hits_vmm_v, hits_apv_v, 0, 0, 0, true, true, false);
@@ -239,7 +246,7 @@ void merge_vmm_apv(){
       h_stripdiff->Fill(hit_vmm.stripX - hit_apv.stripX);
       h_pdodiff->Fill(hit_vmm.pdoRelative - hit_apv.pdoRelative);
       h_pdo2d->Fill(hit_vmm.pdoRelative, hit_apv.pdoRelative);
-      if(!hit_vmm.approximated && !hit_apv.approximated)
+      if(!hit_vmm.approx && !hit_apv.approx)
         h_pdodiff_existed->Fill(hit_vmm.pdoRelative - hit_apv.pdoRelative);
     }    
   }
@@ -255,9 +262,13 @@ void merge_vmm_apv(){
     for(auto &o: options.at(i)){
       auto event_vmm = o.first;
       auto event_apv = o.second;
-      printfBrief({event_apv, hits_apv.at(event_apv)}, false);
+      printf("%5lu | ", event_apv);
+      hits_apv.at(event_apv).printfBrief();
+      // printfBrief({event_apv, hits_apv.at(event_apv)}, false);
       printf(" | %*c %4d %*c | ", 10, ' ', j++, 10, ' ');
-      printfBrief({event_vmm, hits_vmm.at(event_vmm)}, true);
+      hits_vmm.at(event_vmm).printfBrief();
+      printf(" | %5lu", event_vmm);
+      // printfBrief({event_vmm, hits_vmm.at(event_vmm)}, true);
       printf("\n");
     }
       printf("\n");    
