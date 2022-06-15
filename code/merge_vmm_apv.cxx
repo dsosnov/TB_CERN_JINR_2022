@@ -148,7 +148,7 @@ void merge_vmm_apv(){
   // hits_vmm_v.resize(10);
 
   printf("APV hits (%lu) -- VMM hits (%lu)\n", hits_apv.size(), hits_vmm.size());
-  for(ulong i = 0; i < hits_apv_v.size() || i < hits_vmm_v.size(); i++){
+  for(unsigned long i = 0; i < hits_apv_v.size() || i < hits_vmm_v.size(); i++){
     if(i < hits_apv_v.size()){
       // printfBrief(hits_apv_v.at(i), false);
       printf("%5lu | ", hits_vmm_v.at(i).first);
@@ -221,7 +221,7 @@ void merge_vmm_apv(){
   auto dir_pdodiff = out->mkdir("pdo_diff");
   auto dir_pdodiff_existed = out->mkdir("pdo_diff_existed");
   
-  for(ulong i = 0; i < options.size(); i++){
+  for(unsigned long i = 0; i < options.size(); i++){
     auto option = options.at(i);
     dir_timediff->cd();
     auto h_timediff = new TH1F(Form("h_timediff_%lu", i), Form("h_timediff_%lu (%lu hits)", i, option.size()), 2E5, -1E6, 1E6);
@@ -256,7 +256,7 @@ void merge_vmm_apv(){
                                [maximum_size](auto c){return c.size() != maximum_size;}),
                 options.end());
 
-  for(ulong i = 0; i < options.size(); i++){
+  for(unsigned long i = 0; i < options.size(); i++){
     printf("Sution %lu:\n", i);
     int j = 0;
     for(auto &o: options.at(i)){

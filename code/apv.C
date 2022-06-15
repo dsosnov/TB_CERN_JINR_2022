@@ -16,7 +16,7 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
 
   unsigned long long previousSyncTimestamp = 0;
   unsigned long long hitsToPrev = 0;
-  set<uint> channelsAPV2 = {};
+  set<unsigned int> channelsAPV2 = {};
   
   for (auto event = 0; event < nentries; event++){
     Long64_t ientry = LoadTree(event);
@@ -210,7 +210,7 @@ void apv::Loop(unsigned long n)
 
   auto hapv102Multiplicity = make_shared<TH1F>("hapv102Multiplicity", Form("Run %s: hapv102Multiplicity", file.Data()), 129, 0, 129);
 
-  ulong nEventsWHitsTwoLayers = 0, nEventsWHitsThreeLayers = 0;
+  unsigned long nEventsWHitsTwoLayers = 0, nEventsWHitsThreeLayers = 0;
   /* Cluster histograms */
   // =============================== TDO & distributions ===============================
 
@@ -223,7 +223,7 @@ void apv::Loop(unsigned long n)
       nentries = n;
 
     unsigned long long previousTimestamp = 0;
-    set<uint> channelsAPV2 = {};
+    set<unsigned int> channelsAPV2 = {};
   
     // nentries = 2000;
     for (auto event = 0; event < nentries; event++){
@@ -288,7 +288,7 @@ void apv::Loop(unsigned long n)
         // // printf("Raw q pointer: %p\n", raw_q);
         // int maxADCBin = -1;
         // // printf("raw_q->at(%d).size(): %d\n", j, raw_q->at(j).size());
-        // for(uint qBin = 0; qBin < raw_q->at(j).size(); qBin++){
+        // for(unsigned int qBin = 0; qBin < raw_q->at(j).size(); qBin++){
         //   // if(raw_q->at(j).at(qBin) == maxQ){
         //   //   hTriggerShiftByMaxQ.at(layer)->Fill(qBin*25);
         //   // }
@@ -322,15 +322,15 @@ void apv::Loop(unsigned long n)
       }
 
       {
-        vector<ulong> clustersY;
-        for(ulong i = 0; i < clusters.size(); i++){
+        vector<unsigned long> clustersY;
+        for(unsigned long i = 0; i < clusters.size(); i++){
           if(clusters.at(i).getLayer() == 3)
             clustersY.push_back(i);
         }
         for(auto &c:clusters){
           if(c.getLayer() == 3)
             continue;
-          vector<ulong> clustersY_selected;
+          vector<unsigned long> clustersY_selected;
           for(auto &i: clustersY){
             hClusterPositionXY_all.at(c.getLayer())->Fill(c.center(), clusters.at(i).center());
             if(c.maxQTime() == clusters.at(i).maxQTime())

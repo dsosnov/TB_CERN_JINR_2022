@@ -145,9 +145,9 @@ int remapAPV(string filenameIn = "../data-apv/run103.root"){
   tapvPedIn->SetBranchAddress("mmReadout", &mmReadoutIn);
   tapvPedIn->SetBranchAddress("mmChamber", &mmChamberIn);
   static auto mmLayerIn = new vector<int>();
-  static auto srsFecIn = new vector<uint>();
-  static auto srsChipIn = new vector<uint>();
-  static auto srsChanIn = new vector<uint>();
+  static auto srsFecIn = new vector<unsigned int>();
+  static auto srsChipIn = new vector<unsigned int>();
+  static auto srsChanIn = new vector<unsigned int>();
   tapvPedIn->SetBranchAddress("mmLayer", &mmLayerIn);
   tapvPedIn->SetBranchAddress("srsFec", &srsFecIn);
   tapvPedIn->SetBranchAddress("srsChip", &srsChipIn);

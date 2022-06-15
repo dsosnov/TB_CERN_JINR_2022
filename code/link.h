@@ -5,8 +5,8 @@
 namespace {
   std::vector<int> vector_int;
   std::vector<std::vector<int>> vector_vector_int;
-  std::vector<unsigned int> vector_uint;
-  std::vector<std::vector<unsigned int>> vector_vector_uint;
+  std::vector<unsigned int> vector_unsigned_int;
+  std::vector<std::vector<unsigned int>> vector_vector_unsigned_int;
 
   std::vector<short> vector_short;
   std::vector<std::vector<short>> vector_vector_short;

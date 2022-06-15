@@ -34,14 +34,14 @@ public :
 
   // Event variables, signal
   unsigned long long evt; // event id, is one of: DaqTime, SrsTimeStamp, SrsTriggerNumber
-  uint error;
+  unsigned int error;
   int daqTimeSec; // DaqTime (stamped by the daq)
   int daqTimeMicroSec; // DaqTime (stamped by the daq)
   int srsTimeStamp; // srs time stamp (counter of clock cycles)
-  uint srsTrigger; // trigger number!
-  vector<uint> *srsFec;
-  vector<uint> *srsChip;
-  vector<uint> *srsChan;
+  unsigned int srsTrigger; // trigger number!
+  vector<unsigned int> *srsFec;
+  vector<unsigned int> *srsChip;
+  vector<unsigned int> *srsChan;
   vector<string> *mmChamber;
   vector<int> *mmLayer;
   vector<char> *mmReadout;
@@ -51,14 +51,14 @@ public :
   vector<int> *t_max_q;
   /*Pedestal variable*/
   unsigned long long evtPed;
-  uint errorPed;
+  unsigned int errorPed;
   int daqTimeSecPed;
   int daqTimeMicroSecPed;
   int srsTimeStampPed;
-  uint srsTriggerPed;
-  vector<uint> *srsFecPed;
-  vector<uint> *srsChipPed;
-  vector<uint> *srsChanPed;
+  unsigned int srsTriggerPed;
+  vector<unsigned int> *srsFecPed;
+  vector<unsigned int> *srsChipPed;
+  vector<unsigned int> *srsChanPed;
   vector<string> *mmChamberPed;
   vector<int> *mmLayerPed;
   vector<char> *mmReadoutPed;

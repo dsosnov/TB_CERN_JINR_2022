@@ -62,9 +62,9 @@ struct singleTest{
 
 singleTest findCalibrationForChannels(const shared_ptr<TChain> chain,
                                       const string calibrationFileName,
-                                      const uint nChannels = 64,
-                                      const vector<uint> channelsExclude = {},
-                                      const vector<uint> channelsDelete = {},
+                                      const unsigned int nChannels = 64,
+                                      const vector<unsigned int> channelsExclude = {},
+                                      const vector<unsigned int> channelsDelete = {},
                                       const double pdoThr = 120){
   static auto eventFAFAIn = new int;
   static auto triggerTimeStampIn = new vector<int>;
@@ -175,7 +175,7 @@ struct fitPDOChannelResult{
   double p0, p0E;
   double p1, p1E;
   double chi2;
-  uint ndf;
+  unsigned int ndf;
   double correctPDO(const double pdo) const {return p0 + p1 * pdo;}
   long correctPDOI(const double pdo) const {return static_cast<long>(correctPDO(pdo));}
   void print(bool compact = false, FILE* file = stdout) const {

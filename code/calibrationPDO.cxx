@@ -15,9 +15,9 @@ int calibrationPDO(){
 
   auto outfile = TFile::Open(Form("%s/calibration_pdo_%s.root", outdir.c_str(), comment.c_str()), "recreate");
 
-  vector<uint> channelsExclude = {/*0, 1, 2*/}; //0
-  vector<uint> channelsDelete = {}; //35, 63
-  uint nChannels = 65;
+  vector<unsigned int> channelsExclude = {/*0, 1, 2*/}; //0
+  vector<unsigned int> channelsDelete = {}; //35, 63
+  unsigned int nChannels = 65;
 
   map<string,shared_ptr<TChain>> calibrationPDOf;
   for(auto &i: calibrationPDO){

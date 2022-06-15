@@ -195,7 +195,7 @@ void vmm::addPDOCorrection(TString filename, bool verbose){
    ifstream myfile(Form("../out/%s", filename.Data()));
    float p0, p1;
    int i = 0;
-   uint sizeBefore = pdoCorrection.size();
+   unsigned int sizeBefore = pdoCorrection.size();
    while (myfile >> p0 >> p1)
    {
       pdoCorrection.push_back({p0, p1});
