@@ -140,9 +140,11 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentra
         isTrigger = true;
         trigTime = getTime(fch, fbcid, ftdo, fpdoUC);
       }
-      if(fchD == 0 && fchM == 4){
-        isSync = true;
-        syncTime = getTime(fch, fbcid, ftdo, fpdoUC);
+      else if(fchD == 0 && fchM == 4){
+        if(fpdo > 650){
+          isSync = true;
+          syncTime = getTime(fch, fbcid, ftdo, fpdoUC);
+        }
       }
     }
     if(!isTrigger && !isSync){
