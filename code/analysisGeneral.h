@@ -36,7 +36,7 @@ public :
    void useSyncSignal(bool use = true) {syncSignal = use;}
 
    struct mm2CenterHitParameters{
-     bool approx, sync;
+     bool approx, sync, signal;
      unsigned long timeSec;
      unsigned int timeMSec;
      unsigned int stripX, stripY;

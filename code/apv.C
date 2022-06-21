@@ -89,6 +89,7 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
 
     hit.sync = false;
     hit.approx = false;
+    hit.signal = highestTrack != nullptr;
 
     if(isSyncSignal)
       hit.sync = true;

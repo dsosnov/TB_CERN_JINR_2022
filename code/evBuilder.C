@@ -203,6 +203,7 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentra
 
     analysisGeneral::mm2CenterHitParameters hit;
     hit.approx = false;
+    hit.signal = meanCh != 0;
     hit.sync = isSync;
     hit.timeSec = daq_timestamp_s->at(0);
     hit.timeMSec = daq_timestamp_ns->at(0) / 1000;
