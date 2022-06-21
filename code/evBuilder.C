@@ -216,16 +216,17 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentra
     if(meanCh != 0)
       hitsToPrev = 0;
 
-    double syncTimeDiff = lastSyncTime - syncTime;
+    double syncTimeDiff = trigTime - lastSyncTime;
     if(lastSyncTime < 0)
-      syncTimeDiff;
-    else if(syncTime > lastSyncTime)
+      syncTimeDiff = lastSyncTime;
+    else if(trigTime < lastSyncTime)
       syncTimeDiff += 4096 * 25.0;
     hit.timeSinceSync = syncTimeDiff / 1000.0;
 
     outputData.emplace(jentry, hit);
 
-    lastSyncTime = syncTime;
+    if(isSync)
+      lastSyncTime = syncTime;
   }
   
   return outputData;
