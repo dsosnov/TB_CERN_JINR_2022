@@ -143,10 +143,6 @@ void merge_vmm_apv(){
                                     [](auto c){return c.second.approx;}),
                      hits_apv_v.end());
 
-
-  // hits_apv_v.resize(10);
-  // hits_vmm_v.resize(10);
-
   printf("APV hits (%lu) -- VMM hits (%lu)\n", hits_apv.size(), hits_vmm.size());
   for(unsigned long i = 0; i < hits_apv_v.size() || i < hits_vmm_v.size(); i++){
     if(i < hits_apv_v.size()){
