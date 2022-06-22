@@ -107,6 +107,99 @@ vector<map<unsigned long, unsigned long>> tryToMerge(vector<pair<unsigned long, 
 //            (hit.second.approximated ? '*' : ' ' ));
 // }
 
+void saveSyncDifference(vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>> &hits_vmm_v,
+                        vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>> &hits_apv_v){
+  hits_vmm_v.erase(std::remove_if(hits_vmm_v.begin(), 
+                                  hits_vmm_v.end(),
+                                  [](auto c){return !c.second.sync;}),
+                   hits_vmm_v.end());
+  hits_apv_v.erase(std::remove_if(hits_apv_v.begin(), 
+                                  hits_apv_v.end(),
+                                  [](auto c){return !c.second.sync;}),
+                   hits_apv_v.end());
+
+  // hits_apv_v.resize(10);
+  // hits_vmm_v.resize(10);
+
+  auto hSyncDiffTime = make_shared<TH1F>("hSyncDiffTime", "hSyncDiffTime; T_{APV} - T_{VMM}, #mu s", 20000, -10000, 10000);
+  for(auto &ha: hits_apv_v){
+    for(auto &hv: hits_vmm_v){
+      if(abs(static_cast<long long>(ha.second.timeFull()) - static_cast<long long>(ha.second.timeFull())) > 1E4)
+        continue;
+      // if(hv.second.timeFull() - ha.second.timeFull() > 1E4)
+      //   break;
+      // else if(hv.second.timeFull() - ha.second.timeFull() < -1E4)
+      //   continue;
+      hSyncDiffTime->Fill(static_cast<long long>(ha.second.timeFull()) - static_cast<long long>(hv.second.timeFull()));
+    }
+  }
+  hSyncDiffTime->SaveAs("hSyncDiffTime.root");
+}
+
+void removeUntilSync(vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>> &hits_v){
+  uint index = 0;
+  for(auto &h: hits_v){
+    if(h.second.sync)
+      break;
+    else
+      index++;
+  }
+  if(index)
+    hits_v.erase(hits_v.begin(), hits_v.begin() + index);
+}
+
+double timeSinceFirstSync(map<unsigned long, analysisGeneral::mm2CenterHitParameters> hits, unsigned long hit){
+  // if(hit == 0 || hits.at(hit).previousSync <= 0)
+  //   return 0;
+  // else
+  //   return hits.at(hit).timeSinceSync + timeSinceFirstSync(hits, hits.at(hit).previousSync);
+
+  double sumTime = 0;
+  while(hit > 0 && hits.at(hit).previousSync > 0){
+    sumTime += hits.at(hit).timeSinceSync;
+    hit = hits.at(hit).previousSync;
+  }
+  return sumTime;
+
+}
+
+vector<unsigned long> getFirstNHitsAfterSync(vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>> &hits_v, unsigned int N){
+  vector<unsigned long> out;
+  for(auto &h: hits_v){
+    if(h.second.signal && h.second.trigger)
+      out.push_back(h.first);
+    if(out.size() >= N)
+      break;
+  }
+  return out;
+}
+
+void printFirstHitsAfterSync(vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>> &hits_vmm_v, vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>> &hits_apv_v,
+                             map<unsigned long, analysisGeneral::mm2CenterHitParameters> &hits_vmm, map<unsigned long, analysisGeneral::mm2CenterHitParameters> &hits_apv){
+  auto hits_vmm_selected = getFirstNHitsAfterSync(hits_vmm_v, 20);
+  for(auto &hv: hits_vmm_selected){
+    auto time_since = timeSinceFirstSync(hits_vmm, hv);
+    if(hits_vmm.at(hv).sync)
+      time_since += hits_vmm.at(hv).deltaTimeSyncTrigger / 1000.0;
+    printf("VMM hit: %lu - %d - %f - %llu\n",
+           hv, hits_vmm.at(hv).stripX, time_since, hits_vmm.at(hv).timeFull());
+  }
+
+
+  unsigned int nHits = 0;
+  for(auto &ha: hits_apv_v){
+    if(!ha.second.signal)
+      continue;
+    auto time_since = timeSinceFirstSync(hits_apv, ha.first);
+    // double time_since = ha.second.timeFull() - hits_apv_v.at(0).second.timeFull();
+    printf("APV hit: %lu - %d - %f - %llu\n",
+           ha.first, ha.second.stripX, time_since, ha.second.timeFull());
+    nHits++;
+    if(nHits >= 20)
+      break;
+  }
+}
+
 void merge_vmm_apv(){
   bool REMOVE_APPROX = false;
   // pair<string, string> run_pair = {"run_0258", "run166"};
@@ -136,6 +229,9 @@ void merge_vmm_apv(){
   vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>> hits_apv_v;
   hits_apv_v.assign(hits_apv.begin(), hits_apv.end());
 
+  removeUntilSync(hits_vmm_v);
+  removeUntilSync(hits_apv_v);
+
   /* Removing approximate hits */
   if(REMOVE_APPROX)
     hits_apv_v.erase(std::remove_if(hits_apv_v.begin(), 
@@ -147,7 +243,7 @@ void merge_vmm_apv(){
   for(unsigned long i = 0; i < hits_apv_v.size() || i < hits_vmm_v.size(); i++){
     if(i < hits_apv_v.size()){
       // printfBrief(hits_apv_v.at(i), false);
-      printf("%5lu | ", hits_vmm_v.at(i).first);
+      printf("%5lu | ", hits_apv_v.at(i).first);
       hits_apv_v.at(i).second.printfBrief();
     } else
       printf("%5c | %2c - %7c - %6c - %6c - %3c %c", ' ', ' ', ' ', ' ', ' ', ' ', ' ');
@@ -174,6 +270,17 @@ void merge_vmm_apv(){
   hTrigTimeVMM->SaveAs("hTrigTimeVMM.root");
   hTrigTimeAPV->SaveAs("hTrigTimeAPV.root");
 
+  auto hdeltaTimeSyncTrigger = make_shared<TH1F>("hdeltaTimeSyncTrigger", "Time difference between triple coincidence and master clock; T_{3-Sci} - T_{CLK}, ns", 200, -50000, 50000);
+  for(auto &h: hits_vmm_v){
+    if(h.second.sync && h.second.trigger)
+      hdeltaTimeSyncTrigger->Fill(h.second.deltaTimeSyncTrigger);
+  }
+  hdeltaTimeSyncTrigger->SaveAs("hdeltaTimeSyncTrigger.root");
+
+
+  // saveSyncDifference(hits_vmm_v, hits_apv_v);
+  printFirstHitsAfterSync(hits_vmm_v, hits_apv_v, hits_vmm, hits_apv);
+  
   return; // TODO delete
 
   vector<map<unsigned long, unsigned long>> options;

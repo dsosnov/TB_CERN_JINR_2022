@@ -17,6 +17,7 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
   unsigned long long previousSyncTimestamp = 0;
   unsigned long long hitsToPrev = 0;
   set<unsigned int> channelsAPV2 = {};
+  unsigned long long previousSync = 0;
   
   for (auto event = 0; event < nentries; event++){
     Long64_t ientry = LoadTree(event);
@@ -119,11 +120,14 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
 
     hit.pdoRelative = static_cast<double>(hit.pdo) / 4096;
     hitsToPrev = 0;
-    
+
+    hit.previousSync = previousSync;
 
     outputData.emplace(event, hit);
-    if(isSyncSignal)
+    if(isSyncSignal){
       previousSyncTimestamp = currentTimestamp;
+      previousSync = ientry;
+    }
 
   }
   return outputData;

@@ -36,27 +36,28 @@ public :
    void useSyncSignal(bool use = true) {syncSignal = use;}
 
    struct mm2CenterHitParameters{
-     bool approx, sync, signal;
+     bool approx, sync, signal, trigger;
      unsigned long timeSec;
      unsigned int timeMSec;
      unsigned int stripX, stripY;
      unsigned int pdo;
      double pdoRelative;
      long long nHitsToPrev;
-     float time;
-     double timeSinceSync;
+     float time; // ns
+     double timeSinceSync; // us
+     unsigned long long previousSync;
+     double deltaTimeSyncTrigger; // ns
      long long timeFull() const {
        return timeMSec + timeSec * 1E6;
      }
      string getSignalTypeText() const {
-       string signalTypeText = ""; // = "        ";
-       if(approx)
-         signalTypeText += string(signalTypeText.empty() ? "" : " ") + "a";
-       else if(sync)
-         signalTypeText += string(signalTypeText.empty() ? "" : " ") + "s";
-       if(!signalTypeText.empty())
-         signalTypeText = string() + "["+ signalTypeText + "]";
-       signalTypeText += string(" ", 5 - signalTypeText.size());
+       string signalTypeText = string() +
+         "[" +
+         (approx  ? "a" : " ") + 
+         (sync    ? "s" : " ") + 
+         (signal  ? "h" : " ") + 
+         (trigger ? "t" : " ") + 
+         "]";
        return signalTypeText;
      }
      void print() const {
@@ -65,13 +66,13 @@ public :
      }
      void printfBrief(bool revert = false) const {
        if(revert)
-         printf("%s %3d - %.2f - %.3f - %7lld - %.2g",
+         printf("%s %3d - %.2f - %.3f - %7lld - %.2g (%llu)",
                 getSignalTypeText().c_str(),
                 stripX, time, pdoRelative,
-                timeFull() % int(1E7), timeSinceSync);
+                timeFull() % int(1E7), timeSinceSync, previousSync);
        else
-         printf("%.2g - %7lld - %.3f - %.2f - %3d %s",
-                timeSinceSync, timeFull() % int(1E7),
+         printf("(%llu) %.2g - %7lld - %.3f - %.2f - %3d %s",
+                previousSync, timeSinceSync, timeFull() % int(1E7),
                 pdoRelative, time, stripX,
                 getSignalTypeText().c_str());
      }

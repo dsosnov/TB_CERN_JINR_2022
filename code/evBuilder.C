@@ -102,6 +102,7 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentra
   unsigned int nLoopEntriesAround = 0;
   Long64_t nentries = fChain->GetEntries();
   double lastSyncTime = -1;
+  unsigned long long previousSync = 0;
 
   Long64_t nbytes = 0, nb = 0, mbytes = 0, mb = 0;
 
@@ -150,8 +151,10 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentra
     if(!isTrigger && !isSync){
       continue;
     }
-    if(!isTrigger)
+    if(!isTrigger && isSync)
       trigTime = syncTime;
+    if(!isSync && isTrigger)
+      syncTime = trigTime;
 
     MmCluster.clear();
     mbytes = 0, mb = 0;
@@ -205,6 +208,7 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentra
     hit.approx = false;
     hit.signal = meanCh != 0;
     hit.sync = isSync;
+    hit.trigger = isTrigger;
     hit.timeSec = daq_timestamp_s->at(0);
     hit.timeMSec = daq_timestamp_ns->at(0) / 1000;
     hit.stripX = meanCh;
@@ -216,17 +220,27 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentra
     if(meanCh != 0)
       hitsToPrev = 0;
 
-    double syncTimeDiff = trigTime - lastSyncTime;
+    double syncTimeDiff = syncTime - lastSyncTime;
     if(lastSyncTime < 0)
       syncTimeDiff = lastSyncTime;
-    else if(trigTime < lastSyncTime)
+    else if(syncTime < lastSyncTime)
       syncTimeDiff += 4096 * 25.0;
     hit.timeSinceSync = syncTimeDiff / 1000.0;
 
+    double deltaTimeSyncTrigger = 0;
+    if(isTrigger && isSync){
+      deltaTimeSyncTrigger = trigTime - syncTime;
+    }
+    hit.deltaTimeSyncTrigger = deltaTimeSyncTrigger;
+
+    hit.previousSync = previousSync;
+
     outputData.emplace(jentry, hit);
 
-    if(isSync)
+    if(isSync){
       lastSyncTime = syncTime;
+      previousSync = jentry;
+    }
   }
   
   return outputData;
