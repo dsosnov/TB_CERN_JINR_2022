@@ -102,6 +102,9 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
         hit.stripX = c->center();
         hit.pdo = c->maxQ();
         hit.time = c->maxQTime() * 25;
+        for(auto h: c->getHits()){
+          hit.hitsX.emplace(h.strip, h.max_q);
+        }
       } else {
         hit.stripX = get<2>(getHitsForTrack(*highestTrack));
         hit.pdo = highestTrack->maxQ();

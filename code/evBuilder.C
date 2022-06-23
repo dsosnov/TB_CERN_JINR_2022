@@ -217,8 +217,13 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentra
     hit.nHitsToPrev = hitsToPrev;
     hit.time = trigTime - meanT;
 
-    if(meanCh != 0)
+    if(meanCh != 0){
       hitsToPrev = 0;
+      for(auto h: MmCluster){
+        hit.hitsX.emplace(h.channel, h.pdo);
+      }
+
+    }
 
     double syncTimeDiff = syncTime - lastSyncTime;
     if(lastSyncTime < 0)
