@@ -71,7 +71,7 @@ map<unsigned long, apv::doubleReadoutHits> apv::GetCentralHits2ROnly(unsigned lo
     }
 
     hitsToPrev++;
-    bool isSyncSignal = channelsAPV2.size() == 128;
+    bool isSyncSignal = channelsAPV2.size() >= 127;
     if(!isSyncSignal && (hitsL2.size() == 0))
       continue;
     apv::doubleReadoutHits drh = {isSyncSignal,
@@ -154,7 +154,7 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
     }
 
     hitsToPrev++;
-    bool isSyncSignal = channelsAPV2.size() == 128;
+    bool isSyncSignal = channelsAPV2.size() >= 127;
     if(!isSyncSignal && !trackIn2Center)
       continue;
 
