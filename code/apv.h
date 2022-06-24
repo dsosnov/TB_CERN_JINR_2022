@@ -10,6 +10,7 @@
 
 #include <vector> 
 #include <map>
+#include <utility>
 #include <string>
 #include <memory>
 
@@ -21,6 +22,7 @@ using std::vector;
 using std::map;
 using std::string;
 using std::shared_ptr, std::make_shared;
+using std::pair;
 
 class apv : public analysisGeneral {
 public :
@@ -93,6 +95,12 @@ public :
   virtual void     Init() override;
   virtual void     Loop(unsigned long n = 0) override;
   virtual map<unsigned long, analysisGeneral::mm2CenterHitParameters> GetCentralHits(unsigned long long fromSec = 0, unsigned long long toSec = 0) override;
+
+  struct doubleReadoutHits{
+    bool sync;
+    vector<apvHit> hits;
+  };
+  map<unsigned long, doubleReadoutHits> GetCentralHits2ROnly(unsigned long long fromSec = 0, unsigned long long toSec = 0);
 
   static unsigned long long unique_srs_time_stamp(int, int, int);
 
@@ -338,4 +346,8 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
                                                                                 unsigned long long toSec) {
   return {};
 };
+map<unsigned long, apv::doubleReadoutHits> apv::GetCentralHits2ROnly(unsigned long long fromSec,
+                                                                 unsigned long long toSec){
+  return {};
+}
 #endif // #ifdef apv_cxx

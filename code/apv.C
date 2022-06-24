@@ -5,6 +5,76 @@
 #include <TF1.h>
 #include <limits>
 
+map<unsigned long, apv::doubleReadoutHits> apv::GetCentralHits2ROnly(unsigned long long fromSec, unsigned long long toSec){
+  printf("apv::GetCentralHits2ROnly(%llu, %llu)\n", fromSec, toSec);
+
+  map<unsigned long, apv::doubleReadoutHits> outputData = {};
+  vector<apvHit> hitsL2;
+
+  if(!isChain())
+    return outputData;
+  Long64_t nentries = fChain->GetEntries();
+
+  unsigned long long previousSyncTimestamp = 0;
+  unsigned long long hitsToPrev = 0;
+  set<unsigned int> channelsAPV2 = {};
+  unsigned long long previousSync = 0;
+  
+  for (auto event = 0; event < nentries; event++){
+    Long64_t ientry = LoadTree(event);
+    if (ientry < 0) break;
+    GetEntry(event);
+    // printf("Entry: %d: error - %d\n", event, error);
+    if(error)
+      continue;
+      
+    if(fromSec > 0 && daqTimeSec < fromSec)
+      continue;
+    if(toSec > 0 && toSec >= fromSec && daqTimeSec > toSec)
+      break;
+
+    /* Checking if there is any mapped channels */
+    bool notErr = false;
+    for (auto &r: *mmReadout)
+      notErr = notErr || (r != 'E');
+    if(!syncSignal && !notErr) continue;
+    
+    unsigned long long currentTimestamp = daqTimeSec * 1E6 + daqTimeMicroSec;
+
+    hits.clear();
+    hitsL2.clear();
+    channelsAPV2.clear();
+    for (int j = 0; j < max_q->size(); j++){
+      // printf("Record inside entry: %d\n", j);
+      if (syncSignal){
+        auto chip = srsChip->at(j);
+        auto chan = srsChan->at(j);
+        if(chip == 2) channelsAPV2.emplace(chan);
+      }
+      auto readout = mmReadout->at(j);
+      if(readout == 'E') //non-mapped channel
+        continue;
+      auto layer = mmLayer->at(j);
+      auto strip = mmStrip->at(j);
+      auto maxQ = max_q->at(j);
+      
+      auto maxTime = t_max_q->at(j);
+
+      hits.push_back({layer, strip, maxQ, maxTime, raw_q->at(j)});      
+      if(layer == 2 && strip > 153 && strip < 210)
+        hitsL2.push_back({layer, strip, maxQ, maxTime, raw_q->at(j)});      
+    }
+
+    hitsToPrev++;
+    bool isSyncSignal = channelsAPV2.size() == 128;
+    if(!isSyncSignal && (hitsL2.size() == 0))
+      continue;
+    apv::doubleReadoutHits drh = {isSyncSignal, hitsL2};
+    outputData.emplace(event, drh);
+  }
+  return outputData;
+}
+
 map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(unsigned long long fromSec, unsigned long long toSec){
   printf("apv::GetCentralHits(%llu, %llu)\n", fromSec, toSec);
 
