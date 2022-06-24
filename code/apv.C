@@ -10,6 +10,7 @@ map<unsigned long, apv::doubleReadoutHits> apv::GetCentralHits2ROnly(unsigned lo
 
   map<unsigned long, apv::doubleReadoutHits> outputData = {};
   vector<apvHit> hitsL2;
+  vector<apvHit> hitsSync;
 
   if(!isChain())
     return outputData;
@@ -43,22 +44,24 @@ map<unsigned long, apv::doubleReadoutHits> apv::GetCentralHits2ROnly(unsigned lo
 
     hits.clear();
     hitsL2.clear();
+    hitsSync.clear();
     channelsAPV2.clear();
     for (int j = 0; j < max_q->size(); j++){
       // printf("Record inside entry: %d\n", j);
+      auto maxQ = max_q->at(j);
+      auto maxTime = t_max_q->at(j);
       if (syncSignal){
         auto chip = srsChip->at(j);
         auto chan = srsChan->at(j);
         if(chip == 2) channelsAPV2.emplace(chan);
+        hitsSync.push_back({5, chan, maxQ, maxTime, raw_q->at(j)});
       }
       auto readout = mmReadout->at(j);
       if(readout == 'E') //non-mapped channel
         continue;
       auto layer = mmLayer->at(j);
       auto strip = mmStrip->at(j);
-      auto maxQ = max_q->at(j);
       
-      auto maxTime = t_max_q->at(j);
 
       hits.push_back({layer, strip, maxQ, maxTime, raw_q->at(j)});      
       if(layer == 2 && strip > 153 && strip < 210)
@@ -69,7 +72,7 @@ map<unsigned long, apv::doubleReadoutHits> apv::GetCentralHits2ROnly(unsigned lo
     bool isSyncSignal = channelsAPV2.size() == 128;
     if(!isSyncSignal && (hitsL2.size() == 0))
       continue;
-    apv::doubleReadoutHits drh = {isSyncSignal, hitsL2};
+    apv::doubleReadoutHits drh = {isSyncSignal, hitsL2, hitsSync};
     outputData.emplace(event, drh);
   }
   return outputData;

@@ -99,6 +99,7 @@ public :
   struct doubleReadoutHits{
     bool sync;
     vector<apvHit> hits;
+    vector<apvHit> hitsSync;
   };
   map<unsigned long, doubleReadoutHits> GetCentralHits2ROnly(unsigned long long fromSec = 0, unsigned long long toSec = 0);
 
