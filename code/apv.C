@@ -72,7 +72,9 @@ map<unsigned long, apv::doubleReadoutHits> apv::GetCentralHits2ROnly(unsigned lo
     bool isSyncSignal = channelsAPV2.size() == 128;
     if(!isSyncSignal && (hitsL2.size() == 0))
       continue;
-    apv::doubleReadoutHits drh = {isSyncSignal, daqTimeSec, daqTimeMicroSec, hitsL2, hitsSync};
+    apv::doubleReadoutHits drh = {isSyncSignal,
+      static_cast<unsigned long>(daqTimeSec), static_cast<unsigned long>(daqTimeMicroSec),
+      hitsL2, hitsSync};
     outputData.emplace(event, drh);
   }
   return outputData;
