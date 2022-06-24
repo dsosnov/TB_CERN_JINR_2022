@@ -98,6 +98,11 @@ public :
 
   struct doubleReadoutHits{
     bool sync;
+    unsigned long timeSec;
+    unsigned int timeMSec;
+    long long timeFull() const {
+      return timeMSec + timeSec * 1E6;
+    }
     vector<apvHit> hits;
     vector<apvHit> hitsSync;
   };
