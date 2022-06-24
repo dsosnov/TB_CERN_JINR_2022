@@ -54,7 +54,7 @@ map<unsigned long, apv::doubleReadoutHits> apv::GetCentralHits2ROnly(unsigned lo
         auto chip = srsChip->at(j);
         auto chan = srsChan->at(j);
         if(chip == 2) channelsAPV2.emplace(chan);
-        hitsSync.push_back({5, chan, maxQ, maxTime, raw_q->at(j)});
+        hitsSync.push_back({5, static_cast<int>(chan), maxQ, maxTime, raw_q->at(j)});
       }
       auto readout = mmReadout->at(j);
       if(readout == 'E') //non-mapped channel
