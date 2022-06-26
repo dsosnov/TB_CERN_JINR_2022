@@ -234,7 +234,10 @@ void apv::Loop(unsigned long n)
   auto hdaqTimeMSec = make_shared<TH1F>("daqTimeMSec", Form("Run %s: daqTimeMSec", file.Data()), 1000, 0, 1000E3);
   auto hsrsTrigger = make_shared<TH1F>("srsTrigger", Form("Run %s: srsTrigger", file.Data()), 500, srsTrigger, srsTrigger + 5000);
 
-  auto hdaqTimeDifference = make_shared<TH1F>("hdaqTimeDifference", Form("Run %s: hdaqTimeDifference", file.Data()), 10000, 0, 100000);
+  auto hdaqTimeDifference = make_shared<TH1F>("hdaqTimeDifference", Form("Run %s: hdaqTimeDifference; #Delta T_{trig}, #mus", file.Data()), 10000, 0, 100000);
+  auto hdaqTimeDifferenceSync = make_shared<TH1F>("hdaqTimeDifferenceSync", Form("Run %s: hdaqTimeDifferenceSync; #Delta T_{Sync}, #mus", file.Data()), 10000, 0, 100000);
+  auto hdaqTimeDifferenceVSMultiplicity2 = make_shared<TH2F>("hdaqTimeDifferenceVSMultiplicity2", Form("Run %s: hdaqTimeDifferenceVSMultiplicity2; #Delta T_{trig}, #mus; N hits", file.Data()), 120, 0, 12000, 129, 0, 129);  
+  auto hdaqTimeDifferenceVSTime = make_shared<TH2F>("hdaqTimeDifferenceVSTime", Form("Run %s: hdaqTimeDifferenceVSTime; time, s; #Delta T_{trig}, #mus", file.Data()), 600, 0, 600, 120, 0, 12000);
   
   auto hClusterShiftBetweenLayers01 = make_shared<TH1F>("hClusterShiftBetweenLayers01", Form("Run %s: hClusterShiftBetweenLayers01", file.Data()), 200, -100, 100);
   auto hClusterShiftBetweenLayers02 = make_shared<TH1F>("hClusterShiftBetweenLayers02", Form("Run %s: hClusterShiftBetweenLayers02", file.Data()), 200, -100, 100);
@@ -308,7 +311,9 @@ void apv::Loop(unsigned long n)
       nentries = n;
 
     unsigned long long previousTimestamp = 0;
+    unsigned long long previousTimestampSync = 0;
     set<unsigned int> channelsAPV2 = {};
+    unsigned long long firstEventTime = daqTimeSec * 1E6 + daqTimeMicroSec;
   
     // nentries = 2000;
     for (auto event = 0; event < nentries; event++){
@@ -333,9 +338,6 @@ void apv::Loop(unsigned long n)
       hsrsTrigger->Fill(srsTrigger);
 
       unsigned long long currentTimestamp = daqTimeSec * 1E6 + daqTimeMicroSec;
-      if(previousTimestamp > 0)
-        hdaqTimeDifference->Fill(currentTimestamp - previousTimestamp);
-      previousTimestamp = currentTimestamp;
 
       printf("Event parameters: evt %lld, time: %d & %d, timestamp: %d, trigger: %d;", evt, daqTimeSec, daqTimeMicroSec, srsTimeStamp, srsTrigger);
       // printf(" Unique timestamp: %llu;", unique_srs_time_stamp(daqTimeSec, daqTimeMicroSec, srsTimeStamp));
@@ -457,6 +459,17 @@ void apv::Loop(unsigned long n)
       // printf("::N events with hits in three layers: %lu (of %lld events -> %.2f)\n", nEventsWHitsThreeLayers, event+1, static_cast<double>(nEventsWHitsThreeLayers) / static_cast<double>(event+1));  
     
       // clusterTree->Fill();
+      if(channelsAPV2.size() >= 127){
+        if(previousTimestampSync > 0)
+          hdaqTimeDifferenceSync->Fill(currentTimestamp - previousTimestampSync);
+        previousTimestampSync = currentTimestamp;
+      }
+      if(previousTimestamp > 0){
+        hdaqTimeDifference->Fill(currentTimestamp - previousTimestamp);
+        hdaqTimeDifferenceVSMultiplicity2->Fill(currentTimestamp - previousTimestamp, channelsAPV2.size());
+        hdaqTimeDifferenceVSTime->Fill(static_cast<double>(currentTimestamp - firstEventTime) / 1E6, currentTimestamp - previousTimestamp);
+      }
+      previousTimestamp = currentTimestamp;
     }
   
     printf("N events with hits in two   layers to region double-readed wyth mu2E: %lu (of %lld events -> %.2f)\n", nEventsWHitsTwoLayers, nentries, static_cast<double>(nEventsWHitsTwoLayers) / static_cast<double>(nentries));
