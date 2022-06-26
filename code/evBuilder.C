@@ -475,6 +475,7 @@ void evBuilder::Loop(unsigned long n)
   auto hdaqTimeDifference0 = make_shared<TH1F>("hdaqTimeDifference0", Form("Run %s: hdaqTimeDifference0; [ns]", file.Data()), 300, 0, 300000); // up to 10 ms per 100ns
   auto hdaqTimeDifference60 = make_shared<TH1F>("hdaqTimeDifference60", Form("Run %s: hdaqTimeDifference60; [#mus]", file.Data()), 500, 0, 5000);
   auto hbcidDifference63 = make_shared<TH1F>("hbcidDifference63", Form("Run %s: hbcidDifference63; [bcid]", file.Data()), 8000, 0, 8000);
+  auto hNPeriodsBenweenSync = make_shared<TH1F>("hNPeriodsBenweenSync", Form("Run %s: hNPeriodsBenweenSync; N sync periods", file.Data()), 12+500, -1, 11+500);
   auto his0 = make_shared<TH1F>("his0", Form("Run %s: his0", file.Data()), 2, 0, 2);
 
   unsigned int pdoThr = 100;
@@ -813,6 +814,18 @@ void evBuilder::Loop(unsigned long n)
         auto bcidSincePrevious63 = (fbcid > prevbcid63) ? fbcid - prevbcid63 : fbcid - prevbcid63 + 4096;
         hbcidDifference63->Fill(bcidSincePrevious63);
         prevbcid63 = fbcid;
+
+        unsigned int syncPeriod = 2000; // bcid
+        unsigned int maxDiff = 1; // bcid
+        auto nSignalsBetween = static_cast<int>(round(static_cast<double>(bcidSincePrevious63) / static_cast<double>(syncPeriod)));
+        if(abs(static_cast<long>(bcidSincePrevious63) - static_cast<long>(syncPeriod * nSignalsBetween)) > maxDiff){
+          printf("For event %lld: Time difference between sync is: %llu, what is about %d signal period and %ld difference\n",
+                 jentry, bcidSincePrevious63, nSignalsBetween, abs(static_cast<long>(bcidSincePrevious63) - static_cast<long>(syncPeriod * nSignalsBetween))
+            );
+          hNPeriodsBenweenSync->Fill(-1);
+        } else
+          hNPeriodsBenweenSync->Fill(nSignalsBetween);
+
       }
       else
       {

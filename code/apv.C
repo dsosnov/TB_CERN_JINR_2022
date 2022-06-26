@@ -238,6 +238,7 @@ void apv::Loop(unsigned long n)
   auto hdaqTimeDifferenceSync = make_shared<TH1F>("hdaqTimeDifferenceSync", Form("Run %s: hdaqTimeDifferenceSync; #Delta T_{Sync}, #mus", file.Data()), 10000, 0, 100000);
   auto hdaqTimeDifferenceVSMultiplicity2 = make_shared<TH2F>("hdaqTimeDifferenceVSMultiplicity2", Form("Run %s: hdaqTimeDifferenceVSMultiplicity2; #Delta T_{trig}, #mus; N hits", file.Data()), 120, 0, 12000, 129, 0, 129);  
   auto hdaqTimeDifferenceVSTime = make_shared<TH2F>("hdaqTimeDifferenceVSTime", Form("Run %s: hdaqTimeDifferenceVSTime; time, s; #Delta T_{trig}, #mus", file.Data()), 600, 0, 600, 120, 0, 12000);
+  auto hNPeriodsBenweenSync = make_shared<TH1F>("hNPeriodsBenweenSync", Form("Run %s: hNPeriodsBenweenSync; N sync periods", file.Data()), 12+500, -1, 11+500);
   
   auto hClusterShiftBetweenLayers01 = make_shared<TH1F>("hClusterShiftBetweenLayers01", Form("Run %s: hClusterShiftBetweenLayers01", file.Data()), 200, -100, 100);
   auto hClusterShiftBetweenLayers02 = make_shared<TH1F>("hClusterShiftBetweenLayers02", Form("Run %s: hClusterShiftBetweenLayers02", file.Data()), 200, -100, 100);
@@ -460,8 +461,21 @@ void apv::Loop(unsigned long n)
     
       // clusterTree->Fill();
       if(channelsAPV2.size() >= 127){
-        if(previousTimestampSync > 0)
-          hdaqTimeDifferenceSync->Fill(currentTimestamp - previousTimestampSync);
+        if(previousTimestampSync > 0){
+          auto timestampSyncDiff = currentTimestamp - previousTimestampSync;
+          hdaqTimeDifferenceSync->Fill(timestampSyncDiff);
+          unsigned int syncPeriod = 10000; // #mus
+          unsigned int maxDiff = 1000; // #mus
+          auto nSignalsBetween = static_cast<int>(round(static_cast<double>(timestampSyncDiff) / static_cast<double>(syncPeriod)));
+          if(abs(static_cast<long>(timestampSyncDiff) - static_cast<long>(syncPeriod * nSignalsBetween)) > maxDiff){
+            printf("For event %lld: Time difference between sync is: %llu, what is about %d signal period and %ld difference\n",
+                   ientry, timestampSyncDiff, nSignalsBetween, abs(static_cast<long>(timestampSyncDiff) - static_cast<long>(syncPeriod * nSignalsBetween))
+              );
+            hNPeriodsBenweenSync->Fill(-1);
+          } else
+            hNPeriodsBenweenSync->Fill(nSignalsBetween);
+          
+        }
         previousTimestampSync = currentTimestamp;
       }
       if(previousTimestamp > 0){
