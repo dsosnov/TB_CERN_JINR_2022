@@ -124,6 +124,7 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentra
     bool isSync = false;
     double syncTime = 0;
     double trigTime = 0;
+    long prevbcid63 = 0;
     for (int j = 0; j < channel->at(0).size(); j++)
     {
       int fch = channel->at(0).at(j);
@@ -143,6 +144,15 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentra
       }
       else if(fchD == 0 && fchM == 4){
         if(fpdo > 650){
+          if(prevbcid63 >= 0){
+            auto bcidSincePrevious63 = (fbcid > prevbcid63) ? fbcid - prevbcid63 : fbcid - prevbcid63 + 4096;
+            prevbcid63 = fbcid;
+            unsigned int maxDiffBCID = 5; // bcid
+            // Remove any synchrosigtnal not with the 2000 and 4000 bcid difference with previous
+            if((bcidSincePrevious63 < 2000 - maxDiffBCID || bcidSincePrevious63 > 2000 + maxDiffBCID) &&
+               (bcidSincePrevious63 < 4000 - maxDiffBCID || bcidSincePrevious63 > 4000 + maxDiffBCID))
+              continue;
+          }
           isSync = true;
           syncTime = getTime(fch, fbcid, ftdo, fpdoUC);
         }
@@ -477,6 +487,7 @@ void evBuilder::Loop(unsigned long n)
   auto hbcidDifference63 = make_shared<TH1F>("hbcidDifference63", Form("Run %s: hbcidDifference63; [bcid]", file.Data()), 8000, 0, 8000);
   auto hNPeriodsBenweenSync = make_shared<TH1F>("hNPeriodsBenweenSync", Form("Run %s: hNPeriodsBenweenSync; N sync periods", file.Data()), 12+500, -1, 11+500);
   auto his0 = make_shared<TH1F>("his0", Form("Run %s: his0", file.Data()), 2, 0, 2);
+  auto hbcidDifference63PrevNext = make_shared<TH2F>("hbcidDifference63PrevNext", Form("Run %s: hbcidDifference63PrevNext; distance to previous [bcid]; distance to next [bcid]", file.Data()), 4096, 0, 4096, 4096, 0, 4096);
 
   unsigned int pdoThr = 100;
   unsigned int nLoopEntriesAround = 0;
@@ -491,7 +502,8 @@ void evBuilder::Loop(unsigned long n)
 
   Long64_t nbytes = 0, nb = 0;
 
-  unsigned long long daqPrevTime60 = 0, daqPrevTime0 = 0, prevbcid63 = 0;
+  unsigned long long daqPrevTime60 = 0, daqPrevTime0 = 0;
+  long long prevbcid63 = -1, prevbcid63diff = -1, prevbcid63Good = -1;
 
   // =============================== CORRELATION FINDING ===============================
   for (Long64_t jentry = 0; jentry < nentries; jentry++) // You can remove "/ 10" and use the whole dataset
@@ -811,21 +823,34 @@ void evBuilder::Loop(unsigned long n)
       }
       else if (fchD == 0 && fchM == 4){
         if(fpdo < 250) continue;
-        auto bcidSincePrevious63 = (fbcid > prevbcid63) ? fbcid - prevbcid63 : fbcid - prevbcid63 + 4096;
-        hbcidDifference63->Fill(bcidSincePrevious63);
+        if(prevbcid63 >= 0){
+          auto bcidSincePrevious63 = (fbcid > prevbcid63) ? fbcid - prevbcid63 : fbcid - prevbcid63 + 4096;
+          hbcidDifference63->Fill(bcidSincePrevious63);
+          hbcidDifference63PrevNext->Fill(prevbcid63diff, bcidSincePrevious63);
+          prevbcid63diff = bcidSincePrevious63;
+
+          unsigned int maxDiffBCID = 1; // bcid
+          // // Remove any synchrosigtnal not with the 2000 and 4000 bcid difference with previous
+          // if((bcidSincePrevious63 < 2000 - maxDiffBCID || bcidSincePrevious63 > 2000 + maxDiffBCID) &&
+          //    (bcidSincePrevious63 < 4000 - maxDiffBCID || bcidSincePrevious63 > 4000 + maxDiffBCID))
+          //   continue;
+
+          // prevbcid63Good = fbcid;
+          // prevbcid63diff = bcidSincePrevious63;
+
+
+          unsigned int syncPeriod = 2000; // bcid
+          auto nSignalsBetween = static_cast<int>(round(static_cast<double>(bcidSincePrevious63) / static_cast<double>(syncPeriod)));
+          if(abs(static_cast<long>(bcidSincePrevious63) - static_cast<long>(syncPeriod * nSignalsBetween)) > maxDiffBCID){
+            printf("For event %lld: Time difference between sync is: %llu, what is about %d signal period and %ld difference\n",
+                   jentry, bcidSincePrevious63, nSignalsBetween, abs(static_cast<long>(bcidSincePrevious63) - static_cast<long>(syncPeriod * nSignalsBetween))
+              );
+            hNPeriodsBenweenSync->Fill(-1);
+          } else{
+            hNPeriodsBenweenSync->Fill(nSignalsBetween);
+          }
+        }
         prevbcid63 = fbcid;
-
-        unsigned int syncPeriod = 2000; // bcid
-        unsigned int maxDiff = 1; // bcid
-        auto nSignalsBetween = static_cast<int>(round(static_cast<double>(bcidSincePrevious63) / static_cast<double>(syncPeriod)));
-        if(abs(static_cast<long>(bcidSincePrevious63) - static_cast<long>(syncPeriod * nSignalsBetween)) > maxDiff){
-          printf("For event %lld: Time difference between sync is: %llu, what is about %d signal period and %ld difference\n",
-                 jentry, bcidSincePrevious63, nSignalsBetween, abs(static_cast<long>(bcidSincePrevious63) - static_cast<long>(syncPeriod * nSignalsBetween))
-            );
-          hNPeriodsBenweenSync->Fill(-1);
-        } else
-          hNPeriodsBenweenSync->Fill(nSignalsBetween);
-
       }
       else
       {
