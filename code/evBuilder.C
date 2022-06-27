@@ -223,6 +223,7 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentra
     hit.timeMSec = daq_timestamp_ns->at(0) / 1000;
     hit.stripX = meanCh;
     hit.pdo = static_cast<int>(maxPdo);
+    hit.bcid = syncBcid;
     hit.pdoRelative = maxPdo / 1024.0;
     hit.nHitsToPrev = hitsToPrev;
     hit.time = trigTime - meanT;
