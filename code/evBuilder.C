@@ -146,15 +146,15 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentra
         if(fpdo > 650){
           if(prevbcid63 >= 0){
             auto bcidSincePrevious63 = (fbcid > prevbcid63) ? fbcid - prevbcid63 : fbcid - prevbcid63 + 4096;
-            prevbcid63 = fbcid;
             unsigned int maxDiffBCID = 5; // bcid
             // Remove any synchrosigtnal not with the 2000 and 4000 bcid difference with previous
-            if((bcidSincePrevious63 < 2000 - maxDiffBCID || bcidSincePrevious63 > 2000 + maxDiffBCID) &&
-               (bcidSincePrevious63 < 4000 - maxDiffBCID || bcidSincePrevious63 > 4000 + maxDiffBCID))
-              continue;
+            if((bcidSincePrevious63 >= 2000 - maxDiffBCID && bcidSincePrevious63 <= 2000 + maxDiffBCID) ||
+               (bcidSincePrevious63 >= 4000 - maxDiffBCID && bcidSincePrevious63 <= 4000 + maxDiffBCID)){
+              isSync = true;
+              syncTime = getTime(fch, fbcid, ftdo, fpdoUC);
+            }
           }
-          isSync = true;
-          syncTime = getTime(fch, fbcid, ftdo, fpdoUC);
+          prevbcid63 = fbcid;
         }
       }
     }
