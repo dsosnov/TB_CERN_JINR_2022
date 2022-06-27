@@ -125,6 +125,7 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentra
     double syncTime = 0;
     double trigTime = 0;
     long prevbcid63 = 0;
+    int syncBcid = 0;
     for (int j = 0; j < channel->at(0).size(); j++)
     {
       int fch = channel->at(0).at(j);
@@ -155,6 +156,7 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentra
             }
           }
           prevbcid63 = fbcid;
+          syncBcid = fbcid;
         }
       }
     }
