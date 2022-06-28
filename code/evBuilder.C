@@ -89,6 +89,74 @@ void evBuilder::threePlotDrawF(TH1D *h1, TH1D *h2, TH1D *h3, TString fileEnding)
   three_plots->SaveAs("../out/3plots_" + file + fileEnding + ".pdf");
 }
 
+long long evBuilder::findFirstGoodPulser(unsigned long long fromSec, unsigned long long toSec){
+  printf("evBuilder::GetCentralHits(%llu, %llu)\n", fromSec, toSec);
+
+  if (fChain == 0)
+    return -1;
+
+  Long64_t nentries = fChain->GetEntries();
+  double lastSyncTime = -1;
+  unsigned long long previousSync = 0;
+  unsigned int pdoThr = 100;
+  unsigned int nLoopEntriesAround = 0;
+
+  Long64_t nbytes = 0, nb = 0, mbytes = 0, mb = 0;
+
+  // =============================== CORRELATION FINDING ===============================
+    vector<pair<unsigned long, unsigned long>> syncSignalsBCID;
+  for (Long64_t jentry = 0; jentry < nentries; jentry++) // You can remove "/ 10" and use the whole dataset
+  {
+    Long64_t ientry = LoadTree(jentry);
+    if (ientry < 0)
+      break;
+    nb = fChain->GetEntry(jentry);
+    nbytes += nb;
+
+    if(fromSec > 0 && daq_timestamp_s->at(0) < fromSec)
+      continue;
+    else if(toSec > 0 && toSec >= fromSec && daq_timestamp_s->at(0) > toSec)
+      break;
+
+    bool isSync = false;
+    int syncBcid = 0;
+    for (int j = 0; j < channel->at(0).size(); j++)
+    {
+      int fch = channel->at(0).at(j);
+      int fchD = getMappedDetector(fch);
+      int fchM = getMappedChannel(fch);
+
+      int fpdoUC = pdo->at(0).at(j); // Uncorrected PDO, used at time calibration
+      int fpdo = correctPDO(fch, fpdoUC);
+      int ftdo = tdo->at(0).at(j);
+      int fbcid = grayDecoded->at(0).at(j);
+
+      if(fpdo < pdoThr) continue;
+      if(fchD == -1) continue;
+
+      if(fchD == 0 && fchM == 4){
+        if(fpdo < 650)
+          continue;
+        syncSignalsBCID.push_back({jentry, fbcid});
+      }
+    }
+    if(syncSignalsBCID.size() > 10)
+      break;
+  }
+
+  for (auto i = 0; i < syncSignalsBCID.size() - 1; i++){
+    for (auto j = 0; j < syncSignalsBCID.size(); j++){
+      long long bcidDiff = (syncSignalsBCID.at(j).second > syncSignalsBCID.at(i).second) ?
+        syncSignalsBCID.at(j).second - syncSignalsBCID.at(i).second : syncSignalsBCID.at(j).second - syncSignalsBCID.at(i).second + 4096;      
+      unsigned int maxDiffBCID = 1; // bcid          
+      if((abs(static_cast<long long>(bcidDiff) - 2000) <= maxDiffBCID || abs(static_cast<long long>(bcidDiff) - 4000) <= maxDiffBCID)){
+        printf("Between hit %d -- %d (%d) and %d -- %d (%d) -- difference %d\n", i, syncSignalsBCID.at(i).first, syncSignalsBCID.at(i).second, j, syncSignalsBCID.at(j).first, syncSignalsBCID.at(j).second, bcidDiff);
+        return syncSignalsBCID.at(i).first;
+      }
+    }    
+  }
+  return -1;
+}
 map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentralHits(unsigned long long fromSec, unsigned long long toSec){
   printf("evBuilder::GetCentralHits(%llu, %llu)\n", fromSec, toSec);
 
