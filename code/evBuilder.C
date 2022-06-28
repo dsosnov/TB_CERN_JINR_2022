@@ -150,7 +150,7 @@ long long evBuilder::findFirstGoodPulser(unsigned long long fromSec, unsigned lo
         syncSignalsBCID.at(j).second - syncSignalsBCID.at(i).second : syncSignalsBCID.at(j).second - syncSignalsBCID.at(i).second + 4096;      
       unsigned int maxDiffBCID = 1; // bcid          
       if((abs(static_cast<long long>(bcidDiff) - 2000) <= maxDiffBCID || abs(static_cast<long long>(bcidDiff) - 4000) <= maxDiffBCID)){
-        printf("Between hit %d -- %d (%d) and %d -- %d (%d) -- difference %d\n", i, syncSignalsBCID.at(i).first, syncSignalsBCID.at(i).second, j, syncSignalsBCID.at(j).first, syncSignalsBCID.at(j).second, bcidDiff);
+        printf("Between hit %d -- %lu (%lu) and %d -- %lu (%lu) -- difference %lld\n", i, syncSignalsBCID.at(i).first, syncSignalsBCID.at(i).second, j, syncSignalsBCID.at(j).first, syncSignalsBCID.at(j).second, bcidDiff);
         return syncSignalsBCID.at(i).first;
       }
     }    
