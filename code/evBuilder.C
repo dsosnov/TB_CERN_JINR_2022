@@ -90,7 +90,7 @@ void evBuilder::threePlotDrawF(TH1D *h1, TH1D *h2, TH1D *h3, TString fileEnding)
 }
 
 long long evBuilder::findFirstGoodPulser(unsigned long long fromSec, unsigned long long toSec){
-  printf("evBuilder::GetCentralHits(%llu, %llu)\n", fromSec, toSec);
+  printf("evBuilder::findFirstGoodPulser(%llu, %llu)\n", fromSec, toSec);
 
   if (fChain == 0)
     return -1;
