@@ -239,6 +239,9 @@ void apv::Loop(unsigned long n)
   auto hdaqTimeDifferenceVSMultiplicity2 = make_shared<TH2F>("hdaqTimeDifferenceVSMultiplicity2", Form("Run %s: hdaqTimeDifferenceVSMultiplicity2; #Delta T_{trig}, #mus; N hits", file.Data()), 120, 0, 12000, 129, 0, 129);  
   auto hdaqTimeDifferenceVSTime = make_shared<TH2F>("hdaqTimeDifferenceVSTime", Form("Run %s: hdaqTimeDifferenceVSTime; time, s; #Delta T_{trig}, #mus", file.Data()), 600, 0, 600, 120, 0, 12000);
   auto hNPeriodsBenweenSync = make_shared<TH1F>("hNPeriodsBenweenSync", Form("Run %s: hNPeriodsBenweenSync; N sync periods", file.Data()), 12+500, -1, 11+500);
+  auto hdaqTimeDifferencePrevNext = make_shared<TH2F>("hdaqTimeDifferencePrevNext", Form("Run %s: hdaqTimeDifferencePrevNext; #Delta T_{trig} (previous), #mus; #Delta T_{trig} (next), #mus", file.Data()), 1100, 0, 11000, 1100, 0, 11000);
+  
+  auto hdaqTimeDifferenceVSMultiplicityAny = make_shared<TH2F>("hdaqTimeDifferenceVSMultiplicityAny", Form("Run %s: hdaqTimeDifferenceVSMultiplicityAny; #Delta T_{trig}, #mus; N hits", file.Data()), 120, 0, 12000, 360*4-122+1, 0, 360*4-122+1);
   
   auto hClusterShiftBetweenLayers01 = make_shared<TH1F>("hClusterShiftBetweenLayers01", Form("Run %s: hClusterShiftBetweenLayers01", file.Data()), 200, -100, 100);
   auto hClusterShiftBetweenLayers02 = make_shared<TH1F>("hClusterShiftBetweenLayers02", Form("Run %s: hClusterShiftBetweenLayers02", file.Data()), 200, -100, 100);
@@ -313,8 +316,11 @@ void apv::Loop(unsigned long n)
 
     unsigned long long previousTimestamp = 0;
     unsigned long long previousTimestampSync = 0;
+    unsigned long long previousTimeDiff = 0;
     set<unsigned int> channelsAPV2 = {};
+    set<pair<unsigned int, unsigned int>> channelsAPVAny = {};
     unsigned long long firstEventTime = daqTimeSec * 1E6 + daqTimeMicroSec;
+    printf("firstEventTime: %llu\n", firstEventTime);
   
     // nentries = 2000;
     for (auto event = 0; event < nentries; event++){
@@ -348,6 +354,7 @@ void apv::Loop(unsigned long n)
       /* Per-channel */
       hits.clear();
       channelsAPV2.clear();
+      channelsAPVAny.clear();
       for (int j = 0; j < max_q->size(); j++){
         // printf("Record inside entry: %d\n", j);
         auto chip = srsChip->at(j);
@@ -362,6 +369,8 @@ void apv::Loop(unsigned long n)
         hProfile.at(layer)->Fill(strip);
         auto maxQ = max_q->at(j);
         hMaxQ.at(layer)->Fill(maxQ);
+        if(layer < 4)
+          channelsAPVAny.emplace(make_pair(layer, strip));
       
         // printf(" %d-%d (%d)", layer, strip, maxQ);
 
@@ -479,9 +488,13 @@ void apv::Loop(unsigned long n)
         previousTimestampSync = currentTimestamp;
       }
       if(previousTimestamp > 0){
-        hdaqTimeDifference->Fill(currentTimestamp - previousTimestamp);
-        hdaqTimeDifferenceVSMultiplicity2->Fill(currentTimestamp - previousTimestamp, channelsAPV2.size());
-        hdaqTimeDifferenceVSTime->Fill(static_cast<double>(currentTimestamp - firstEventTime) / 1E6, currentTimestamp - previousTimestamp);
+        auto timediff = currentTimestamp - previousTimestamp;
+        hdaqTimeDifference->Fill(timediff);
+        hdaqTimeDifferenceVSMultiplicity2->Fill(timediff, channelsAPV2.size());
+        hdaqTimeDifferenceVSTime->Fill(static_cast<double>(currentTimestamp - firstEventTime) / 1E6, timediff);
+        hdaqTimeDifferencePrevNext->Fill(previousTimeDiff, timediff);
+        previousTimeDiff = timediff;
+        hdaqTimeDifferenceVSMultiplicityAny->Fill(timediff, channelsAPVAny.size());
       }
       previousTimestamp = currentTimestamp;
     }
