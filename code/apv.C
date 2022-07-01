@@ -71,7 +71,7 @@ map<unsigned long, apv::doubleReadoutHits> apv::GetCentralHits2ROnly(unsigned lo
     }
 
     hitsToPrev++;
-    bool isSyncSignal = channelsAPV2.size() >= 127;
+    bool isSyncSignal = channelsAPV2.size() >= 125;
     if(!isSyncSignal && (hitsL2.size() == 0))
       continue;
     apv::doubleReadoutHits drh = {isSyncSignal,
@@ -154,7 +154,7 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
     }
 
     hitsToPrev++;
-    bool isSyncSignal = channelsAPV2.size() >= 127;
+    bool isSyncSignal = channelsAPV2.size() >= 125;
     if(!isSyncSignal && !trackIn2Center)
       continue;
 
@@ -460,7 +460,7 @@ void apv::Loop(unsigned long n)
       // printf("::N events with hits in three layers: %lu (of %lld events -> %.2f)\n", nEventsWHitsThreeLayers, event+1, static_cast<double>(nEventsWHitsThreeLayers) / static_cast<double>(event+1));  
     
       // clusterTree->Fill();
-      if(channelsAPV2.size() >= 127){
+      if(channelsAPV2.size() >= 125){
         if(previousTimestampSync > 0){
           auto timestampSyncDiff = currentTimestamp - previousTimestampSync;
           hdaqTimeDifferenceSync->Fill(timestampSyncDiff);
