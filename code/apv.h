@@ -129,7 +129,7 @@ public :
   tuple<double,double,double> getHitsForTrack(apvTrack track);
   vector<apvTrack> constructTracks(vector<apvCluster> clusters);
 
-  unsigned int nAPVs = 5;
+  unsigned int nAPVLayers = 5;
 };
 
 tuple<double,double,double> apv::getHitsForTrack(apvTrack track){

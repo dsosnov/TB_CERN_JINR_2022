@@ -225,7 +225,7 @@ void apv::Loop(unsigned long n)
   TFile *out = new TFile("../out/out_apv_" + file + ending, "RECREATE"); // PATH where to save out_*.root file
 
   vector<TDirectory*> dirs;
-  for(auto i = 0; i < nAPVs; i++){
+  for(auto i = 0; i < nAPVLayers; i++){
     dirs.push_back(out->mkdir(Form("Layer %d", i)));
   }
 
@@ -247,7 +247,7 @@ void apv::Loop(unsigned long n)
   
   vector<shared_ptr<TH1F>> hMaxQ, hMaxQTime, hProfile /*, hTriggerShiftByMaxQ*/;
   vector<shared_ptr<TH2F>> hPositionVSMaxQ, hPositionVSMaxQTime /*, hTriggerShiftByMaxQ*/;
-  for(auto i = 0; i < nAPVs; i++){
+  for(auto i = 0; i < nAPVLayers; i++){
     dirs.at(i)->cd();
     hMaxQ.push_back(make_shared<TH1F>(Form("l%d_maxQ", i), Form("Run %s: l%d_maxQ", file.Data(), i), 2500, 0, 2500));
     hMaxQTime.push_back(make_shared<TH1F>(Form("l%d_maxQTime", i), Form("Run %s: l%d_maxQTime", file.Data(), i), 30, 0, 30*25));
@@ -261,7 +261,7 @@ void apv::Loop(unsigned long n)
 
   vector<shared_ptr<TH1F>> hClusterMaxQ, hClusterQ, hClusterPosition, hClusterSize;
   vector<shared_ptr<TH2F>> hClusterPositionVSSize, hClusterPositionVSMaxQ, hClusterPositionVSQ;
-  for(auto i = 0; i < nAPVs; i++){
+  for(auto i = 0; i < nAPVLayers; i++){
     dirs.at(i)->cd();
     hClusterPosition.push_back(make_shared<TH1F>(Form("l%d_clusterPosition", i), Form("Run %s: l%d_clusterPosition", file.Data(), i), 361, 0, 361));
     hClusterMaxQ.push_back(make_shared<TH1F>(Form("l%d_hClusterMaxQ", i), Form("Run %s: l%d_hClusterMaxQ", file.Data(), i), 4096, 0, 4096));
@@ -281,7 +281,7 @@ void apv::Loop(unsigned long n)
   // auto hClusterPositionVSSizeAll = make_shared<TH2F>(Form("hClusterPositionVSSize"), Form("Run %s: hClusterPositionVSSize", file.Data()), 361, 0, 361, 40, 0, 40);
 
   vector<shared_ptr<TH1F>> hPedMeanVal, hPedStdevVal, hPedSigmaVal, hPed;
-  for(auto i = 0; i < nAPVs; i++){
+  for(auto i = 0; i < nAPVLayers; i++){
     dirs.at(i)->cd();
     hPedMeanVal.push_back(make_shared<TH1F>(Form("l%d_hPedMeanVal", i), Form("Run %s: l%d_hPedMeanVal", file.Data(), i), 361, 0, 361));
     hPedStdevVal.push_back(make_shared<TH1F>(Form("l%d_hPedStdevVal", i), Form("Run %s: l%d_hPedStdevVal", file.Data(), i), 361, 0, 361));
