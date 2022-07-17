@@ -122,7 +122,7 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
     channelsAPV2.clear();
     hitsPerLayer.clear();
     for(auto i = 0; i < nAPVLayers; i++)
-      hitsPerLayer.emplace(i, {});
+      hitsPerLayer.emplace(i, map<unsigned int, unsigned int>());
     for (int j = 0; j < max_q->size(); j++){
       // printf("Record inside entry: %d\n", j);
       if (syncSignal){
@@ -140,7 +140,7 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
       auto maxTime = t_max_q->at(j);
       
       hits.push_back({layer, strip, maxQ, maxTime, raw_q->at(j)});
-      hitsPerLayer.at(layer)->emplace(strip, maxQ);
+      hitsPerLayer.at(layer).emplace(strip, maxQ);
     }
 
     /* Constructing clusters */
