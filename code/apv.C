@@ -95,6 +95,7 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
   unsigned long long hitsToPrev = 0;
   set<unsigned int> channelsAPV2 = {};
   unsigned long long previousSync = 0;
+  map<int, map<unsigned int, unsigned int>> hitsPerLayer;
   
   for (auto event = 0; event < nentries; event++){
     Long64_t ientry = LoadTree(event);
@@ -119,6 +120,9 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
 
     hits.clear();
     channelsAPV2.clear();
+    hitsPerLayer.clear();
+    for(auto i = 0; i < nAPVLayers; i++)
+      hitsPerLayer.emplace(i, {});
     for (int j = 0; j < max_q->size(); j++){
       // printf("Record inside entry: %d\n", j);
       if (syncSignal){
@@ -135,7 +139,8 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
       
       auto maxTime = t_max_q->at(j);
       
-      hits.push_back({layer, strip, maxQ, maxTime, raw_q->at(j)});      
+      hits.push_back({layer, strip, maxQ, maxTime, raw_q->at(j)});
+      hitsPerLayer.at(layer)->emplace(strip, maxQ);
     }
 
     /* Constructing clusters */
@@ -203,6 +208,8 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
     hitsToPrev = 0;
 
     hit.previousSync = previousSync;
+
+    hit.hitsPerLayer = hitsPerLayer;
 
     outputData.emplace(event, hit);
     if(isSyncSignal){
