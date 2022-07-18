@@ -20,6 +20,7 @@ map<unsigned long, apv::doubleReadoutHits> apv::GetCentralHits2ROnly(unsigned lo
   unsigned long long hitsToPrev = 0;
   set<unsigned int> channelsAPV2 = {};
   unsigned long long previousSync = 0;
+  map<int, map<unsigned int, unsigned int>> hitsPerLayer;
   
   for (auto event = 0; event < nentries; event++){
     Long64_t ientry = LoadTree(event);
@@ -46,6 +47,9 @@ map<unsigned long, apv::doubleReadoutHits> apv::GetCentralHits2ROnly(unsigned lo
     hitsL2.clear();
     hitsSync.clear();
     channelsAPV2.clear();
+    hitsPerLayer.clear();
+    for(auto i = 0; i < nAPVLayers; i++)
+      hitsPerLayer.emplace(i, map<unsigned int, unsigned int>());
     for (int j = 0; j < max_q->size(); j++){
       // printf("Record inside entry: %d\n", j);
       auto maxQ = max_q->at(j);
@@ -67,7 +71,8 @@ map<unsigned long, apv::doubleReadoutHits> apv::GetCentralHits2ROnly(unsigned lo
 
       hits.push_back({layer, strip, maxQ, maxTime, raw_q->at(j)});      
       if(layer == 2 && strip > 153 && strip < 210)
-        hitsL2.push_back({layer, strip, maxQ, maxTime, raw_q->at(j)});      
+        hitsL2.push_back({layer, strip, maxQ, maxTime, raw_q->at(j)});
+      hitsPerLayer.at(layer).emplace(strip, maxQ);
     }
 
     hitsToPrev++;
@@ -76,7 +81,7 @@ map<unsigned long, apv::doubleReadoutHits> apv::GetCentralHits2ROnly(unsigned lo
       continue;
     apv::doubleReadoutHits drh = {isSyncSignal,
       static_cast<unsigned int>(daqTimeSec), static_cast<unsigned int>(daqTimeMicroSec), srsTimeStamp,
-      hitsL2, hitsSync};
+      hitsL2, hitsSync, hitsPerLayer};
     outputData.emplace(event, drh);
   }
   return outputData;
