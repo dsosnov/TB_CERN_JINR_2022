@@ -664,14 +664,6 @@ void evBuilder::Loop(unsigned long n)
       firstEventDaqTimeNS = daq_timestamp_ns->at(0);
     }
 
-    // if (daq_timestamp_s->at(0) - 1.654545e9 < 160) continue;
-    // if (daq_timestamp_s->at(0) - 1.654545e9 < 164) continue;
-    // if (daq_timestamp_s->at(0) - 1.654545e9 > 169) continue;
-    // if( jentry < 435875 || jentry > 435885) continue;
-    // if (daq_timestamp_s->at(0) - 1.654545e9 < 169) continue;
-    // if (daq_timestamp_s->at(0) - 1.654545e9 > 169+5) continue;
-    if(daq_timestamp_s->at(0) - firstEventDaqTimeS > 60) break;
-
 
     long long daqCurrTime = (daq_timestamp_s->at(0) - firstEventDaqTimeS) * int(1E9) + (daq_timestamp_ns->at(0) - firstEventDaqTimeNS);
 

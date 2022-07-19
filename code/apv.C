@@ -358,15 +358,6 @@ void apv::Loop(unsigned long n)
       if(error)
         continue;
 
-      // if (daqTimeSec - 1.654545e9 < 160) continue;
-      // if (daqTimeSec - 1.654545e9 < 164 || daqTimeSec - 1.654545e9 > 169)
-      //   continue;
-      // if (daqTimeSec - 1.654545e9 < 169 || daqTimeSec - 1.654545e9 > 169+5)
-      //   continue;
-
-      if(daqTimeSec - firstEventTimeS > 60*10) break;
-
-
       if(srsPreviousSignalCounter < 0){
         srsPreviousSignalCounter = srsTimeStamp;
       }
