@@ -302,6 +302,17 @@ void apv::Loop(unsigned long n)
 
   auto hapv102Multiplicity = make_shared<TH1F>("hapv102Multiplicity", Form("Run %s: hapv102Multiplicity", file.Data()), 129, 0, 129);
 
+  auto hDaqTimeDifferenceComparison = make_shared<TH2F>("hDaqTimeDifferenceComparison", Form("Run %s: hDaqTimeDifferenceComparison; #Delta T_{DAQ}, #mus; #Delta T_{DAQ} - #Delta T_{srsTimeStamp}, #mus", file.Data()),
+                                                        6E3, 0, 6E6, 1E3+400, -400, 1E3);
+  auto hDaqTimeDifferenceComparisonPT = make_shared<TH2F>("hDaqTimeDifferenceComparisonPT", Form("Run %s: hDaqTimeDifferenceComparisonPT; #Delta T_{DAQ}, #mus; #Delta T_{DAQ} - #Delta T_{srsTimeStamp}, #mus", file.Data()),
+                                                        6E3, 0, 6E6, 1E3+400, -400, 1E3);
+  auto hDaqTimeDifferenceComparisonPTFull = make_shared<TH2F>("hDaqTimeDifferenceComparisonPTFull", Form("Run %s: hDaqTimeDifferenceComparisonPTFull; #Delta T_{DAQ}, #mus; #Delta T_{DAQ} - #Delta T_{srsTimeStamp}, #mus", file.Data()),
+                                                        60E2, 0, 600E6, 6E3+400, -400, 6E3);
+                                                        // 40E2, 0, 40E6, 6E3+400, -400, 6E3);
+
+  auto hsrsTimestampPulserDifference = make_shared<TH1F>("hsrsTimestampPulserDifference", Form("Run %s: hsrsTimestampPulserDifference; #Delta srsTimeStamp", file.Data()), 16777217, 0, 16777217);
+
+
   unsigned long nEventsWHitsTwoLayers = 0, nEventsWHitsThreeLayers = 0;
   /* Cluster histograms */
   // =============================== TDO & distributions ===============================
@@ -320,8 +331,23 @@ void apv::Loop(unsigned long n)
     set<unsigned int> channelsAPV2 = {};
     set<pair<unsigned int, unsigned int>> channelsAPVAny = {};
     unsigned long long firstEventTime = daqTimeSec * 1E6 + daqTimeMicroSec;
+    long long firstEventTimeS = daqTimeSec;
+    long long firstEventTimeMicroS = daqTimeMicroSec;
+    long long firstPulserTime = -1;
+    long long lastPulserTime = -1;
     printf("firstEventTime: %llu\n", firstEventTime);
-  
+
+    long long maxSrsTime = 16777215; // 24 bits -> 2**24 - 1
+    long long srsMeanTime = 400037; // 400038
+    long long srsPreviousSignalCounter = -1;
+    long long srsTimesPulserCounter = 0;
+    long long srsTimesFirstPulserCounter = -1;
+    long long srsTimesPreviousPulserCounter = -1;
+    long long srsTimesLastPulserCounter = -1;
+
+    long long pulserSignals = 0;
+
+    bool previousTriggerIsPulser = false;
     // nentries = 2000;
     for (auto event = 0; event < nentries; event++){
       // for(auto event = 80330; event <  nentries; event++){
@@ -332,6 +358,21 @@ void apv::Loop(unsigned long n)
       if(error)
         continue;
 
+      // if (daqTimeSec - 1.654545e9 < 160) continue;
+      // if (daqTimeSec - 1.654545e9 < 164 || daqTimeSec - 1.654545e9 > 169)
+      //   continue;
+      // if (daqTimeSec - 1.654545e9 < 169 || daqTimeSec - 1.654545e9 > 169+5)
+      //   continue;
+
+      if(daqTimeSec - firstEventTimeS > 60*10) break;
+
+
+      if(srsPreviousSignalCounter < 0){
+        srsPreviousSignalCounter = srsTimeStamp;
+      }
+      srsTimesPulserCounter += static_cast<long long>(srsTimeStamp) - srsPreviousSignalCounter + ((srsTimeStamp < srsPreviousSignalCounter) ? maxSrsTime + 1 : 0);
+      printf("srsTimesPulserCounter difference: %lld = %lld -> %lld ==> %lld\n", srsTimeStamp - srsPreviousSignalCounter + ((srsTimeStamp < srsPreviousSignalCounter) ? maxSrsTime + 1 : 0), srsPreviousSignalCounter, srsTimeStamp, srsTimesPulserCounter);
+      
       // /* Checking if there is any mapped channels */
       // bool notErr = false;
       // for (auto &r: *mmReadout)
@@ -344,7 +385,7 @@ void apv::Loop(unsigned long n)
       hdaqTimeMSec->Fill(daqTimeMicroSec);
       hsrsTrigger->Fill(srsTrigger);
 
-      unsigned long long currentTimestamp = daqTimeSec * 1E6 + daqTimeMicroSec;
+      unsigned long long currentTimestamp = (daqTimeSec - firstEventTimeS) * 1E6 + (daqTimeMicroSec - firstEventTimeMicroS);
 
       printf("Event parameters: evt %lld, time: %d & %d, timestamp: %d, trigger: %d;", evt, daqTimeSec, daqTimeMicroSec, srsTimeStamp, srsTrigger);
       // printf(" Unique timestamp: %llu;", unique_srs_time_stamp(daqTimeSec, daqTimeMicroSec, srsTimeStamp));
@@ -470,6 +511,13 @@ void apv::Loop(unsigned long n)
     
       // clusterTree->Fill();
       if(channelsAPV2.size() >= 125){
+        printf("Time for pulser %lld: %lld - %lld\n", pulserSignals++, daqTimeSec, daqTimeMicroSec);
+        if(firstPulserTime < 0)
+          firstPulserTime = currentTimestamp;
+        lastPulserTime = currentTimestamp;
+        if(srsTimesFirstPulserCounter < 0)
+          srsTimesFirstPulserCounter = srsTimesPulserCounter;
+        srsTimesLastPulserCounter = srsTimesPulserCounter;
         if(previousTimestampSync > 0){
           auto timestampSyncDiff = currentTimestamp - previousTimestampSync;
           hdaqTimeDifferenceSync->Fill(timestampSyncDiff);
@@ -484,21 +532,43 @@ void apv::Loop(unsigned long n)
           } else
             hNPeriodsBenweenSync->Fill(nSignalsBetween);
           
+        } else {
+          printf("! Time for first pulser: %lld - %lld\n", daqTimeSec, daqTimeMicroSec);
         }
         previousTimestampSync = currentTimestamp;
+        if(srsTimesPreviousPulserCounter >= 0){
+          long long differenceSinceFirstPulser = srsTimesPulserCounter - srsTimesFirstPulserCounter;
+          long long nPulsers = differenceSinceFirstPulser / srsMeanTime;
+          hDaqTimeDifferenceComparison->Fill(static_cast<double>(currentTimestamp - firstPulserTime), static_cast<double>(currentTimestamp - firstPulserTime) - differenceSinceFirstPulser * 25.0 / 1E3);
+          hDaqTimeDifferenceComparisonPT->Fill(static_cast<double>(currentTimestamp - firstPulserTime), static_cast<double>(currentTimestamp - firstPulserTime) - nPulsers * 10E3);
+          hDaqTimeDifferenceComparisonPTFull->Fill(static_cast<double>(currentTimestamp - firstPulserTime), static_cast<double>(currentTimestamp - firstPulserTime) - nPulsers * 10E3);
+          printf("hDaqTimeDifferenceComparison: %f, %f\n", static_cast<double>(currentTimestamp - firstPulserTime), static_cast<double>(currentTimestamp - firstPulserTime) - differenceSinceFirstPulser * 25.0 / 1E3);
+          printf("Difference since previous pulser: %lld (%lld - %lld)\n", srsTimesPulserCounter - srsTimesPreviousPulserCounter, srsTimesPulserCounter, srsTimesPreviousPulserCounter);
+          printf("Difference since first pulser: %lld (%lld - %lld)\n", differenceSinceFirstPulser, srsTimesPulserCounter, srsTimesFirstPulserCounter);
+          if(previousTriggerIsPulser){            
+            hsrsTimestampPulserDifference->Fill(srsTimesPulserCounter - srsTimesPreviousPulserCounter);
+          }
+        }
+        srsTimesPreviousPulserCounter = srsTimesPulserCounter;
       }
       if(previousTimestamp > 0){
         auto timediff = currentTimestamp - previousTimestamp;
         hdaqTimeDifference->Fill(timediff);
         hdaqTimeDifferenceVSMultiplicity2->Fill(timediff, channelsAPV2.size());
-        hdaqTimeDifferenceVSTime->Fill(static_cast<double>(currentTimestamp - firstEventTime) / 1E6, timediff);
+        hdaqTimeDifferenceVSTime->Fill(static_cast<double>(currentTimestamp) / 1E6, timediff);
         hdaqTimeDifferencePrevNext->Fill(previousTimeDiff, timediff);
         previousTimeDiff = timediff;
         hdaqTimeDifferenceVSMultiplicityAny->Fill(timediff, channelsAPVAny.size());
       }
       previousTimestamp = currentTimestamp;
+      srsPreviousSignalCounter = srsTimeStamp;
+      previousTriggerIsPulser = channelsAPV2.size() >= 125;
     }
-  
+
+    printf("Time difference between first and last pulsers: %f ms\n", static_cast<double>(lastPulserTime - firstPulserTime) / 1E3);
+    printf("Time difference between first and last pulsers (by srsTimeStamp): %f ms\n", static_cast<double>(srsTimesLastPulserCounter - srsTimesFirstPulserCounter) * 25.0 / 1E6);
+    printf("Time difference between first and last pulsers (by pulser theorethcally time from srsTimeStamp): %f ms\n", static_cast<double>((srsTimesLastPulserCounter - srsTimesFirstPulserCounter) / srsMeanTime) * 10);
+    
     printf("N events with hits in two   layers to region double-readed wyth mu2E: %lu (of %lld events -> %.2f)\n", nEventsWHitsTwoLayers, nentries, static_cast<double>(nEventsWHitsTwoLayers) / static_cast<double>(nentries));
     printf("N events with hits in three layers to region double-readed wyth mu2E: %lu (of %lld events -> %.2f)\n", nEventsWHitsThreeLayers, nentries, static_cast<double>(nEventsWHitsThreeLayers) / static_cast<double>(nentries));
   }
