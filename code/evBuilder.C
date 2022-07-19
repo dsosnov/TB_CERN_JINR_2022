@@ -2,6 +2,31 @@
 #include "evBuilder.h"
 #include <TH1.h>
 
+tuple<bool, int, int, int> getDiffBCID(const int bcid1, const int bcid2, const int maxDiffBCID = 2, const int maxPeriods = 4) {
+  long long bcidDiff = (bcid2 > bcid1) ? bcid2 - bcid1 : bcid2 - bcid1 + 4096;
+  int periods = -1;
+  int difference = -1;
+
+  if(bcidDiff > 4096 - 8){
+    periods = 0;
+    difference = 4096-bcidDiff;
+  } else {
+    for(auto i = 0; i < 256; i++){
+      if( abs((2000*i)%4096 - bcidDiff) <= 8){
+        periods = i;
+        difference = abs((2000*i)%4096 - bcidDiff);
+        break;
+      }
+    }
+  }
+
+  bool goodEvent = false;
+  if(periods > maxPeriods || difference > maxDiffBCID)
+    goodEvent = false;
+  else
+    goodEvent = true;
+  return {goodEvent, periods, difference, bcidDiff};
+}
 
 void evBuilder::threePlotDrawF(TH1D *h1, TH1D *h2, TH1D *h3, TString fileEnding)
 {
@@ -565,8 +590,23 @@ void evBuilder::Loop(unsigned long n)
   auto hbcidDifference63Any = make_shared<TH1F>("hbcidDifference63Any", Form("Run %s: hbcidDifference63Any; [bcid]", file.Data()), 8000, 0, 8000);
   auto hbcidDifference63PrevNextAny = make_shared<TH2F>("hbcidDifference63PrevNextAny", Form("Run %s: hbcidDifference63PrevNextAny; distance to previous [bcid]; distance to next [bcid]", file.Data()), 4096, 0, 4096, 4096, 0, 4096);
   auto hdaqTimeDifference63 = make_shared<TH1F>("hdaqTimeDifference63", Form("Run %s: hdaqTimeDifference63; [#mus]", file.Data()), 200, 0, 200);
+  auto hTimeDifference63 = make_shared<TH1F>("hTimeDifference63", Form("Run %s: hTimeDifference63; [#mus]", file.Data()), 2000000, 0, 200);
+  auto hTimeBCIDDifference63 = make_shared<TH2F>("hTimeBCIDDifference63", Form("Run %s: hTimeBCIDDifference63; [#mus]", file.Data()), 20000, 0, 200, 4096,0,4096);
   auto hbcidDifference63WrongBetweenCorrect = make_shared<TH1F>("hbcidDifference63WrongBetweenCorrect", Form("Run %s: hbcidDifference63WrongBetweenCorrect; [bcid]", file.Data()), 4096, 0, 4096);
 
+  auto hpdoVsBCIDDiff63Next = make_shared<TH2F>("hpdoVsBCIDDiff63Next", Form("Run %s: hpdoVsBCIDDiff63Next; [bcid]; pdo", file.Data()), 4096, 0, 4096, 124, 900, 1024);
+  auto hpdoVsBCIDDiff63Previous = make_shared<TH2F>("hpdoVsBCIDDiff63Previous", Form("Run %s: hpdoVsBCIDDiff63Previous; [bcid]; pdo", file.Data()), 4096, 0, 4096, 124, 900, 1024);
+  auto hpdoUCVsBCIDDiff63Next = make_shared<TH2F>("hpdoUCVsBCIDDiff63Next", Form("Run %s: hpdoUCVsBCIDDiff63Next; [bcid]; pdo", file.Data()), 4096, 0, 4096, 174, 850, 1024);
+  auto hpdoUCVsBCIDDiff63Previous = make_shared<TH2F>("hpdoUCVsBCIDDiff63Previous", Form("Run %s: hpdoUCVsBCIDDiff63Previous; [bcid]; pdo", file.Data()), 4096, 0, 4096, 174, 850, 1024);
+  auto hpdo63 = make_shared<TH1F>("hpdo63", Form("Run %s: hpdo63; [pdo]", file.Data()), 1024, 0, 1024);
+  auto hpdoUC63 = make_shared<TH1F>("hpdoUC63", Form("Run %s: hpdoUC63; [pdo]", file.Data()), 1024, 0, 1024);
+
+  auto hDaqTimeDifferenceComparison = make_shared<TH2F>("hDaqTimeDifferenceComparison", Form("Run %s: hDaqTimeDifferenceComparison; #Delta T_{DAQ}, #mus; #Delta T_{DAQ} - #Delta T_{bcid}, #mus", file.Data()),
+                                                        6E3, 0, 6E6, 1E3+400, -400, 1E3);
+  auto hDaqTimeDifferenceComparisonFull = make_shared<TH2F>("hDaqTimeDifferenceComparisonFull", Form("Run %s: hDaqTimeDifferenceComparisonFull; #Delta T_{DAQ}, #mus; #Delta T_{DAQ} - #Delta T_{bcid}, #mus", file.Data()),
+                                                        60E2, 0, 600E6, 6E3+400, -400, 6E3);
+                                                        // 40E2, 0, 40E6, 6E3+400, -400, 6E3);
+  
   unsigned int pdoThr = 100;
   unsigned int nLoopEntriesAround = 0;
   Long64_t nentries = fChain->GetEntries();
@@ -582,11 +622,25 @@ void evBuilder::Loop(unsigned long n)
 
   unsigned long long daqPrevTime60 = 0, daqPrevTime0 = 0;
   long long daqPrevTime63 = 0;
-  long long prevbcid63 = -1, prevbcid63diff = -1;
+  double prevTime63 = -1;
   long long prevbcid63Any = -1, prevbcid63diffAny = -1;
   vector<long long> prevbcid63diffAnyV = {-1,-1,-1};
 
-  printf("First good sync event: %lld\n", findFirstGoodPulser());
+  int forceGoodEvent = -1; // If >= 0, then that hit in event should be forsed as "good" pulser
+  tuple <long, long, int, long, long> prev63 = {-1, -1, -1, -1, -1}; // event, hit in event, bcid, difference, previous bcid
+  vector<tuple <long, long, int, long, long>> bad63; // event, hit in event, bcid, difference, previous bcid
+  bool passInternalLoop = false;
+
+  long long daqTimeFirstSync = -1;
+  long long sumPulserFromFirst = 0;
+
+  long long firstEventDaqTimeS = -1; // daq_timestamp_s->at(0);
+  long long firstEventDaqTimeNS = -1; // daq_timestamp_ns->at(0);
+
+  if(syncSignal)
+    printf("First good sync event: %lld\n", findFirstGoodPulser());
+
+  long long sumPulserPeriods = 0, pulserSignals = 0;
 
   // =============================== CORRELATION FINDING ===============================
   for (Long64_t jentry = 0; jentry < nentries; jentry++) // You can remove "/ 10" and use the whole dataset
@@ -605,9 +659,28 @@ void evBuilder::Loop(unsigned long n)
     int straw_bcid_ch_srtraw = 0;
     int straw_pdo_ch_srtraw = 0;
 
+    if(firstEventDaqTimeS < 0){
+      firstEventDaqTimeS = daq_timestamp_s->at(0);
+      firstEventDaqTimeNS = daq_timestamp_ns->at(0);
+    }
+
+    // if (daq_timestamp_s->at(0) - 1.654545e9 < 160) continue;
+    // if (daq_timestamp_s->at(0) - 1.654545e9 < 164) continue;
+    // if (daq_timestamp_s->at(0) - 1.654545e9 > 169) continue;
+    // if( jentry < 435875 || jentry > 435885) continue;
+    // if (daq_timestamp_s->at(0) - 1.654545e9 < 169) continue;
+    // if (daq_timestamp_s->at(0) - 1.654545e9 > 169+5) continue;
+    if(daq_timestamp_s->at(0) - firstEventDaqTimeS > 60) break;
+
+
+    long long daqCurrTime = (daq_timestamp_s->at(0) - firstEventDaqTimeS) * int(1E9) + (daq_timestamp_ns->at(0) - firstEventDaqTimeNS);
 
     for (int j = 0; j < channel->at(0).size(); j++)
     {
+      if(passInternalLoop){
+        passInternalLoop = false;
+        break;
+      }
       int fch = channel->at(0).at(j);
       int fchD = getMappedDetector(fch);
       int fchM = getMappedChannel(fch);
@@ -878,7 +951,6 @@ void evBuilder::Loop(unsigned long n)
       }
       else if (fchD == 0 && fchM == 0){
         t_srtraw = getTimeByHand(fbcid, ftdo, 88, 140); //'hand' limits
-        unsigned long long daqCurrTime = daq_timestamp_s->at(0) * int(1E9) + daq_timestamp_ns->at(0);
         unsigned long long difftime = daqCurrTime - daqPrevTime0;
         if(daqPrevTime0 > 0)
           hdaqTimeDifference0->Fill(daqCurrTime - daqPrevTime0);
@@ -904,8 +976,10 @@ void evBuilder::Loop(unsigned long n)
         his0->Fill(is0);
 
       }
-      else if (fchD == 0 && fchM == 4){
-        if(fpdo < 650) continue;
+      else if (syncSignal && fchD == 0 && fchM == 4){
+        t_srtraw = getTime(fch, fbcid, ftdo, fpdoUC); // 'auto' limits
+        if(fpdoUC < 850) continue;
+        if(forceGoodEvent >= 0 && forceGoodEvent != j) continue;
         unsigned int maxDiffBCID = 1; // bcid
         if(prevbcid63Any >= 0){
           long long bcidSincePrevious63Any = (fbcid > prevbcid63Any) ? fbcid - prevbcid63Any : fbcid - prevbcid63Any + 4096;
@@ -928,41 +1002,73 @@ void evBuilder::Loop(unsigned long n)
           hbcidDifference63WrongBetweenCorrect->Fill(prevbcid63diffAnyV.at(1));
         }
 
-        if(prevbcid63 >= 0){
-          long long bcidSincePrevious63 = (fbcid > prevbcid63) ? fbcid - prevbcid63 : fbcid - prevbcid63 + 4096;
-
-          if((abs(static_cast<long long>(bcidSincePrevious63) - 2000   ) > maxDiffBCID &&
-              abs(static_cast<long long>(bcidSincePrevious63) - 4000   ) > maxDiffBCID &&
-              abs(static_cast<long long>(bcidSincePrevious63) - 2000+96) > maxDiffBCID &&
-              abs(static_cast<long long>(bcidSincePrevious63) - 4000+96) > maxDiffBCID)){
-            printf("Event %lld with bcid difference %lld -- between %lld and %d (to any previous %lld) -- removed\n", jentry, bcidSincePrevious63, prevbcid63, fbcid, prevbcid63diffAny);
-            continue;
+        if(get<2>(prev63) >= 0){
+          auto [isGood, periods, bcidDiff, bcidSincePrevious63_] = getDiffBCID(get<2>(prev63), fbcid);
+          bcidSincePrevious63 = bcidSincePrevious63_;
+          if(isGood || forceGoodEvent == j){
+            printf("Event %lld with bcid difference %lld -- between %lld and %d (to any previous %lld)%s -- %d periods\n",
+                   jentry, bcidSincePrevious63, get<2>(prev63), fbcid, prevbcid63diffAny, forceGoodEvent == j ? " -- forced" : "", periods);
+            bad63.clear();
+            forceGoodEvent = -1;
+            sumPulserPeriods += periods;
+            pulserSignals++;
+            sumPulserFromFirst += periods;
+            printf("Time for pulser %lld: %lld - %lld; pdo: %d - %d\n", pulserSignals, daq_timestamp_s->at(0), daq_timestamp_ns->at(0), fpdo, fpdoUC);
           } else {
-            printf("Event %lld with bcid difference %lld -- between %lld and %d (to any previous %lld)\n", jentry, bcidSincePrevious63, prevbcid63, fbcid, prevbcid63diffAny);
+            int foundGood = -1;
+            for(auto i = 0; i < bad63.size(); i++){
+              auto [isGood, periods, bcidDiff, bcidSincePreviousBad] = getDiffBCID(get<2>(bad63.at(i)), fbcid);
+              if(isGood){
+                printf("Event %lld with bcid difference %lld -- between %lld and %d (to any previous %lld) -- removed -- but may be good with event %d\n", jentry, bcidSincePrevious63, get<2>(prev63), fbcid, prevbcid63diffAny, get<0>(bad63.at(i)));
+                forceGoodEvent = get<1>(bad63.at(i));
+                jentry = get<0>(bad63.at(i)) - 1;
+                foundGood = i;
+                prev63= {0, 0, get<3>(bad63.at(i)), 0, get<4>(bad63.at(i))};
+                prevbcid63Any = get<3>(bad63.at(i));
+                break;
+              }
+            }
+            if(foundGood >= 0){
+              passInternalLoop = true;
+              continue;
+            }
+            bad63.push_back({jentry, j, fbcid, get<2>(prev63), get<4>(prev63)});
+            printf("Event %lld with bcid difference %lld -- between %lld and %d (to any previous %lld) -- removed\n", jentry, bcidSincePrevious63, get<2>(prev63), fbcid, prevbcid63diffAny);
+            continue;
           }
-          
+            
           hbcidDifference63->Fill(bcidSincePrevious63);
-          hbcidDifference63PrevNext->Fill(prevbcid63diff, bcidSincePrevious63);
-          prevbcid63diff = bcidSincePrevious63;
+          hbcidDifference63PrevNext->Fill(get<4>(prev63), bcidSincePrevious63);
 
-          unsigned int syncPeriod = 2000; // bcid
-          auto nSignalsBetween = static_cast<int>(round(static_cast<double>(bcidSincePrevious63) / static_cast<double>(syncPeriod)));
-          if(abs(static_cast<long>(bcidSincePrevious63) - static_cast<long>(syncPeriod * nSignalsBetween)) > maxDiffBCID){
-            printf("For event %lld: Time difference between sync is: %llu, what is about %d signal period and %ld difference\n",
-                   jentry, bcidSincePrevious63, nSignalsBetween, abs(static_cast<long>(bcidSincePrevious63) - static_cast<long>(syncPeriod * nSignalsBetween))
-              );
-            hNPeriodsBenweenSync->Fill(-1);
-          } else{
-            hNPeriodsBenweenSync->Fill(nSignalsBetween);
-          }
+          hpdoVsBCIDDiff63Next->Fill(bcidSincePrevious63, fpdo);
+          hpdoVsBCIDDiff63Previous->Fill(get<4>(prev63), fpdo);
+          hpdoUCVsBCIDDiff63Next->Fill(bcidSincePrevious63, fpdoUC);
+          hpdoUCVsBCIDDiff63Previous->Fill(get<4>(prev63), fpdoUC);
+          hpdo63->Fill(fpdo);
+          hpdoUC63->Fill(fpdo);
 
-          long long daqCurrTime = daq_timestamp_s->at(0) * int(1E9) + daq_timestamp_ns->at(0);
-          long long difftime = daqCurrTime - daqPrevTime63;
+          // long long daqCurrTime = daq_timestamp_s->at(0) * int(1E9) + daq_timestamp_ns->at(0);
+          // long long difftime = daqCurrTime - daqPrevTime63;
           if(daqPrevTime63 > 0)
-            hdaqTimeDifference63->Fill((daqCurrTime - daqPrevTime63)/1E3);
+            hdaqTimeDifference63->Fill(static_cast<double>(daqCurrTime - daqPrevTime63)/1E3);
           daqPrevTime63 = daqCurrTime;
+          if(prevTime63 > 0){
+            hTimeDifference63->Fill(static_cast<double>(t_srtraw - prevTime63 + (periods * 4096 * 25))/1E3);
+            hTimeBCIDDifference63->Fill(static_cast<double>(t_srtraw - prevTime63 + (periods * 4096 * 25))/1E3, bcidSincePrevious63);
+          }
+          prevTime63 = t_srtraw;
+          hDaqTimeDifferenceComparison->Fill(static_cast<double>(daqCurrTime - daqTimeFirstSync)/1E3, static_cast<double>(daqCurrTime - daqTimeFirstSync)/1E3 - sumPulserFromFirst * 50);
+          hDaqTimeDifferenceComparisonFull->Fill(static_cast<double>(daqCurrTime - daqTimeFirstSync)/1E3, static_cast<double>(daqCurrTime - daqTimeFirstSync)/1E3 - sumPulserFromFirst * 50);
+          printf("hDaqTimeDifferenceComparison: %f, %f\n", static_cast<double>(daqCurrTime - daqTimeFirstSync)/1E3, static_cast<double>(daqCurrTime - daqTimeFirstSync)/1E3 - sumPulserFromFirst * 50);
+        } else {
+          printf("! Time for first pulser: %lld - %lld; pdo: %d - %d\n", daq_timestamp_s->at(0), daq_timestamp_ns->at(0), fpdo, fpdoUC);
         }
-        prevbcid63 = fbcid;
+        // prevbcid63 = fbcid;
+        if(forceGoodEvent < 0){
+          prev63 = {jentry, j, fbcid, get<2>(prev63), bcidSincePrevious63};
+        }
+        if(daqTimeFirstSync < 0)
+          daqTimeFirstSync = daqCurrTime;
       }
       else
       {
@@ -970,6 +1076,8 @@ void evBuilder::Loop(unsigned long n)
       }
     }
   }
+
+  printf("SumPulserPeriods: %lld -- %f ms (%d signals)\n", sumPulserPeriods, static_cast<double>(sumPulserPeriods) * 50 * 1E-3, pulserSignals);
 
   auto straw_rt_normed_dir = out->mkdir("straw_rt_normed");
   straw_rt_normed_dir->cd();
