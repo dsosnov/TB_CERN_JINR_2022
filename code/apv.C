@@ -70,7 +70,7 @@ map<unsigned long, apv::doubleReadoutHits> apv::GetCentralHits2ROnly(unsigned lo
       
 
       hits.push_back({layer, strip, maxQ, maxTime, raw_q->at(j)});      
-      if(layer == 2 && strip > 153 && strip < 210)
+      if(layer == layerDoubleReadout && strip > 153 && strip < 210)
         hitsL2.push_back({layer, strip, maxQ, maxTime, raw_q->at(j)});
       hitsPerLayer.at(layer).emplace(strip, maxQ);
     }

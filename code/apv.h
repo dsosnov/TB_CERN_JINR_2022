@@ -132,6 +132,7 @@ public :
 
   unsigned int nAPVLayers = 5;
   unsigned int pulserAPV = 10; // 2
+  unsigned int layerDoubleReadout = 0; // 2
 };
 
 tuple<double,double,double> apv::getHitsForTrack(apvTrack track){
