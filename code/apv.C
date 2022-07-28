@@ -293,7 +293,7 @@ void apv::Loop(unsigned long n)
   }
 
   vector<shared_ptr<TH2F>> hClusterPositionXY, hClusterPositionXY_all;
-  for(auto &i: {0, 1, 2}){
+  for(auto i = 0; i < nAPVs; i++){
     dirs.at(i)->cd();
     hClusterPositionXY.push_back(make_shared<TH2F>(Form("l%d_hClusterPositionXY", i), Form("Run %s: l%d_hClusterPositionXY", file.Data(), i), 361, 0, 361, 361, 0, 361));
     hClusterPositionXY_all.push_back(make_shared<TH2F>(Form("l%d_hClusterPositionXY_all", i), Form("Run %s: l%d_hClusterPositionXY_all", file.Data(), i), 361, 0, 361, 361, 0, 361));
