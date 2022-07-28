@@ -29,7 +29,7 @@ public :
    virtual Long64_t LoadTree(Long64_t entry);
    virtual void     InitChain(TTree *tree) {};
    virtual void     Init() {};
-   virtual void     Loop(unsigned long n = 0) {};
+   virtual void     Loop(unsigned long n = 0, int procNum = 0, int nProcs = 0) {};
    virtual TChain* GetTree(TString filename = "", TString treeName = "vmm");
 
    bool syncSignal = false;

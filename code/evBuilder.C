@@ -416,7 +416,7 @@ tuple<double, double, double> evBuilder::getClusterParameters(double t_srtraw, d
   return {meanT, meanCh, maxPdo};
 }
 
-void evBuilder::Loop(unsigned long n)
+void evBuilder::Loop(unsigned long n, int procNum, int nProcs)
 {
   printf("evBuilder::Loop()\n");
 
@@ -445,7 +445,13 @@ void evBuilder::Loop(unsigned long n)
   }
   printf("Straws: %d-%d, MM: %d-%d, additional straws: %d-%d\n", strawMin, strawMax, mmMin, mmMax, addstrawMin, addstrawMax);
 
-  TFile *out = new TFile("../out/out_" + file + ending, "RECREATE"); // PATH where to save out_*.root file
+   if(procNum < 0 || nProcs <= 0){
+      procNum = 0;
+      nProcs = 0;
+   }
+
+  TString procNumString = (nProcs) ? Form("_%d-%d", procNum, nProcs) : "";
+  TFile *out = new TFile("../out/out_" + file + procNumString + ending, "RECREATE"); // PATH where to save out_*.root file
 
   auto straw_vs_sci = new TH1D("straw_vs_sci", Form("%s: straw vs scint;#Deltat, ns", file.Data()), 1000, -500, 500);
   auto straw_vs_mm = new TH1D("straw_vs_mm", Form("%s: straw vs microMegas;#Deltat, ns", file.Data()), 1000, -500, 500);
@@ -643,7 +649,14 @@ void evBuilder::Loop(unsigned long n)
   long long sumPulserPeriods = 0, pulserSignals = 0;
 
   // =============================== CORRELATION FINDING ===============================
-  for (Long64_t jentry = 0; jentry < nentries; jentry++) // You can remove "/ 10" and use the whole dataset
+  long long firstEntry = 0;
+  long long lastEntry = nentries;
+  if(nProcs){
+    auto nPerProc = nentries / nProcs;
+    firstEntry = nPerProc * procNum;
+    lastEntry = (procNum == nProcs - 1) ? nentries : nPerProc * (procNum + 1);
+  }
+  for (Long64_t jentry = firstEntry; jentry < lastEntry; jentry++) // You can remove "/ 10" and use the whole dataset
   {
     if (jentry % 10000 == 0)
     {

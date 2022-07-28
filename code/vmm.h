@@ -69,7 +69,7 @@ public :
    vmm(TChain *tree = nullptr);
    virtual ~vmm();
    virtual void     Init() override;
-   virtual void     Loop(unsigned long n = 0) override;
+   virtual void     Loop(unsigned long n = 0, int procNum = 0, int nProcs = 0) override;
 
    map<unsigned int, vector<array<int, 2>>> TDOlimits;
    vector<array<float, 2>> pdoCorrection;
@@ -300,5 +300,5 @@ void vmm::Init()
 }
 
 #ifndef vmm_cxx
-void vmm::Loop(unsigned long n){}
+void vmm::Loop(unsigned long n, int procNum, int nProcs){}
 #endif // #ifdef vmm_cxx

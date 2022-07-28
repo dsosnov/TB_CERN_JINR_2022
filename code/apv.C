@@ -213,7 +213,7 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
   return outputData;
 }
 
-void apv::Loop(unsigned long n)
+void apv::Loop(unsigned long n, int procNum, int nProcs)
 {
   clusterTree->Reset();
 
@@ -221,7 +221,13 @@ void apv::Loop(unsigned long n)
   if (isChain())
     fChain->GetEntry(0);
 
-  TFile *out = new TFile("../out/out_apv_" + file + ending, "RECREATE"); // PATH where to save out_*.root file
+  if(procNum < 0 || nProcs <= 0){
+    procNum = 0;
+    nProcs = 0;
+  }
+
+  TString procNumString = (nProcs) ? Form("_%d-%d", procNum, nProcs) : "";
+  TFile *out = new TFile("../out/out_apv_" + file + procNumString + ending, "RECREATE"); // PATH where to save out_*.root file
 
   vector<TDirectory*> dirs;
   for(auto i = 0; i < nAPVs; i++){
@@ -339,6 +345,14 @@ void apv::Loop(unsigned long n)
     if(n > 0 && nentries > n)
       nentries = n;
 
+    long long firstEntry = 0;
+    long long lastEntry = nentries;
+    if(nProcs){
+      auto nPerProc = nentries / nProcs;
+      firstEntry = nPerProc * procNum;
+      lastEntry = (procNum == nProcs - 1) ? nentries : nPerProc * (procNum + 1);
+    }
+
     unsigned long long previousTimestamp = 0;
     unsigned long long previousTimestampSync = 0;
     unsigned long long previousTimeDiff = 0;
@@ -363,7 +377,7 @@ void apv::Loop(unsigned long n)
 
     bool previousTriggerIsPulser = false;
     // nentries = 2000;
-    for (auto event = 0; event < nentries; event++){
+    for (auto event = firstEntry; event < lastEntry; event++){
       // for(auto event = 80330; event <  nentries; event++){
       Long64_t ientry = LoadTree(event);
       if (ientry < 0) break;

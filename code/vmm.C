@@ -4,7 +4,7 @@
 #include <TH1.h>
 #include <TF1.h>
 
-void vmm::Loop(unsigned long n)
+void vmm::Loop(unsigned long n, int procNum, int nProcs)
 {
 
   int strawMin = -1, strawMax = -1, mmMin = -1, mmMax = -1;
@@ -140,7 +140,13 @@ void vmm::Loop(unsigned long n)
    // ===================================================================================
 
 
-   TFile *out = new TFile("../out/out_" + file + ending, "RECREATE"); // PATH where to save out_*.root file
+   if(procNum < 0 || nProcs <= 0){
+      procNum = 0;
+      nProcs = 0;
+   }
+
+   TString procNumString = (nProcs) ? Form("_%d-%d", procNum, nProcs) : "";
+   TFile *out = new TFile("../out/out_" + file + procNumString + ending, "RECREATE"); // PATH where to save out_*.root file
    TDirectory *tdo_dir = out->mkdir("TDO");
    tdo_dir->cd();
 
@@ -171,7 +177,14 @@ void vmm::Loop(unsigned long n)
    nb = 0;
 
    // =============================== CORRELATION FINDING ===============================
-   for (Long64_t jentry = 0; jentry < nentries; jentry++) // You can remove "/ 10" and use the whole dataset
+   long long firstEntry = 0;
+   long long lastEntry = nentries;
+   if(nProcs){
+      auto nPerProc = nentries / nProcs;
+      firstEntry = nPerProc * procNum;
+      lastEntry = (procNum == nProcs - 1) ? nentries : nPerProc * (procNum + 1);
+   }
+   for (Long64_t jentry = firstEntry; jentry < lastEntry; jentry++) // You can remove "/ 10" and use the whole dataset
    {
       if (jentry % 10000 == 0)
       {
