@@ -9,7 +9,7 @@ map<unsigned long, apv::doubleReadoutHits> apv::GetCentralHits2ROnly(unsigned lo
   printf("apv::GetCentralHits2ROnly(%llu, %llu)\n", fromSec, toSec);
 
   map<unsigned long, apv::doubleReadoutHits> outputData = {};
-  vector<apvHit> hitsL2;
+  vector<apvHit> hitsDR;
   vector<apvHit> hitsSync;
 
   if(!isChain())
@@ -44,7 +44,7 @@ map<unsigned long, apv::doubleReadoutHits> apv::GetCentralHits2ROnly(unsigned lo
     unsigned long long currentTimestamp = daqTimeSec * 1E6 + daqTimeMicroSec;
 
     hits.clear();
-    hitsL2.clear();
+    hitsDR.clear();
     hitsSync.clear();
     channelsAPVPulser.clear();
     hitsPerLayer.clear();
@@ -71,17 +71,17 @@ map<unsigned long, apv::doubleReadoutHits> apv::GetCentralHits2ROnly(unsigned lo
 
       hits.push_back({layer, strip, maxQ, maxTime, raw_q->at(j)});      
       if(layer == layerDoubleReadout && strip > 153 && strip < 210)
-        hitsL2.push_back({layer, strip, maxQ, maxTime, raw_q->at(j)});
+        hitsDR.push_back({layer, strip, maxQ, maxTime, raw_q->at(j)});
       hitsPerLayer.at(layer).emplace(strip, maxQ);
     }
 
     hitsToPrev++;
     bool isSyncSignal = channelsAPVPulser.size() >= 127;
-    if(!isSyncSignal && (hitsL2.size() == 0))
+    if(!isSyncSignal && (hitsDR.size() == 0))
       continue;
     apv::doubleReadoutHits drh = {isSyncSignal,
       static_cast<unsigned int>(daqTimeSec), static_cast<unsigned int>(daqTimeMicroSec), srsTimeStamp,
-      hitsL2, hitsSync, hitsPerLayer};
+      hitsDR, hitsSync, hitsPerLayer};
     outputData.emplace(event, drh);
   }
   return outputData;
