@@ -1,0 +1,82 @@
+# Map file. 
+# structure: Mu2E channel \t detector \t channel
+# Detectors:
+# - -1: not connected
+# - 0: scintillator:
+#   - channel 0 - sci0
+#   - channel 1 - sci1
+#   - channel 2 - sci2
+#   - channel 3 - triple scintillator coinsidence
+#   - channel 4 - master clock
+# - 1: straw
+# - 2: MM layer 0
+# - 3: MM layer 1
+# - 4: MM layer 2
+# - 5: MM layer 3
+# - 6: Additional straws:
+#   - channel 0 - SHiP straw
+#   - channel 1 - neutron straw
+0 0 0
+1 6 0
+2 1 27
+3 1 25
+4 4 209
+5 4 208
+6 4 207
+7 4 206
+8 4 205
+9 4 204
+10 4 203
+11 4 202
+12 4 201
+13 4 200
+14 4 199
+15 4 198
+16 4 197
+17 4 196
+18 4 195
+19 4 194
+20 4 193
+21 4 192
+22 4 191
+23 4 190
+24 4 189
+25 4 188
+26 4 187
+27 4 186
+28 4 185
+29 4 184
+30 4 183
+31 4 182
+32 4 181
+33 4 180
+34 4 179
+35 4 178
+36 4 177
+37 4 176
+38 4 175
+39 4 174
+40 4 173
+41 4 172
+42 4 171
+43 4 170
+44 4 169
+45 4 168
+46 4 167
+47 4 166
+48 4 165
+49 4 164
+50 4 163
+51 4 162
+52 4 161
+53 4 160
+54 4 159
+55 4 158
+56 4 157
+57 4 156
+58 4 155
+59 4 154
+60 0 3
+61 -1 0
+62 1 26
+63 0 4
