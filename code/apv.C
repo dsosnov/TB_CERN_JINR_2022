@@ -313,12 +313,18 @@ void apv::Loop(unsigned long n)
   auto hsrsTimestampPulserDifference = make_shared<TH1F>("hsrsTimestampPulserDifference", Form("Run %s: hsrsTimestampPulserDifference; #Delta srsTimeStamp", file.Data()), 16777217, 0, 16777217);
 
 
-  vector<shared_ptr<TH2F>> hClusterPositionPerLayers, hHitPositionPerLayers;
-  for(auto &i: {0, 1, 2}){
-    auto j = (i+1)%3;
-    hClusterPositionPerLayers.push_back(make_shared<TH2F>(Form("hClusterPositionL%d-%d", i, j), Form("Run %s: hClusterPositionL%d-%d", file.Data(), i, j), 361, 0, 361, 361, 0, 361));
-    hHitPositionPerLayers.push_back(make_shared<TH2F>(Form("hHitPositionL%d-%d", i, j), Form("Run %s: hHitPositionL%d-%d", file.Data(), i, j), 361, 0, 361, 361, 0, 361));
+  map<pair<int, int>, shared_ptr<TH2F>> hClusterPositionPerLayers, hHitPositionPerLayers;
+  map<pair<int, int>, shared_ptr<TH1F>> hClusterPosDiffPerLayers, hHitPosDiffPerLayers;
+  out->mkdir("anlignment")->cd();
+  for(int i = 0; i < nAPVs-1; i++){
+    for(int j = i+1; j < nAPVs; j++){
+      hClusterPositionPerLayers.emplace(make_pair(i, j), make_shared<TH2F>(Form("hClusterPositionL%d-%d", i, j), Form("Run %s: hClusterPositionL%d-%d; layer %d; layer %d", file.Data(), i, j, i, j), 361, 0, 361, 361, 0, 361));
+      hHitPositionPerLayers.emplace(make_pair(i, j), make_shared<TH2F>(Form("hHitPositionL%d-%d", i, j), Form("Run %s: hHitPositionL%d-%d; layer %d; layer %d", file.Data(), i, j, i, j), 361, 0, 361, 361, 0, 361));
+      hClusterPosDiffPerLayers.emplace(make_pair(i, j), make_shared<TH1F>(Form("hClusterPosDiffL%d-%d", i, j), Form("Run %s: hClusterPosDiffL%d-%d", file.Data(), i, j), 361*4, -361*2, 361*2));
+      hHitPosDiffPerLayers.emplace(make_pair(i, j), make_shared<TH1F>(Form("hHitPosDiffL%d-%d", i, j), Form("Run %s: hHitPosDiffL%d-%d", file.Data(), i, j), 361*4, -361*2, 361*2));
+    }
   }
+  out->cd();
 
 
   unsigned long nEventsWHitsTwoLayers = 0, nEventsWHitsThreeLayers = 0;
@@ -441,16 +447,12 @@ void apv::Loop(unsigned long n)
       hapv102Multiplicity->Fill(channelsAPV2.size());
 
       for(auto &h1: channelsAPVAny){
-        if(h1.first > 2) continue;
         for(auto &h2: channelsAPVAny){
-          if(h2.first > 2) continue;
           if(h1.first == h2.first) continue;
           auto hMax = (h1.first > h2.first) ? &h1 : &h2;
           auto hMin = (h2.first > h1.first) ? &h1 : &h2;
-          if(hMax->first == hMin->first + 1)
-            hHitPositionPerLayers.at(hMin->first)->Fill(hMin->second, hMax->second);
-          else
-            hHitPositionPerLayers.at(hMax->first)->Fill(hMax->second, hMin->second);
+          hHitPositionPerLayers.at(make_pair(hMin->first, hMax->first))->Fill(hMin->second, hMax->second);
+          hHitPosDiffPerLayers.at(make_pair(hMin->first, hMax->first))->Fill(hMin->second - hMax->second);
         }
       }
 
@@ -509,16 +511,12 @@ void apv::Loop(unsigned long n)
         hClusterPositionVSSize.at(c.getLayer())->Fill(c.center(), c.nHits());
       }
       for(auto &c1: clusters){
-        if(c1.getLayer() > 2) continue;
         for(auto &c2: clusters){
-          if(c2.getLayer() > 2) continue;
           if(c1.getLayer() == c2.getLayer()) continue;
           auto cMax = (c1.getLayer() > c2.getLayer()) ? &c1 : &c2;
           auto cMin = (c2.getLayer() > c1.getLayer()) ? &c1 : &c2;
-          if(cMax->getLayer() == cMin->getLayer() + 1)
-            hClusterPositionPerLayers.at(cMin->getLayer())->Fill(cMin->center(), cMax->center());
-          else
-            hClusterPositionPerLayers.at(cMax->getLayer())->Fill(cMax->center(), cMin->center());
+          hClusterPositionPerLayers.at(make_pair(cMin->getLayer(), cMax->getLayer()))->Fill(cMin->center(), cMax->center());
+          hClusterPosDiffPerLayers.at(make_pair(cMin->getLayer(), cMax->getLayer()))->Fill(cMin->center() - cMax->center());
         }
       }
 
