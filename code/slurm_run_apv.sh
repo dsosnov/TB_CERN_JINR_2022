@@ -22,4 +22,4 @@ root -b -q -n -e 'gROOT->ProcessLine(".L link.C"); gROOT->ProcessLine(".L apv.C"
 
 # date
 
-# sbatch --mem=4Gb --array=1-28 -n 1 slurm_run_apv.sh --export=FILE="run45" --job_name="run_apv"
+# sbatch --mem=4Gb --array=0-27 -n 1 slurm_run_apv.sh --export=FILE="run45" --job_name="run_apv"

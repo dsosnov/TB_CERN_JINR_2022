@@ -22,4 +22,4 @@ root -b -q -n -e 'gROOT->ProcessLine(".L evBuilder.C"); gROOT->ProcessLine("auto
 
 # date
 
-# sbatch --mem=4Gb --array=1-28 -n 1 slurm_run_evBuilder.sh --export=FILE="run_0090" --job_name="run_evBuilder"
+# sbatch --mem=4Gb --array=0-27 -n 1 slurm_run_evBuilder.sh --export=FILE="run_0090" --job_name="run_evBuilder"
