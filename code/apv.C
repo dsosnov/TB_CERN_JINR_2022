@@ -75,7 +75,7 @@ map<unsigned long, apv::doubleReadoutHits> apv::GetCentralHits2ROnly(unsigned lo
     if(!isSyncSignal && (hitsL2.size() == 0))
       continue;
     apv::doubleReadoutHits drh = {isSyncSignal,
-      static_cast<unsigned int>(daqTimeSec), static_cast<unsigned int>(daqTimeMicroSec),
+      static_cast<unsigned int>(daqTimeSec), static_cast<unsigned int>(daqTimeMicroSec), srsTimeStamp,
       hitsL2, hitsSync};
     outputData.emplace(event, drh);
   }
@@ -162,6 +162,7 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
     hit.timeSec = daqTimeSec;
     hit.timeMSec = daqTimeMicroSec;
     hit.nHitsToPrev = hitsToPrev;
+    hit.srsT = srsTimeStamp;
     
     hit.timeSinceSync = (previousSyncTimestamp < 0) ? -1.0 : static_cast<double>(currentTimestamp - previousSyncTimestamp);
 

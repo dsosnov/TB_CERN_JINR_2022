@@ -100,6 +100,7 @@ public :
     bool sync;
     unsigned long timeSec;
     unsigned int timeMSec;
+    int timeSrs;
     long long timeFull() const {
       return timeMSec + timeSec * 1E6;
     }

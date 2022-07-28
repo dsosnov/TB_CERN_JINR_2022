@@ -41,7 +41,8 @@ public :
      unsigned int timeMSec;
      unsigned int stripX, stripY;
      unsigned int pdo;
-     unsigned int bcid;
+     int bcid;
+     int srsT;
      map<unsigned int, unsigned int> hitsX;
      double pdoRelative;
      long long nHitsToPrev;
