@@ -452,7 +452,7 @@ void apv::Loop(unsigned long n)
           auto hMax = (h1.first > h2.first) ? &h1 : &h2;
           auto hMin = (h2.first > h1.first) ? &h1 : &h2;
           hHitPositionPerLayers.at(make_pair(hMin->first, hMax->first))->Fill(hMin->second, hMax->second);
-          hHitPosDiffPerLayers.at(make_pair(hMin->first, hMax->first))->Fill(hMin->second - hMax->second);
+          hHitPosDiffPerLayers.at(make_pair(hMin->first, hMax->first))->Fill(long(hMin->second) - long(hMax->second));
         }
       }
 
