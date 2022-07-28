@@ -370,7 +370,7 @@ void apv::Loop(unsigned long n)
         srsPreviousSignalCounter = srsTimeStamp;
       }
       srsTimesPulserCounter += static_cast<long long>(srsTimeStamp) - srsPreviousSignalCounter + ((srsTimeStamp < srsPreviousSignalCounter) ? maxSrsTime + 1 : 0);
-      printf("srsTimesPulserCounter difference: %lld = %lld -> %lld ==> %lld\n", srsTimeStamp - srsPreviousSignalCounter + ((srsTimeStamp < srsPreviousSignalCounter) ? maxSrsTime + 1 : 0), srsPreviousSignalCounter, srsTimeStamp, srsTimesPulserCounter);
+      // printf("srsTimesPulserCounter difference: %lld = %lld -> %lld ==> %lld\n", srsTimeStamp - srsPreviousSignalCounter + ((srsTimeStamp < srsPreviousSignalCounter) ? maxSrsTime + 1 : 0), srsPreviousSignalCounter, srsTimeStamp, srsTimesPulserCounter);
       
       // /* Checking if there is any mapped channels */
       // bool notErr = false;
@@ -386,9 +386,9 @@ void apv::Loop(unsigned long n)
 
       unsigned long long currentTimestamp = (daqTimeSec - firstEventTimeS) * 1E6 + (daqTimeMicroSec - firstEventTimeMicroS);
 
-      printf("Event parameters: evt %lld, time: %d & %d, timestamp: %d, trigger: %d;", evt, daqTimeSec, daqTimeMicroSec, srsTimeStamp, srsTrigger);
+      // printf("Event parameters: evt %lld, time: %d & %d, timestamp: %d, trigger: %d;", evt, daqTimeSec, daqTimeMicroSec, srsTimeStamp, srsTrigger);
       // printf(" Unique timestamp: %llu;", unique_srs_time_stamp(daqTimeSec, daqTimeMicroSec, srsTimeStamp));
-      printf("\n");
+      // printf("\n");
 
       // printf("  Channels (%lu):", max_q->size());
       /* Per-channel */
