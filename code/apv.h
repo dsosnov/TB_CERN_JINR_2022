@@ -106,6 +106,7 @@ public :
     }
     vector<apvHit> hits;
     vector<apvHit> hitsSync;
+    map<int, map<unsigned int, unsigned int>> hitsPerLayer;
   };
   map<unsigned long, doubleReadoutHits> GetCentralHits2ROnly(unsigned long long fromSec = 0, unsigned long long toSec = 0);
 
@@ -129,7 +130,9 @@ public :
   tuple<double,double,double> getHitsForTrack(apvTrack track);
   vector<apvTrack> constructTracks(vector<apvCluster> clusters);
 
-  unsigned int nAPVs = 5;
+  unsigned int nAPVLayers = 5;
+  unsigned int pulserAPV = 10; // 2
+  unsigned int layerDoubleReadout = 0; // 2
 };
 
 tuple<double,double,double> apv::getHitsForTrack(apvTrack track){

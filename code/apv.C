@@ -9,7 +9,7 @@ map<unsigned long, apv::doubleReadoutHits> apv::GetCentralHits2ROnly(unsigned lo
   printf("apv::GetCentralHits2ROnly(%llu, %llu)\n", fromSec, toSec);
 
   map<unsigned long, apv::doubleReadoutHits> outputData = {};
-  vector<apvHit> hitsL2;
+  vector<apvHit> hitsDR;
   vector<apvHit> hitsSync;
 
   if(!isChain())
@@ -18,8 +18,9 @@ map<unsigned long, apv::doubleReadoutHits> apv::GetCentralHits2ROnly(unsigned lo
 
   unsigned long long previousSyncTimestamp = 0;
   unsigned long long hitsToPrev = 0;
-  set<unsigned int> channelsAPV2 = {};
+  set<unsigned int> channelsAPVPulser = {};
   unsigned long long previousSync = 0;
+  map<int, map<unsigned int, unsigned int>> hitsPerLayer;
   
   for (auto event = 0; event < nentries; event++){
     Long64_t ientry = LoadTree(event);
@@ -43,9 +44,12 @@ map<unsigned long, apv::doubleReadoutHits> apv::GetCentralHits2ROnly(unsigned lo
     unsigned long long currentTimestamp = daqTimeSec * 1E6 + daqTimeMicroSec;
 
     hits.clear();
-    hitsL2.clear();
+    hitsDR.clear();
     hitsSync.clear();
-    channelsAPV2.clear();
+    channelsAPVPulser.clear();
+    hitsPerLayer.clear();
+    for(auto i = 0; i < nAPVLayers; i++)
+      hitsPerLayer.emplace(i, map<unsigned int, unsigned int>());
     for (int j = 0; j < max_q->size(); j++){
       // printf("Record inside entry: %d\n", j);
       auto maxQ = max_q->at(j);
@@ -53,8 +57,8 @@ map<unsigned long, apv::doubleReadoutHits> apv::GetCentralHits2ROnly(unsigned lo
       if (syncSignal){
         auto chip = srsChip->at(j);
         auto chan = srsChan->at(j);
-        if(chip == 2){
-          channelsAPV2.emplace(chan);
+        if(chip == pulserAPV){
+          channelsAPVPulser.emplace(chan);
           hitsSync.push_back({5, static_cast<int>(chan), maxQ, maxTime, raw_q->at(j)});
         }
       }
@@ -66,17 +70,18 @@ map<unsigned long, apv::doubleReadoutHits> apv::GetCentralHits2ROnly(unsigned lo
       
 
       hits.push_back({layer, strip, maxQ, maxTime, raw_q->at(j)});      
-      if(layer == 2 && strip > 153 && strip < 210)
-        hitsL2.push_back({layer, strip, maxQ, maxTime, raw_q->at(j)});      
+      if(layer == layerDoubleReadout && strip > 153 && strip < 210)
+        hitsDR.push_back({layer, strip, maxQ, maxTime, raw_q->at(j)});
+      hitsPerLayer.at(layer).emplace(strip, maxQ);
     }
 
     hitsToPrev++;
-    bool isSyncSignal = channelsAPV2.size() >= 127;
-    if(!isSyncSignal && (hitsL2.size() == 0))
+    bool isSyncSignal = channelsAPVPulser.size() >= 127;
+    if(!isSyncSignal && (hitsDR.size() == 0))
       continue;
     apv::doubleReadoutHits drh = {isSyncSignal,
       static_cast<unsigned int>(daqTimeSec), static_cast<unsigned int>(daqTimeMicroSec), srsTimeStamp,
-      hitsL2, hitsSync};
+      hitsDR, hitsSync, hitsPerLayer};
     outputData.emplace(event, drh);
   }
   return outputData;
@@ -93,8 +98,9 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
 
   unsigned long long previousSyncTimestamp = 0;
   unsigned long long hitsToPrev = 0;
-  set<unsigned int> channelsAPV2 = {};
+  set<unsigned int> channelsAPVPulser = {};
   unsigned long long previousSync = 0;
+  map<int, map<unsigned int, unsigned int>> hitsPerLayer;
   
   for (auto event = 0; event < nentries; event++){
     Long64_t ientry = LoadTree(event);
@@ -118,13 +124,16 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
     unsigned long long currentTimestamp = daqTimeSec * 1E6 + daqTimeMicroSec;
 
     hits.clear();
-    channelsAPV2.clear();
+    channelsAPVPulser.clear();
+    hitsPerLayer.clear();
+    for(auto i = 0; i < nAPVLayers; i++)
+      hitsPerLayer.emplace(i, map<unsigned int, unsigned int>());
     for (int j = 0; j < max_q->size(); j++){
       // printf("Record inside entry: %d\n", j);
       if (syncSignal){
         auto chip = srsChip->at(j);
         auto chan = srsChan->at(j);
-        if(chip == 2) channelsAPV2.emplace(chan);
+        if(chip == pulserAPV) channelsAPVPulser.emplace(chan);
       }
       auto readout = mmReadout->at(j);
       if(readout == 'E') //non-mapped channel
@@ -135,7 +144,8 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
       
       auto maxTime = t_max_q->at(j);
       
-      hits.push_back({layer, strip, maxQ, maxTime, raw_q->at(j)});      
+      hits.push_back({layer, strip, maxQ, maxTime, raw_q->at(j)});
+      hitsPerLayer.at(layer).emplace(strip, maxQ);
     }
 
     /* Constructing clusters */
@@ -154,7 +164,7 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
     }
 
     hitsToPrev++;
-    bool isSyncSignal = channelsAPV2.size() >= 127;
+    bool isSyncSignal = channelsAPVPulser.size() >= 127;
     if(!isSyncSignal && !trackIn2Center)
       continue;
 
@@ -204,6 +214,8 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
 
     hit.previousSync = previousSync;
 
+    hit.hitsPerLayer = hitsPerLayer;
+
     outputData.emplace(event, hit);
     if(isSyncSignal){
       previousSyncTimestamp = currentTimestamp;
@@ -225,7 +237,7 @@ void apv::Loop(unsigned long n)
   TFile *out = new TFile("../out/out_apv_" + file + ending, "RECREATE"); // PATH where to save out_*.root file
 
   vector<TDirectory*> dirs;
-  for(auto i = 0; i < nAPVs; i++){
+  for(auto i = 0; i < nAPVLayers; i++){
     dirs.push_back(out->mkdir(Form("Layer %d", i)));
   }
 
@@ -247,7 +259,7 @@ void apv::Loop(unsigned long n)
   
   vector<shared_ptr<TH1F>> hMaxQ, hMaxQTime, hProfile /*, hTriggerShiftByMaxQ*/;
   vector<shared_ptr<TH2F>> hPositionVSMaxQ, hPositionVSMaxQTime /*, hTriggerShiftByMaxQ*/;
-  for(auto i = 0; i < nAPVs; i++){
+  for(auto i = 0; i < nAPVLayers; i++){
     dirs.at(i)->cd();
     hMaxQ.push_back(make_shared<TH1F>(Form("l%d_maxQ", i), Form("Run %s: l%d_maxQ", file.Data(), i), 2500, 0, 2500));
     hMaxQTime.push_back(make_shared<TH1F>(Form("l%d_maxQTime", i), Form("Run %s: l%d_maxQTime", file.Data(), i), 30, 0, 30*25));
@@ -261,7 +273,7 @@ void apv::Loop(unsigned long n)
 
   vector<shared_ptr<TH1F>> hClusterMaxQ, hClusterQ, hClusterPosition, hClusterSize;
   vector<shared_ptr<TH2F>> hClusterPositionVSSize, hClusterPositionVSMaxQ, hClusterPositionVSQ;
-  for(auto i = 0; i < nAPVs; i++){
+  for(auto i = 0; i < nAPVLayers; i++){
     dirs.at(i)->cd();
     hClusterPosition.push_back(make_shared<TH1F>(Form("l%d_clusterPosition", i), Form("Run %s: l%d_clusterPosition", file.Data(), i), 361, 0, 361));
     hClusterMaxQ.push_back(make_shared<TH1F>(Form("l%d_hClusterMaxQ", i), Form("Run %s: l%d_hClusterMaxQ", file.Data(), i), 4096, 0, 4096));
@@ -281,7 +293,7 @@ void apv::Loop(unsigned long n)
   // auto hClusterPositionVSSizeAll = make_shared<TH2F>(Form("hClusterPositionVSSize"), Form("Run %s: hClusterPositionVSSize", file.Data()), 361, 0, 361, 40, 0, 40);
 
   vector<shared_ptr<TH1F>> hPedMeanVal, hPedStdevVal, hPedSigmaVal, hPed;
-  for(auto i = 0; i < nAPVs; i++){
+  for(auto i = 0; i < nAPVLayers; i++){
     dirs.at(i)->cd();
     hPedMeanVal.push_back(make_shared<TH1F>(Form("l%d_hPedMeanVal", i), Form("Run %s: l%d_hPedMeanVal", file.Data(), i), 361, 0, 361));
     hPedStdevVal.push_back(make_shared<TH1F>(Form("l%d_hPedStdevVal", i), Form("Run %s: l%d_hPedStdevVal", file.Data(), i), 361, 0, 361));
@@ -298,7 +310,7 @@ void apv::Loop(unsigned long n)
     out->cd();
   }
 
-  auto hapv102Multiplicity = make_shared<TH1F>("hapv102Multiplicity", Form("Run %s: hapv102Multiplicity", file.Data()), 129, 0, 129);
+  auto hapvPulserMultiplicity = make_shared<TH1F>("hapvPulserMultiplicity", Form("Run %s: hapvPulserMultiplicity", file.Data()), 129, 0, 129);
 
   unsigned long nEventsWHitsTwoLayers = 0, nEventsWHitsThreeLayers = 0;
   /* Cluster histograms */
@@ -314,7 +326,7 @@ void apv::Loop(unsigned long n)
 
     unsigned long long previousTimestamp = 0;
     unsigned long long previousTimestampSync = 0;
-    set<unsigned int> channelsAPV2 = {};
+    set<unsigned int> channelsAPVPulser = {};
     unsigned long long firstEventTime = daqTimeSec * 1E6 + daqTimeMicroSec;
   
     // nentries = 2000;
@@ -348,12 +360,12 @@ void apv::Loop(unsigned long n)
       // printf("  Channels (%lu):", max_q->size());
       /* Per-channel */
       hits.clear();
-      channelsAPV2.clear();
+      channelsAPVPulser.clear();
       for (int j = 0; j < max_q->size(); j++){
         // printf("Record inside entry: %d\n", j);
         auto chip = srsChip->at(j);
         auto chan = srsChan->at(j);
-        if(chip == 2) channelsAPV2.emplace(chan);
+        if(chip == pulserAPV) channelsAPVPulser.emplace(chan);
 
         auto readout = mmReadout->at(j);
         if(readout == 'E') //non-mapped channel
@@ -390,7 +402,7 @@ void apv::Loop(unsigned long n)
         // // hmaxQTimeFullHistory.at(layer)->Fill(maxADCBin*25);
       }
       // printf("\n");
-      hapv102Multiplicity->Fill(channelsAPV2.size());
+      hapvPulserMultiplicity->Fill(channelsAPVPulser.size());
 
       /* Constructing clusters */
       constructClusters();
@@ -461,7 +473,7 @@ void apv::Loop(unsigned long n)
       // printf("::N events with hits in three layers: %lu (of %lld events -> %.2f)\n", nEventsWHitsThreeLayers, event+1, static_cast<double>(nEventsWHitsThreeLayers) / static_cast<double>(event+1));  
     
       // clusterTree->Fill();
-      if(channelsAPV2.size() >= 127){
+      if(channelsAPVPulser.size() >= 127){
         if(previousTimestampSync > 0){
           auto timestampSyncDiff = currentTimestamp - previousTimestampSync;
           hdaqTimeDifferenceSync->Fill(timestampSyncDiff);
@@ -481,7 +493,7 @@ void apv::Loop(unsigned long n)
       }
       if(previousTimestamp > 0){
         hdaqTimeDifference->Fill(currentTimestamp - previousTimestamp);
-        hdaqTimeDifferenceVSMultiplicity2->Fill(currentTimestamp - previousTimestamp, channelsAPV2.size());
+        hdaqTimeDifferenceVSMultiplicity2->Fill(currentTimestamp - previousTimestamp, channelsAPVPulser.size());
         hdaqTimeDifferenceVSTime->Fill(static_cast<double>(currentTimestamp - firstEventTime) / 1E6, currentTimestamp - previousTimestamp);
       }
       previousTimestamp = currentTimestamp;

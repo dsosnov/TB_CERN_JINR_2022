@@ -44,6 +44,7 @@ public :
      int bcid;
      int srsT;
      map<unsigned int, unsigned int> hitsX;
+     map<int, map<unsigned int, unsigned int>> hitsPerLayer;
      double pdoRelative;
      long long nHitsToPrev;
      float time; // ns
