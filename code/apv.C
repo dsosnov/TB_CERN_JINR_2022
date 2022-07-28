@@ -313,6 +313,14 @@ void apv::Loop(unsigned long n)
   auto hsrsTimestampPulserDifference = make_shared<TH1F>("hsrsTimestampPulserDifference", Form("Run %s: hsrsTimestampPulserDifference; #Delta srsTimeStamp", file.Data()), 16777217, 0, 16777217);
 
 
+  vector<shared_ptr<TH2F>> hClusterPositionPerLayers, hHitPositionPerLayers;
+  for(auto &i: {0, 1, 2}){
+    auto j = (i+1)%3;
+    hClusterPositionPerLayers.push_back(make_shared<TH2F>(Form("hClusterPositionL%d-%d", i, j), Form("Run %s: hClusterPositionL%d-%d", file.Data(), i, j), 361, 0, 361, 361, 0, 361));
+    hHitPositionPerLayers.push_back(make_shared<TH2F>(Form("hHitPositionL%d-%d", i, j), Form("Run %s: hHitPositionL%d-%d", file.Data(), i, j), 361, 0, 361, 361, 0, 361));
+  }
+
+
   unsigned long nEventsWHitsTwoLayers = 0, nEventsWHitsThreeLayers = 0;
   /* Cluster histograms */
   // =============================== TDO & distributions ===============================
@@ -432,6 +440,20 @@ void apv::Loop(unsigned long n)
       // printf("\n");
       hapv102Multiplicity->Fill(channelsAPV2.size());
 
+      for(auto &h1: channelsAPVAny){
+        if(h1.first > 2) continue;
+        for(auto &h2: channelsAPVAny){
+          if(h2.first > 2) continue;
+          if(h1.first == h2.first) continue;
+          auto hMax = (h1.first > h2.first) ? &h1 : &h2;
+          auto hMin = (h2.first > h1.first) ? &h1 : &h2;
+          if(hMax->first == hMin->first + 1)
+            hHitPositionPerLayers.at(hMin->first)->Fill(hMin->second, hMax->second);
+          else
+            hHitPositionPerLayers.at(hMax->first)->Fill(hMax->second, hMin->second);
+        }
+      }
+
       /* Constructing clusters */
       constructClusters();
     
@@ -486,6 +508,20 @@ void apv::Loop(unsigned long n)
         hClusterPositionVSQ.at(c.getLayer())->Fill(c.center(), c.q());;
         hClusterPositionVSSize.at(c.getLayer())->Fill(c.center(), c.nHits());
       }
+      for(auto &c1: clusters){
+        if(c1.getLayer() > 2) continue;
+        for(auto &c2: clusters){
+          if(c2.getLayer() > 2) continue;
+          if(c1.getLayer() == c2.getLayer()) continue;
+          auto cMax = (c1.getLayer() > c2.getLayer()) ? &c1 : &c2;
+          auto cMin = (c2.getLayer() > c1.getLayer()) ? &c1 : &c2;
+          if(cMax->getLayer() == cMin->getLayer() + 1)
+            hClusterPositionPerLayers.at(cMin->getLayer())->Fill(cMin->center(), cMax->center());
+          else
+            hClusterPositionPerLayers.at(cMax->getLayer())->Fill(cMax->center(), cMin->center());
+        }
+      }
+
 
       if(clusters.size() == 3){
         if(clusters.at(0).getLayer() == 0 &&
