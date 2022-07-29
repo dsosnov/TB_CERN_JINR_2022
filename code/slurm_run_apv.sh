@@ -4,6 +4,7 @@
 set echo on
 
 date
+echo "PWD: `pwd -P`"
 
 module load mpi/ompi-4.1
 source /home/sosnov/straw/root/bin/thisroot.sh
@@ -17,9 +18,6 @@ echo FILE=$FILE
 
 root -b -q -n -e 'gROOT->ProcessLine(".L link.C"); gROOT->ProcessLine(".L apv.C"); gROOT->ProcessLine("(new apv(\"'${FILE}'\"))->Loop(0, '${SLURM_ARRAY_TASK_ID}', '${SLURM_ARRAY_TASK_COUNT}')")'
 
-# echo "PWD: `pwd -P`"
-# ls -l
+date
 
-# date
-
-# sbatch --mem=4Gb --array=0-27 -n 1 slurm_run_apv.sh --export=FILE="run45" --job_name="run_apv"
+# sbatch --mem=4Gb --array=0-27 -n 1 --export=ALL,FILE="run45" -J "run_apv" slurm_run_apv.sh
