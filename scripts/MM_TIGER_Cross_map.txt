@@ -64,11 +64,11 @@
 1, 134 : MM0, 211
 1, 136 : MM0, 212
 1, 138 : MM0, 213
-1,  5 : lemo, 0
-1, 11 : lemo, 1
-1, 17 : lemo, 2
-1, 23 : lemo, 3
-1, 29 : lemo, 4
-1, 35 : lemo, 5
-1, 41 : lemo, 6
-1, 47 : lemo, 7
+1,  5 : lemo, 0 # lemo 0
+1, 11 : Scint, 3 # lemo 1
+1, 17 : AddStraw, 0 # lemo 2
+1, 23 : lemo, 3 # lemo 3
+1, 29 : lemo, 4 # lemo 4
+1, 35 : lemo, 5 # lemo 5
+1, 41 : lemo, 6 # lemo 6
+1, 47 : Scint, 4 # lemo7
