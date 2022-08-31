@@ -192,7 +192,7 @@ void tiger::Init()
    fChain->SetBranchAddress("tCoarse", &tCoarse);
    fChain->SetBranchAddress("eCoarse", &eCoarse);
    fChain->SetBranchAddress("tFine", &tFine);
-   fChain->SetBranchAddress("eFine", &tFine);
+   fChain->SetBranchAddress("eFine", &eFine);
    fChain->SetBranchAddress("frameCount", &frameCount);
    fChain->SetBranchAddress("seu", &seu);
    fChain->SetBranchAddress("frameCountLoops", &frameCountLoops);
