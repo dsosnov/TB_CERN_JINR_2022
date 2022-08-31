@@ -290,7 +290,7 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentra
 
         // if(ffpdo < pdoThr) continue;
 
-        if(ffchD == mmDoubleReadout) // All MM channels
+        if(ffchD == 4) // All MM channels
         { 
           if (fabs(trigTime - fft) < 500)
           {
@@ -431,7 +431,7 @@ void evBuilder::Loop(unsigned long n)
         strawMin = s.second.second;
       if(strawMax < 0 || strawMax < s.second.second)
         strawMax = s.second.second;
-    } else if(s.second.first == mmDoubleReadout){
+    } else if(s.second.first == 4){
       if(mmMin < 0 || mmMin > s.second.second)
         mmMin = s.second.second;
       if(mmMax < 0 || mmMax < s.second.second)
@@ -732,9 +732,9 @@ void evBuilder::Loop(unsigned long n)
             // double fft = getTimeByHand(ffbcid, fftdo, 110, 160); //'hand' limits
             double fft = getTime(ffch, ffbcid, fftdo, ffpdoUC); // 'auto' limits
 
-            if(ffchD != mmDoubleReadout && ffpdo < pdoThr) continue; // only for non-mm
+            if(ffchD != 4 && ffpdo < pdoThr) continue; // only for non-mm
 
-            if(ffchD == mmDoubleReadout) // All MM channels
+            if(ffchD == 4) // All MM channels
             { 
               if (fabs(t_srtraw - fft) < 500)
               {
@@ -876,7 +876,7 @@ void evBuilder::Loop(unsigned long n)
 
             if(ffpdo < pdoThr) continue;
 
-            if(ffchD == mmDoubleReadout) // All MM channels
+            if(ffchD == 4) // All MM channels
             { 
               if (fabs(t_srtraw - fft) < 500)
               {
