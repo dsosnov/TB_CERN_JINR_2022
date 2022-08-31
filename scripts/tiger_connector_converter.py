@@ -245,7 +245,7 @@ def convert_connectors_to_tiger_channels(infile = 'MM_TIGER_Cross_map.txt'):
 # - 7: lemo connector without additional description'''
     print(comment, file = f)
     for k, v in tiger_map.items():
-      print(f'0, {k[0]}, {k[1]}, {v[0]}, {v[1]}', file = f)
+      print(f'0\t{k[0]}\t{k[1]}\t{v[0]}\t{v[1]}', file = f)
 
 # parse_connector('test.txt')
 
