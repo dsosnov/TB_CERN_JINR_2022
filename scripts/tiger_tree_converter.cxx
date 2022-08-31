@@ -9,6 +9,7 @@
 #include "TTree.h"
 
 #include <string>
+#include <sstream>
 #include <vector>
 #include <map>
 
@@ -20,6 +21,14 @@ using std::string;
 using std::map;
 
 using std::ifstream;
+
+void split(const string &s, char delimeter, vector<TString> &result){
+    std::istringstream iss(s);
+    string item;
+    while (std::getline(iss, item, delimeter)){
+      result.push_back(TString(item));
+    }
+}
 
 void convertTL(ifstream* fIn, TFile* fOut, Char_t gemroc){
   Char_t gemrocID = gemroc; // -- "B" = Char_t == int8_t
@@ -57,15 +66,9 @@ void convertTL(ifstream* fIn, TFile* fOut, Char_t gemroc){
   vector<Int_t> lastCW(256*64, 0);
   string line;
   vector<TString> lineTokens;
-  TString inputLine;
-  TObjArray* tokenized;
   while (std::getline(*fIn, line)){
     lineTokens.clear();
-    inputLine = line;
-    tokenized = inputLine.Tokenize(" ");
-    for(auto &&l: *tokenized)
-      lineTokens.push_back(static_cast<TObjString*>(l)->String());
-    tokenized->Delete();
+    split(line, ' ', lineTokens);
     tigerID = TString::BaseConvert(lineTokens.at(1), 16, 10).Atoi();
     if(lineTokens.at(2) == "EW:"){
       // tiger - #1, channel - #4, tac - #6, tcoarse #8, ecoarse #10, tfine #12, efile #14
@@ -114,7 +117,6 @@ void tiger_tree_converter_tl(string folderName){
 
   TString name;
   for(auto f: *files){
-    // f->Print();
     name = f->GetName();
     if (name.Index(TRegexp(Form("SubRUN_*_GEMROC_*_TL.datout.txt"),kTRUE)) == kNPOS)
         continue;
@@ -135,9 +137,10 @@ void tiger_tree_converter_tl(string folderName){
     printf("fout: %s\n", tfn.Data());
     auto fOut = TFile::Open(TString(Form("%s/",folderName.c_str()))+tfn, "recreate");
     convertTL(fIn, fOut, gemroc);
-    fOut->Close();
     fIn->close();
     delete fIn;
+    fOut->Close();
+    delete fOut;
   }
   
 }
