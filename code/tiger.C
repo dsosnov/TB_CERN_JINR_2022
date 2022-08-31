@@ -42,21 +42,21 @@ void tiger::Loop(unsigned long n)
   }
 
   vector<TH1F*> hprofile;
-  vector<TH2F*> hpdo, htimeFine;
+  vector<TH2F*> hcharge, htimeFine;
   vector<TH2F*> htCoarse, heCoarse, htFine, heFine;
   vector<TH2F*> htCoarse10bit;
   for(auto i = 0; i < nDetectorTypes; i++){
     out->mkdir(Form("det%d", i))->cd();
-    hprofile.push_back(new TH1F(Form("profile_det%d", i), Form("%s: profile for detector %d;ch", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1));
-    hpdo.push_back(new TH2F(Form("pdo_det%d", i), Form("%s: pdo for detector %d;ch;pdo", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 1025, 0, 1025));
-    htimeFine.push_back(new TH2F(Form("timeFine_det%d", i), Form("%s: timeFine for detector %d;ch;time, ns", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 4096, 0, 409600));
+    hprofile.push_back(new TH1F(Form("profile_det%d", i), Form("%s: profile for detector %d;channel", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1));
+    hcharge.push_back(new TH2F(Form("charge_det%d", i), Form("%s: charge for detector %d;channel;charge", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 1025, 0, 1025));
+    htimeFine.push_back(new TH2F(Form("timeFine_det%d", i), Form("%s: timeFine for detector %d;channel;time, ns", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 4096, 0, 409600));
 
-    htCoarse.push_back(new TH2F(Form("tCoarse_det%d", i), Form("%s: tCoarse for detector %d;ch;tCoarse", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 65536, 0, 65536));
-    heCoarse.push_back(new TH2F(Form("eCoarse_det%d", i), Form("%s: eCoarse for detector %d;ch;eCoarse", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 1024, 0, 1024));
-    htFine.push_back(new TH2F(Form("tFine_det%d", i), Form("%s: eFine for detector %d;ch;tFine", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 1024, 0, 1024));
-    heFine.push_back(new TH2F(Form("eFine_det%d", i), Form("%s: eFine for detector %d;ch;eFine", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 1024, 0, 1024));
+    htCoarse.push_back(new TH2F(Form("tCoarse_det%d", i), Form("%s: tCoarse for detector %d;channel;tCoarse", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 65536, 0, 65536));
+    heCoarse.push_back(new TH2F(Form("eCoarse_det%d", i), Form("%s: eCoarse for detector %d;channel;eCoarse", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 1024, 0, 1024));
+    htFine.push_back(new TH2F(Form("tFine_det%d", i), Form("%s: eFine for detector %d;channel;tFine", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 1024, 0, 1024));
+    heFine.push_back(new TH2F(Form("eFine_det%d", i), Form("%s: eFine for detector %d;channel;eFine", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 1024, 0, 1024));
 
-    htCoarse10bit.push_back(new TH2F(Form("tCoarse10bit_det%d", i), Form("%s: last 10 bit of tCoarse for detector %d;ch;tCoarse %% 0x400",
+    htCoarse10bit.push_back(new TH2F(Form("tCoarse10bit_det%d", i), Form("%s: last 10 bit of tCoarse for detector %d;channel;tCoarse %% 0x400",
                                                                          file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 1024, 0, 1024));
 
     out->cd();
@@ -131,7 +131,7 @@ void tiger::Loop(unsigned long n)
     auto [fchD, fchM] = getMapped(hitMain);
     if (fchD >=0 && fchD < nDetectorTypes){
       hprofile.at(fchD)->Fill(fchM);
-      hpdo.at(fchD)->Fill(fchM, hitMain.charge());
+      hcharge.at(fchD)->Fill(fchM, hitMain.charge());
       htimeFine.at(fchD)->Fill(fchM, hitMain.timeFine());
       htCoarse.at(fchD)->Fill(fchM, hitMain.tCoarse);
       heCoarse.at(fchD)->Fill(fchM, hitMain.eCoarse);
