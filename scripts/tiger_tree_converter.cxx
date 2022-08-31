@@ -57,11 +57,15 @@ void convertTL(ifstream* fIn, TFile* fOut, Char_t gemroc){
   vector<Int_t> lastCW(256*64, 0);
   string line;
   vector<TString> lineTokens;
+  TString inputLine;
+  TObjArray* tokenized;
   while (std::getline(*fIn, line)){
     lineTokens.clear();
-    // auto lineTokenized = TString(line).Tokenize(" ");
-    for(auto l: *TString(line).Tokenize(" "))
+    inputLine = line;
+    tokenized = inputLine.Tokenize(" ");
+    for(auto &&l: *tokenized)
       lineTokens.push_back(static_cast<TObjString*>(l)->String());
+    tokenized->Delete();
     tigerID = TString::BaseConvert(lineTokens.at(1), 16, 10).Atoi();
     if(lineTokens.at(2) == "EW:"){
       // tiger - #1, channel - #4, tac - #6, tcoarse #8, ecoarse #10, tfine #12, efile #14
@@ -94,19 +98,24 @@ void convertTL(ifstream* fIn, TFile* fOut, Char_t gemroc){
     }
   }
   tree->Write();
+  delete tree;
 }
 
 void tiger_tree_converter_tl(string folderName){
 
   auto dir = new TSystemDirectory(folderName.c_str(), folderName.c_str());
   auto files = dir->GetListOfFiles();
-  if(!files) return;
+  if(!files){
+    delete dir;
+    return;
+  }
 
   vector<string> datoutFiles;
 
+  TString name;
   for(auto f: *files){
     // f->Print();
-    TString name = f->GetName();
+    name = f->GetName();
     if (name.Index(TRegexp(Form("SubRUN_*_GEMROC_*_TL.datout.txt"),kTRUE)) == kNPOS)
         continue;
     datoutFiles.push_back(name.Data());
@@ -116,7 +125,10 @@ void tiger_tree_converter_tl(string folderName){
   for(auto &fn: datoutFiles){
     int gemroc = static_cast<TObjString*>(TString(fn).Tokenize("_")->At(3))->String().Atoi();
     auto fIn = new ifstream((folderName+"/"+fn).c_str());
-    if(!fIn->is_open()) continue;   
+    if(!fIn->is_open()){
+      delete fIn;
+      continue;
+    }
     auto tfn = TString(fn.c_str());
     auto n = tfn.Length();
     tfn.Replace(n-11, 11, ".root");
@@ -125,6 +137,7 @@ void tiger_tree_converter_tl(string folderName){
     convertTL(fIn, fOut, gemroc);
     fOut->Close();
     fIn->close();
+    delete fIn;
   }
   
 }
