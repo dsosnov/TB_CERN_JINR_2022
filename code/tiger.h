@@ -29,7 +29,7 @@ using std::ifstream;
 
 class tiger : public analysisGeneral {
 public :
-   TString mapFile = "map-tiger-20220721.txt";
+   TString mapFile = "map-tiger-20220830.txt";
 
    Char_t   gemrocID;        //                "B" == Char_t   ==  int8_t
    Short_t  tigerID;         //  8 bit data -- "S" == Short_t  == int16_t
@@ -94,6 +94,8 @@ public :
   //   {{6, 0}, 198}, // SHiP Straw // 170 before June 1st, 198 after
   //   {{6, 1}, 180}, // Netron Straw
   // };
+
+  int nDetectorTypes = 8;
 };
 
 #endif
@@ -134,6 +136,7 @@ void tiger::addMap(TString filename, bool verbose){
    while (std::getline(infile, line))
    {
      std::istringstream iss(line);
+     std::cout << line << std::endl;
      if(iss.str().substr(0, 1) == string("#")) // in c++20 there is starts_with("#")
        continue;
      if (!(iss >> gr >> t >> ch >> d >> dch))

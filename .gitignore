@@ -5,6 +5,7 @@
 /data/
 /data-calibration/
 /data-apv/
+/data-tiger/
 /out/
 
 *.txt

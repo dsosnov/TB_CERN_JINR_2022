@@ -11,24 +11,21 @@ void tiger::Loop(unsigned long n)
   if (fChain == 0)
     return;
 
-  int strawMin = -1, strawMax = -1;
-  vector<int> mmMin(4, -1), mmMax(4, -1);
+  vector<int> detMin(nDetectorTypes, -1), detMax(nDetectorTypes, -1);
   for(auto &s: channelMap){
-    if(s.second.first == 1){
-      if(strawMin < 0 || strawMin > s.second.second)
-        strawMin = s.second.second;
-      if(strawMax < 0 || strawMax < s.second.second)
-        strawMax = s.second.second;
-    } else if(s.second.first >= 2 && s.second.first <= 5){
-      if(mmMin.at(s.second.first-2) < 0 || mmMin.at(s.second.first-2) > s.second.second)
-        mmMin.at(s.second.first-2) = s.second.second;
-      if(mmMax.at(s.second.first-2) < 0 || mmMax.at(s.second.first-2) < s.second.second)
-        mmMax.at(s.second.first-2) = s.second.second;
-    }
+    if(s.second.first < 0 || s.second.first >= nDetectorTypes)
+      continue;
+    printf("For channel %d -- %d\n", s.second.first, s.second.second);
+    if(detMin.at(s.second.first) < 0 || detMin.at(s.second.first) > s.second.second)
+      detMin.at(s.second.first) = s.second.second;
+    if(detMax.at(s.second.first) < 0 || detMax.at(s.second.first) < s.second.second)
+      detMax.at(s.second.first) = s.second.second;
   }
-  printf("Straws: %d-%d\n", strawMin, strawMax);
+  printf("Straws (det 1): %d-%d\n", detMin.at(1), detMax.at(1));
   for(int i = 0; i < 4; i++)
-    printf("MM %d: %d-%d\n", i, mmMin.at(i), mmMax.at(i));
+    printf("MM %d (det %d): %d-%d\n", i, i+2, detMin.at(i+2), detMax.at(i+2));
+  printf("Additional straws (det 6): %d-%d\n", detMin.at(6), detMax.at(6));
+  printf("Lemo (det 7): %d-%d\n", detMin.at(7), detMax.at(7));
 
   TFile *out = new TFile("../out/out_tiger" + file + ending, "RECREATE"); // PATH where to save out_*.root file
 
@@ -42,13 +39,22 @@ void tiger::Loop(unsigned long n)
   vector<TH2F*> straw_vs_mm_spatial_corr;
   for(int i = 0; i < 4; i++){
     straw_vs_mm_spatial_corr.push_back(new TH2F(Form("straw_vs_mm%d_spatial_corr", i), Form("%s: microMegas %d vs straw spatial correaltion;straw ch;MM ch", file.Data(), i),
-                                                strawMax - strawMin + 1, strawMin, strawMax + 1, mmMax.at(i) - mmMin.at(i) + 1, mmMin.at(i), mmMax.at(i)));
+                                                detMax.at(1) - detMin.at(1) + 1, detMin.at(1), detMax.at(1) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
+  }
+
+  vector<TH1F*> hprofile;
+  vector<TH2F*> hpdo;
+  for(auto i = 0; i < nDetectorTypes; i++){
+    out->mkdir(Form("det%d", i))->cd();
+    hprofile.push_back(new TH1F(Form("profile_det%d", i), Form("%s: profile for detector %d;ch", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1));
+    hpdo.push_back(new TH2F(Form("pdo_det%d", i), Form("%s: pdo for detector %d;ch;pdo", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 1025, 0, 1025));
+    out->cd();
   }
   
   // auto straw_rt_dir = out->mkdir("straw_rt");
   // straw_rt_dir->cd();
   // map<int, TH2F*> straw_rt, straw_rt_0;
-  // for(auto i = strawMin; i <= strawMax; i++){
+  // for(auto i = detMin.at(1); i <= detMax.at(1); i++){
   //   straw_rt.emplace(i,
   //                    new TH2F(Form("straw%d_rt", i),
   //                             Form("%s: straw %d v-shape sci ch 60;R, mm;T, ns", file.Data(), i),
@@ -62,7 +68,7 @@ void tiger::Loop(unsigned long n)
 
   out->mkdir("straw_deltat_corr")->cd();
   map<int, TH1F*> straw_deltat, straw_deltat_0;
-  for(auto i = strawMin; i <= strawMax; i++){
+  for(auto i = detMin.at(1); i <= detMax.at(1); i++){
     straw_deltat.emplace(i,
                          new TH1F(Form("straw%d_vs_sci60", i),
                                   Form("%s: straw%d_vs_sci60;#Delta t", file.Data(), i), 1000, -500, 500));
@@ -74,7 +80,7 @@ void tiger::Loop(unsigned long n)
 
   out->mkdir("straw_banana")->cd();
   map<int, TH2F*> straw_banana, straw_banana_0 ;
-  for(auto i = strawMin; i < strawMax; i++){
+  for(auto i = detMin.at(1); i < detMax.at(1); i++){
     straw_banana.emplace(i,
                          new TH2F(Form("straw%d-%d_banana", i, i+1),
                                   Form("%s: Time difference between straws %d, %d and sci60;T_{straw%d} - T_{scint}, [ns];T_{straw%d} - T_{scint}, [ns]", file.Data(), i, i+1, i, i+1),
@@ -88,7 +94,7 @@ void tiger::Loop(unsigned long n)
 
   out->mkdir("straw_vs_straw_deltat")->cd();
   map<int, TH1F*> straw_straw;
-  for(auto i = strawMin; i < strawMax; i++){
+  for(auto i = detMin.at(1); i < detMax.at(1); i++){
     straw_straw.emplace(i,
                         new TH1F(Form("straw%d_vs_straw%d", i, i+1),
                                  Form("%s: straw%d_vs_straw%d;T_{straw%d} - T_{straw%d}", file.Data(), i, i+1, i, i+1), 1000, -500, 500));
@@ -112,6 +118,10 @@ void tiger::Loop(unsigned long n)
     fChain->GetEntry(jentry);
     updateTigerHitTLCurrent(hitMain);
     auto [fchD, fchM] = getMapped(hitMain);
+    if (fchD >=0 && fchD < nDetectorTypes){
+      hprofile.at(fchD)->Fill(fchM);
+      hpdo.at(fchD)->Fill(fchM, hitMain.charge());
+    }
     if (fchD == 1){ // All straw ch
       /* Searching for secondary hit */
       /* TODO improve speed: maybe load hits to vector and work with vector in memory */
