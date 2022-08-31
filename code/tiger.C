@@ -15,7 +15,6 @@ void tiger::Loop(unsigned long n)
   for(auto &s: channelMap){
     if(s.second.first < 0 || s.second.first >= nDetectorTypes)
       continue;
-    printf("For channel %d -- %d\n", s.second.first, s.second.second);
     if(detMin.at(s.second.first) < 0 || detMin.at(s.second.first) > s.second.second)
       detMin.at(s.second.first) = s.second.second;
     if(detMax.at(s.second.first) < 0 || detMax.at(s.second.first) < s.second.second)
@@ -43,11 +42,23 @@ void tiger::Loop(unsigned long n)
   }
 
   vector<TH1F*> hprofile;
-  vector<TH2F*> hpdo;
+  vector<TH2F*> hpdo, htimeFine;
+  vector<TH2F*> htCoarse, heCoarse, htFine, heFine;
+  vector<TH2F*> htCoarse10bit;
   for(auto i = 0; i < nDetectorTypes; i++){
     out->mkdir(Form("det%d", i))->cd();
     hprofile.push_back(new TH1F(Form("profile_det%d", i), Form("%s: profile for detector %d;ch", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1));
     hpdo.push_back(new TH2F(Form("pdo_det%d", i), Form("%s: pdo for detector %d;ch;pdo", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 1025, 0, 1025));
+    htimeFine.push_back(new TH2F(Form("timeFine_det%d", i), Form("%s: timeFine for detector %d;ch;time, ns", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 4096, 0, 409600));
+
+    htCoarse.push_back(new TH2F(Form("tCoarse_det%d", i), Form("%s: tCoarse for detector %d;ch;tCoarse", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 65536, 0, 65536));
+    heCoarse.push_back(new TH2F(Form("eCoarse_det%d", i), Form("%s: eCoarse for detector %d;ch;eCoarse", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 1024, 0, 1024));
+    htFine.push_back(new TH2F(Form("tFine_det%d", i), Form("%s: eFine for detector %d;ch;tFine", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 1024, 0, 1024));
+    heFine.push_back(new TH2F(Form("eFine_det%d", i), Form("%s: eFine for detector %d;ch;eFine", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 1024, 0, 1024));
+
+    htCoarse10bit.push_back(new TH2F(Form("tCoarse10bit_det%d", i), Form("%s: last 10 bit of tCoarse for detector %d;ch;tCoarse %% 0x400",
+                                                                         file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 1024, 0, 1024));
+
     out->cd();
   }
   
@@ -121,6 +132,12 @@ void tiger::Loop(unsigned long n)
     if (fchD >=0 && fchD < nDetectorTypes){
       hprofile.at(fchD)->Fill(fchM);
       hpdo.at(fchD)->Fill(fchM, hitMain.charge());
+      htimeFine.at(fchD)->Fill(fchM, hitMain.timeFine());
+      htCoarse.at(fchD)->Fill(fchM, hitMain.tCoarse);
+      heCoarse.at(fchD)->Fill(fchM, hitMain.eCoarse);
+      htFine.at(fchD)->Fill(fchM, hitMain.tFine);
+      heFine.at(fchD)->Fill(fchM, hitMain.eFine);
+      htCoarse10bit.at(fchD)->Fill(fchM, hitMain.tCoarse%0x400);
     }
     if (fchD == 1){ // All straw ch
       /* Searching for secondary hit */

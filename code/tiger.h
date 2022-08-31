@@ -136,7 +136,6 @@ void tiger::addMap(TString filename, bool verbose){
    while (std::getline(infile, line))
    {
      std::istringstream iss(line);
-     std::cout << line << std::endl;
      if(iss.str().substr(0, 1) == string("#")) // in c++20 there is starts_with("#")
        continue;
      if (!(iss >> gr >> t >> ch >> d >> dch))
