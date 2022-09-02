@@ -1,3 +1,5 @@
+import sys
+
 # connector pin: (tiger, channel), from FEB3_pinout.pdf
 tigChMap = {
   1: (1,3),
@@ -195,7 +197,7 @@ def parse_connector(infile):
         parsed[-1]['comments'].append(l[1])
     print(ls)
 
-def convert_connectors_to_tiger_channels(infile = 'MM_TIGER_Cross_map.txt'):
+def convert_connectors_to_tiger_channels(infile):
   current_connector_map_p = [{} for p in range(8)]
   tiger_map = {}
   with open(infile, 'r') as f:
@@ -250,4 +252,5 @@ def convert_connectors_to_tiger_channels(infile = 'MM_TIGER_Cross_map.txt'):
 # parse_connector('test.txt')
 
 # print_connector(0)
-convert_connectors_to_tiger_channels();
+infile = sys.argv[1] if len(sys.argv) > 1 else 'MM_TIGER_Cross_map.txt'
+convert_connectors_to_tiger_channels(infile);
