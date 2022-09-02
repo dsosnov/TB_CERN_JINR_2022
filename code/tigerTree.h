@@ -93,17 +93,21 @@ long long timeDifferenceCoarsePS(const tigerHitTL hit1, const tigerHitTL hit2){
   auto hitFirst = later ? &hit2: &hit1;
   auto hitLast = later ? &hit1: &hit2;
 
-  // each two framecount loops is whole tCoarse roll-over loop.
-  // In case values inside 
+  // each framecount loop is 2**16 frameCounts.
   Long64_t FCLoopDiff = hitLast->frameCountLoops - hitFirst->frameCountLoops;
-  FCLoopDiff += (FCLoopDiff >= 0) ? 0 : 65536;
+  if(FCLoopDiff < 0){
+    fprintf(stderr, "FrameCountLoop roll-over should never happens (3E12 years) !\n");
+    FCLoopDiff += 9223372036854775807;  // max value of Long64_t = 2^63-1
+    FCLoopDiff += 1;
+  }
 
-  auto tCoarseDiff = hitLast->tCoarse - hitFirst->tCoarse;
-  tCoarseDiff += (tCoarseDiff >= 0) ? 0 : 65536;
-
-  auto tCoarseRollOvers = (FCLoopDiff > 2) ? static_cast<long long>(FCLoopDiff - 3) / 2 + 1 : 0;
+  // each two framecount is whole tCoarse roll-over loop.
+  Long64_t FCDiff = FCLoopDiff * 65536;
+  FCDiff += hitLast->frameCount - hitFirst->frameCount;
+  // Roll-overs: int(floor((FC2_{Last} - FC_{First})/2))
+  Long64_t tCoarseRollOvers = (FCDiff - (FCDiff%2 ? 1 : 0)) / 2;
+  Long64_t tCoarseDiff = hitLast->tCoarse - hitFirst->tCoarse;
   Long64_t clk_periods = tCoarseDiff + tCoarseRollOvers * 65536;
-
   long long absTime = clk_periods * 6250;
 
   return later ? absTime : -absTime; // picoseconds
