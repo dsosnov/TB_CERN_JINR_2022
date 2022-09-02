@@ -22,7 +22,6 @@ double tiger_fullTime(
   Int_t    frameCountFirst,
   Long64_t frameCountLoopsFirst
   ){
-  // printf("tiger_fullTime against %d, %d\n", tCoarseFirst, tFineFirst);
   tigerHitTL currHit, firstHit;
   firstHit.tCoarse = tCoarseFirst;
   firstHit.tFine = tFineFirst;
@@ -53,7 +52,6 @@ double tiger_fullTime_auto(
     mainTree->SetBranchAddress("frameCountLoops", &frameCountLoopsFirst);
     mainTree->GetEntry(0);
     mainTree->ResetBranchAddresses();
-    // printf("tCoarseFirst: %d\n", tCoarseFirst);
   }
   return tiger_fullTime(
     tCoarse,
