@@ -1,6 +1,6 @@
 #include "../code/tigerTree.h"
 
-void tiger_fullTime_command(){
+void tiger_fullTime(){
   auto mainTree = static_cast<TTree*>(gDirectory->Get("tigerTL"));
   // mainTree->Print();
   Int_t    tCoarse; mainTree->SetBranchAddress("tCoarse", &tCoarse);
