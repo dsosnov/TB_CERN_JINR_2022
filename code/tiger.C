@@ -42,7 +42,7 @@ void tiger::Loop(unsigned long n)
   }
 
   vector<TH1F*> hprofile;
-  vector<TH2F*> hcharge, htimeFine;
+  vector<TH2F*> hcharge, htimeFine, hFullTime;
   vector<TH2F*> htCoarse, heCoarse, htFine, heFine;
   vector<TH2F*> htCoarse10bit;
   for(auto i = 0; i < nDetectorTypes; i++){
@@ -58,6 +58,8 @@ void tiger::Loop(unsigned long n)
 
     htCoarse10bit.push_back(new TH2F(Form("tCoarse10bit_det%d", i), Form("%s: last 10 bit of tCoarse for detector %d;channel;tCoarse %% 0x400",
                                                                          file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 1024, 0, 1024));
+
+    hFullTime.push_back(new TH2F(Form("fullTime_det%d", i), Form("%s: fullTime for detector %d;channel;time, s", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 6000, 0, 60));
 
     out->cd();
   }
@@ -119,7 +121,7 @@ void tiger::Loop(unsigned long n)
   // =============================== CORRELATION FINDING ===============================
   Long64_t timeWindowNS = 1E3; // ns
   Long64_t firstHitInWindow = 0;
-  tigerHitTL hitMain, hitSecondary;
+  tigerHitTL hitMain, hitSecondary, hitFirst;
   for (Long64_t jentry = 0; jentry < nentries; jentry++) // You can remove "/ 10" and use the whole dataset
   {
     if (jentry % 10000 == 0)
@@ -131,6 +133,7 @@ void tiger::Loop(unsigned long n)
     if (!jentry){
       printf("First hit: ");
       hitMain.print();
+      hitFirst = hitMain;
     }
     auto [fchD, fchM] = getMapped(hitMain);
     if (fchD >=0 && fchD < nDetectorTypes){
@@ -142,6 +145,7 @@ void tiger::Loop(unsigned long n)
       htFine.at(fchD)->Fill(fchM, hitMain.tFine);
       heFine.at(fchD)->Fill(fchM, hitMain.eFine);
       htCoarse10bit.at(fchD)->Fill(fchM, hitMain.tCoarse%0x400);
+      hFullTime.at(fchD)->Fill(fchM, timeDifferenceFineNS(hitMain, hitFirst) * 1E-9);
     }
     if (fchD == 1){ // All straw ch
       /* Searching for secondary hit */
