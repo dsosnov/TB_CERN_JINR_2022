@@ -128,6 +128,10 @@ void tiger::Loop(unsigned long n)
     }
     fChain->GetEntry(jentry);
     updateTigerHitTLCurrent(hitMain);
+    if (!jentry){
+      printf("First hit: ");
+      hitMain.print();
+    }
     auto [fchD, fchM] = getMapped(hitMain);
     if (fchD >=0 && fchD < nDetectorTypes){
       hprofile.at(fchD)->Fill(fchM);
