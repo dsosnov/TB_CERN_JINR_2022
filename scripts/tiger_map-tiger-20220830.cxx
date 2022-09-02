@@ -1,9 +1,9 @@
 void tiger_get_det_0(){printf("tiger_get_det_0(gemrocID, tigerID, channelID)\n");}
 int tiger_get_det_0(Char_t gemrocID, Short_t tigerID, Char_t channelID){
-  if(gemrocID==0 && tigerID==3 && channelID==23)
+  if(gemrocID==0 && tigerID==3 && channelID==22)
     return 3;
   else
-  if(gemrocID==0 && tigerID==3 && channelID==46)
+  if(gemrocID==0 && tigerID==3 && channelID==50)
     return 4;
   else
     return -(channelID + tigerID*64 + gemrocID * 64*8);
@@ -225,7 +225,7 @@ int tiger_get_det_5(Char_t gemrocID, Short_t tigerID, Char_t channelID){
 
 void tiger_get_det_6(){printf("tiger_get_det_6(gemrocID, tigerID, channelID)\n");}
 int tiger_get_det_6(Char_t gemrocID, Short_t tigerID, Char_t channelID){
-  if(gemrocID==0 && tigerID==3 && channelID==14)
+  if(gemrocID==0 && tigerID==3 && channelID==23)
     return 0;
   else
     return -(channelID + tigerID*64 + gemrocID * 64*8);
@@ -233,8 +233,8 @@ int tiger_get_det_6(Char_t gemrocID, Short_t tigerID, Char_t channelID){
 
 void tiger_get_det_7(){printf("tiger_get_det_7(gemrocID, tigerID, channelID)\n");}
 int tiger_get_det_7(Char_t gemrocID, Short_t tigerID, Char_t channelID){
-  if(gemrocID==0 && tigerID==3 && channelID==43)
-    return 0;
+  if(gemrocID==0 && tigerID==3 && channelID==14)
+    return 1;
   else
   if(gemrocID==0 && tigerID==3 && channelID==26)
     return 3;
@@ -242,8 +242,11 @@ int tiger_get_det_7(Char_t gemrocID, Short_t tigerID, Char_t channelID){
   if(gemrocID==0 && tigerID==3 && channelID==28)
     return 5;
   else
-  if(gemrocID==0 && tigerID==3 && channelID==50)
-    return 6;
+  if(gemrocID==0 && tigerID==3 && channelID==43)
+    return 0;
+  else
+  if(gemrocID==0 && tigerID==3 && channelID==46)
+    return 7;
   else
   if(gemrocID==0 && tigerID==3 && channelID==51)
     return 4;
