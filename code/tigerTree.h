@@ -1,12 +1,22 @@
 #pragma once
 
 #include "Rtypes.h"
+#include <cstdio>
 
 // For simplisity of calculation use signed-sized types with increased size.
 struct tigerHit {
   Char_t   gemrocID;        //                "B" == Char_t   ==  int8_t
   Short_t  tigerID;         //  8 bit data -- "S" == Short_t  == int16_t
   Char_t   channelID;       //  6 bit data -- "B" == Char_t   ==  int8_t
+  virtual void print(bool hex = false) const;
+};
+void tigerHit::print(bool hex) const {
+  printf("TL hit: ");
+  if(hex)
+    printf("[ROC %2X, TIGER %2X, ch %2X] ", gemrocID, tigerID, channelID);
+  else
+    printf("[ROC %3d, TIGER %3d, ch %2d] ", gemrocID, tigerID, channelID);
+  printf("\n");
 };
 
 struct tigerHitTL : public tigerHit {
@@ -26,6 +36,7 @@ struct tigerHitTL : public tigerHit {
 
   double timeFine() const; // ns
   double charge() const;
+  void print(bool hex = false) const override;
 
   friend bool isLater(const tigerHitTL hit1, const tigerHitTL hit2);
   friend long long timeDifferenceCoarsePS(const tigerHitTL hit1, const tigerHitTL hit2);
@@ -43,6 +54,25 @@ double tigerHitTL::timeFine() const { // ns
   double tCounts = double(tCoarse) - (double(tFine) - 0.0) / 1024.0;
   return tCounts * 6.25;
 }
+
+void tigerHitTL::print(bool hex) const {
+  printf("TL hit: ");
+
+  if(hex)
+    printf("[ROC %2X, TIGER %2X, ch %2X] ", gemrocID, tigerID, channelID);
+  else
+    printf("[ROC %3d, TIGER %3d, ch %2d] ", gemrocID, tigerID, channelID);
+
+  if(hex){
+    printf("tCoarse: %4X, tFine: %3X, eCoarse: %3X, eFine: %3X; ", tCoarse, tFine, eCoarse, eFine);
+    printf("FrameCount: %4X, FC loops: %lld", frameCount, frameCountLoops);
+  }else{
+    printf("tCoarse: %5d, tFine: %4d, eCoarse: %4d, eFine: %4d; ", tCoarse, tFine, eCoarse, eFine);
+    printf("FrameCount: %5d, FC loops: %lld", frameCount, frameCountLoops);
+  }
+  printf("\n");
+}
+
 
 bool isLater(const tigerHitTL hit1, const tigerHitTL hit2){
   bool later = false;
