@@ -39,12 +39,12 @@ public :
      bool approx, sync, signal, trigger;
      unsigned long timeSec;
      unsigned int timeMSec;
-     unsigned int stripX, stripY;
-     unsigned int pdo;
+     int stripX, stripY;
+     int pdo;
      int bcid;
      int srsT;
-     map<unsigned int, unsigned int> hitsX;
-     map<int, map<unsigned int, unsigned int>> hitsPerLayer;
+     map<int, int> hitsX;
+     map<int, map<int, int>> hitsPerLayer;
      double pdoRelative;
      long long nHitsToPrev;
      float time; // ns
@@ -65,17 +65,17 @@ public :
        return signalTypeText;
      }
      void print() const {
-       printf("Hit to straw %d with relative pdo %.3f and time %.2f at daq time %lld. %s Previous synchrosignal was %.2f us ago.\n",
+       printf("Hit to straw %ld with relative pdo %.3f and time %.2f at daq time %lld. %s Previous synchrosignal was %.2f us ago.\n",
               stripX, pdoRelative, time, timeFull(), getSignalTypeText().c_str(), timeSinceSync);
      }
      void printfBrief(bool revert = false) const {
        if(revert)
-         printf("%s %3d - %.2f - %.3f - %7lld - %.2g (%llu)",
+         printf("%s %3ld - %.2f - %.3f - %7lld - %.2g (%llu)",
                 getSignalTypeText().c_str(),
                 stripX, time, pdoRelative,
                 timeFull() % int(1E7), timeSinceSync, previousSync);
        else
-         printf("(%llu) %.2g - %7lld - %.3f - %.2f - %3d %s",
+         printf("(%llu) %.2g - %7lld - %.3f - %.2f - %3ld %s",
                 previousSync, timeSinceSync, timeFull() % int(1E7),
                 pdoRelative, time, stripX,
                 getSignalTypeText().c_str());
