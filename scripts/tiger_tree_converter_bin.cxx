@@ -19,7 +19,8 @@ using std::map;
 #include <fstream>
 using std::ifstream;
 
-// With default padding every type starts with new byte.
+// With enabled padding (by default) every type
+// may starts with new byte.
 // Solution: disabling padding (in commented block) or
 // or moving all to single uint64_t
 // /* pragma pack desables padding */
