@@ -46,7 +46,7 @@ public :
    tuple<double, double, double> getClusterParameters(double t_srtraw, double minT_straw_mm, int workType = 0);
   long long findFirstGoodPulser(unsigned long long fromSec = 0, unsigned long long toSec = 0);
 
-  unsigned int mmDoubleReadout = 2; // 4  
+  unsigned int mmDoubleReadout = 4; // 2  
 };
 
 evBuilder::evBuilder(TString filename, TString runType_, TString mapFile_) : vmm(filename, runType_, mapFile_)

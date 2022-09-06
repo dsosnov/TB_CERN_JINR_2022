@@ -65,17 +65,17 @@ public :
        return signalTypeText;
      }
      void print() const {
-       printf("Hit to straw %ld with relative pdo %.3f and time %.2f at daq time %lld. %s Previous synchrosignal was %.2f us ago.\n",
+       printf("Hit to straw %d with relative pdo %.3f and time %.2f at daq time %lld. %s Previous synchrosignal was %.2f us ago.\n",
               stripX, pdoRelative, time, timeFull(), getSignalTypeText().c_str(), timeSinceSync);
      }
      void printfBrief(bool revert = false) const {
        if(revert)
-         printf("%s %3ld - %.2f - %.3f - %7lld - %.2g (%llu)",
+         printf("%s %3d - %.2f - %.3f - %7lld - %.2g (%llu)",
                 getSignalTypeText().c_str(),
                 stripX, time, pdoRelative,
                 timeFull() % int(1E7), timeSinceSync, previousSync);
        else
-         printf("(%llu) %.2g - %7lld - %.3f - %.2f - %3ld %s",
+         printf("(%llu) %.2g - %7lld - %.3f - %.2f - %3d %s",
                 previousSync, timeSinceSync, timeFull() % int(1E7),
                 pdoRelative, time, stripX,
                 getSignalTypeText().c_str());
