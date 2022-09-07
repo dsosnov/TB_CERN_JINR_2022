@@ -164,13 +164,12 @@ void convertTL(ifstream* fIn, Char_t gemroc){
   vector<Int_t> lastFrameCount(256, 0);
   vector<Int_t> lastSEU(256, 0);
   vector<Int_t> lastCW(256*64, 0);
-  int64_t frame = 0;
+  uint64_t frame = 0;
   auto frameFW = reinterpret_cast<TLFrameWord*>(&frame); // (TLFrameWord*)(&frame);
   auto frameEW = reinterpret_cast<TLEventWord*>(&frame); // (TLEventWord*)(&frame);
   auto frameCW = reinterpret_cast<TLCountWord*>(&frame); // (TLCountWord*)(&frame);
   auto frameType = TLHitType::unknown;
-  while (!fIn->eof()){
-    fIn->read(reinterpret_cast<char*>(&frame), sizeof(frame));    
+  for(; !fIn->eof(); fIn->read(reinterpret_cast<char*>(&frame), sizeof(frame))){
     frameType = getTypeTL(frame);
     switch(frameType){
       case TLHitType::EventWord: { // EW
