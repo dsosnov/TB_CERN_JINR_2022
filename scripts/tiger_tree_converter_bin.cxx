@@ -124,15 +124,22 @@ struct TMUDPCounter{
   uint8_t key: 4; // should be 0x4
 };
 #pragma pack(pop)
+union TMHit{
+  uint64_t unknown;
+  TMHeader h;
+  TMTrailer t;
+  TMData d;
+  TMUDPCounter uc;
+};
 enum class TMHitType{unknown, Header, Trailer, Data, UDPCounter};
-TMHitType getTypeTM(const int64_t &hit){
-  if(reinterpret_cast<const TMTrailer*>(&hit)->key == 0x7)
+TMHitType getTypeTM(const TMHit &hit){
+  if(hit.t.key == 0x7)
     return TMHitType::Trailer;
-  else if(reinterpret_cast<const TMHeader*>(&hit)->key == 0x6)
+  else if(hit.h.key == 0x6)
     return TMHitType::Header;
-  else if(reinterpret_cast<const TMData*>(&hit)->key == 0x0)
+  else if(hit.d.key == 0x0)
     return TMHitType::Data;
-  else if(reinterpret_cast<const TMUDPCounter*>(&hit)->key == 0x4)
+  else if(hit.uc.key == 0x4)
     return TMHitType::UDPCounter;
   return TMHitType::unknown;
 }
