@@ -75,68 +75,64 @@ TLHitType getTypeTL(const TLHit &hit){
 
 /* pragma pack desables padding */
 #pragma pack(push, 1)
-struct TMHeader{
-  uint16_t l1Timestamp: 16;  
-  uint8_t countHits: 8;
-
-  // in python converter:
-  uint32_t l1LocalCount: 32;
-  uint8_t reserved: 2;
-  // in tiger_data_format.pdf:
-  // uint64_t l1LocalCount: 34;
-
-  uint8_t status: 3;
-  uint8_t key: 3; // should be 0x6
-};
-struct TMTrailer{
-  uint32_t lastCountWordData: 18;
-  uint8_t lastCountWordCh: 6;
-  uint8_t l1LocalCount: 3;
-  uint8_t tiger: 3;
-  uint8_t reserved: 2;
-  uint8_t gemroc: 5;
-  uint32_t l1LocalFramenum: 24;
-  uint8_t key: 3; // should be 0x7
-};
-struct TMData{
-  // in tiger_data_format.pdf:
-  // uint64_t rawData: 56;
-  // in python converter:
-  uint16_t eFine: 10;
-  uint16_t tFine: 10;
-  uint16_t eCoarse: 10;
-  uint8_t reserved: 2;
-  uint16_t tCoarse: 16;
-  uint8_t tac: 2;
-  uint8_t channel: 6;
-  uint8_t lastTigerFrameNumber: 3;
-  uint8_t tiger: 3;
-  uint8_t key: 2; // should be 0x0
-};
-struct TMUDPCounter{
-  uint32_t reserved: 28;
-  uint32_t udpFrameCount: 24;
-  uint8_t gemroc: 5;
-  uint32_t headerStatus: 3;
-  uint8_t key: 4; // should be 0x4
-};
-#pragma pack(pop)
 union TMHit{
   uint64_t unknown;
-  TMHeader h;
-  TMTrailer t;
-  TMData d;
-  TMUDPCounter uc;
+  struct {
+    uint16_t l1Timestamp: 16;
+    uint8_t countHits: 8;
+
+    // in python converter:
+    uint32_t l1LocalCount: 32;
+    uint8_t reserved: 2;
+    // in tiger_data_format.pdf:
+    // uint64_t l1LocalCount: 34;
+
+    uint8_t status: 3;
+    uint8_t key: 3; // should be 0x6
+  } header;
+  struct {
+    uint32_t lastCountWordData: 18;
+    uint8_t lastCountWordCh: 6;
+    uint8_t l1LocalCount: 3;
+    uint8_t tiger: 3;
+    uint8_t reserved: 2;
+    uint8_t gemroc: 5;
+    uint32_t l1LocalFramenum: 24;
+    uint8_t key: 3; // should be 0x7
+  } trailer;
+  struct {
+    // in tiger_data_format.pdf:
+    // uint64_t rawData: 56;
+    // in python converter:
+    uint16_t eFine: 10;
+    uint16_t tFine: 10;
+    uint16_t eCoarse: 10;
+    uint8_t reserved: 2;
+    uint16_t tCoarse: 16;
+    uint8_t tac: 2;
+    uint8_t channel: 6;
+    uint8_t lastTigerFrameNumber: 3;
+    uint8_t tiger: 3;
+    uint8_t key: 2; // should be 0x0
+  } data;
+  struct {
+    uint32_t reserved: 28;
+    uint32_t udpFrameCount: 24;
+    uint8_t gemroc: 5;
+    uint32_t headerStatus: 3;
+    uint8_t key: 4; // should be 0x4
+  } udpCounter;
 };
+#pragma pack(pop)
 enum class TMHitType{unknown, Header, Trailer, Data, UDPCounter};
 TMHitType getTypeTM(const TMHit &hit){
-  if(hit.t.key == 0x7)
+  if(hit.trailer.key == 0x7)
     return TMHitType::Trailer;
-  else if(hit.h.key == 0x6)
+  else if(hit.header.key == 0x6)
     return TMHitType::Header;
-  else if(hit.d.key == 0x0)
+  else if(hit.data.key == 0x0)
     return TMHitType::Data;
-  else if(hit.uc.key == 0x4)
+  else if(hit.udpCounter.key == 0x4)
     return TMHitType::UDPCounter;
   return TMHitType::unknown;
 }
