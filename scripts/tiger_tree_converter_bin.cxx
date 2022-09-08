@@ -34,7 +34,7 @@ using std::ifstream;
 // };
 // #pragma pack(pop)
 // union works predictably due to equal size of structs
-union TLHit{
+union TLDataFrame{
   uint64_t unknown;
   struct {
     uint64_t seuCount: 15,
@@ -62,20 +62,20 @@ union TLHit{
       key: 5; // should be 0x8
   } countWord;
 };
-enum class TLHitType{unknown, FrameWord, EventWord, CountWord};
-TLHitType getTypeTL(const TLHit &hit){
+enum class TLDataFrameType{unknown, FrameWord, EventWord, CountWord};
+TLDataFrameType getTypeTL(const TLDataFrame &hit){
   if(hit.frameWord.key == 0x4)
-    return TLHitType::FrameWord;
+    return TLDataFrameType::FrameWord;
   else if(hit.eventWord.key == 0x0)
-    return TLHitType::EventWord;
+    return TLDataFrameType::EventWord;
   else if(hit.countWord.key == 0x8)
-    return TLHitType::CountWord;
-  return TLHitType::unknown;
+    return TLDataFrameType::CountWord;
+  return TLDataFrameType::unknown;
 }
 
 /* pragma pack desables padding */
 #pragma pack(push, 1)
-union TMHit{
+union TMDataFrame{
   uint64_t unknown;
   struct {
     uint16_t l1Timestamp: 16;
@@ -124,17 +124,17 @@ union TMHit{
   } udpCounter;
 };
 #pragma pack(pop)
-enum class TMHitType{unknown, Header, Trailer, Data, UDPCounter};
-TMHitType getTypeTM(const TMHit &hit){
+enum class TMDataFrameType{unknown, Header, Trailer, Data, UDPCounter};
+TMDataFrameType getTypeTM(const TMDataFrame &hit){
   if(hit.trailer.key == 0x7)
-    return TMHitType::Trailer;
+    return TMDataFrameType::Trailer;
   else if(hit.header.key == 0x6)
-    return TMHitType::Header;
+    return TMDataFrameType::Header;
   else if(hit.data.key == 0x0)
-    return TMHitType::Data;
+    return TMDataFrameType::Data;
   else if(hit.udpCounter.key == 0x4)
-    return TMHitType::UDPCounter;
-  return TMHitType::unknown;
+    return TMDataFrameType::UDPCounter;
+  return TMDataFrameType::unknown;
 }
 
 void convertTL(ifstream* fIn, Char_t gemroc){
@@ -171,10 +171,10 @@ void convertTL(ifstream* fIn, Char_t gemroc){
   vector<Int_t> lastFrameCount(256, 0);
   vector<Int_t> lastSEU(256, 0);
   vector<Int_t> lastCW(256*64, 0);
-  TLHit frame = {0};
+  TLDataFrame frame = {0};
   for(; !fIn->eof(); fIn->read(reinterpret_cast<char*>(&frame), sizeof(frame))){
     switch(getTypeTL(frame)){
-      case TLHitType::EventWord: { // EW
+      case TLDataFrameType::EventWord: { // EW
         tigerID = frame.eventWord.tiger;
         channelID = frame.eventWord.channel;
         tacID = frame.eventWord.tac;
@@ -191,7 +191,7 @@ void convertTL(ifstream* fIn, Char_t gemroc){
         //        tigerID, channelID, tacID, tCoarse, eCoarse, tFine, eFine);
         break;
       }
-      case TLHitType::FrameWord: { // HB
+      case TLDataFrameType::FrameWord: { // HB
         tigerID = frame.frameWord.tiger;
         frameCount = frame.frameWord.frameCount;
         seu = frame.frameWord.seuCount;
@@ -202,7 +202,7 @@ void convertTL(ifstream* fIn, Char_t gemroc){
         // printf("TIGER %01X: HB: Framecount: %08X SEUcount: %08X\n", tigerID, frameCount, seu);
         break;
       }
-      case TLHitType::CountWord: { // CW
+      case TLDataFrameType::CountWord: { // CW
         tigerID = frame.countWord.tiger;
         channelID = frame.countWord.channel;
         counterWord = frame.countWord.counter;
@@ -210,7 +210,7 @@ void convertTL(ifstream* fIn, Char_t gemroc){
         // printf("TIGER %01X: CW: ChID: %02X CounterWord: %016X\n", tigerID, channelID, counterWord);
         break;
       }
-      case TLHitType::unknown: {
+      case TLDataFrameType::unknown: {
         break;
       }
     }
