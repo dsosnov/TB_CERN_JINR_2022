@@ -33,45 +33,42 @@ using std::ifstream;
 //   uint8_t key: 5; // should be 0x4
 // };
 // #pragma pack(pop)
-struct TLFrameWord{
-  uint64_t seuCount: 15,
-    frameCount: 16,
-    reserved: 25,
-    tiger: 3,
-    key: 5; // should be 0x4
-};
-struct TLEventWord{
-  uint64_t eFine: 10,
-    tFine: 10,
-    eCoarse: 10,
-    tCoarse: 16,
-    tac: 2,
-    channel: 6,
-    reserved: 2,
-    tiger: 3,
-    key: 5; // should be 0x0
-};
-struct TLCountWord{
-  uint64_t counter: 24,
-    channel: 6,
-    reserved: 26,
-    tiger: 3,
-    key: 5; // should be 0x8
-};
 // union works predictably due to equal size of structs
 union TLHit{
   uint64_t unknown;
-  TLFrameWord fw;
-  TLEventWord ew;
-  TLCountWord cw;
+  struct {
+    uint64_t seuCount: 15,
+      frameCount: 16,
+      reserved: 25,
+      tiger: 3,
+      key: 5; // should be 0x4
+  } frameWord;
+  struct {
+    uint64_t eFine: 10,
+      tFine: 10,
+      eCoarse: 10,
+      tCoarse: 16,
+      tac: 2,
+      channel: 6,
+      reserved: 2,
+      tiger: 3,
+      key: 5; // should be 0x0
+  } eventWord;
+  struct {
+    uint64_t counter: 24,
+      channel: 6,
+      reserved: 26,
+      tiger: 3,
+      key: 5; // should be 0x8
+  } countWord;
 };
 enum class TLHitType{unknown, FrameWord, EventWord, CountWord};
 TLHitType getTypeTL(const TLHit &hit){
-  if(hit.fw.key == 0x4)
+  if(hit.frameWord.key == 0x4)
     return TLHitType::FrameWord;
-  else if(hit.ew.key == 0x0)
+  else if(hit.eventWord.key == 0x0)
     return TLHitType::EventWord;
-  else if(hit.cw.key == 0x8)
+  else if(hit.countWord.key == 0x8)
     return TLHitType::CountWord;
   return TLHitType::unknown;
 }
@@ -182,13 +179,13 @@ void convertTL(ifstream* fIn, Char_t gemroc){
   for(; !fIn->eof(); fIn->read(reinterpret_cast<char*>(&frame), sizeof(frame))){
     switch(getTypeTL(frame)){
       case TLHitType::EventWord: { // EW
-        tigerID = frame.ew.tiger;
-        channelID = frame.ew.channel;
-        tacID = frame.ew.tac;
-        tCoarse = frame.ew.tCoarse;
-        eCoarse = frame.ew.eCoarse;
-        tFine = frame.ew.tFine;
-        eFine = frame.ew.eFine;
+        tigerID = frame.eventWord.tiger;
+        channelID = frame.eventWord.channel;
+        tacID = frame.eventWord.tac;
+        tCoarse = frame.eventWord.tCoarse;
+        eCoarse = frame.eventWord.eCoarse;
+        tFine = frame.eventWord.tFine;
+        eFine = frame.eventWord.eFine;
         frameCount = lastFrameCount.at(tigerID);
         seu = lastSEU.at(tigerID);
         frameCountLoops = FCRollOvers.at(tigerID);
@@ -199,9 +196,9 @@ void convertTL(ifstream* fIn, Char_t gemroc){
         break;
       }
       case TLHitType::FrameWord: { // HB
-        tigerID = frame.fw.tiger;
-        frameCount = frame.fw.frameCount;
-        seu = frame.fw.seuCount;
+        tigerID = frame.frameWord.tiger;
+        frameCount = frame.frameWord.frameCount;
+        seu = frame.frameWord.seuCount;
         if(frameCount < lastFrameCount.at(tigerID))
           FCRollOvers.at(tigerID)++;
         lastSEU.at(tigerID) = seu;
@@ -210,9 +207,9 @@ void convertTL(ifstream* fIn, Char_t gemroc){
         break;
       }
       case TLHitType::CountWord: { // CW
-        tigerID = frame.cw.tiger;
-        channelID = frame.cw.channel;
-        counterWord = frame.cw.counter;
+        tigerID = frame.countWord.tiger;
+        channelID = frame.countWord.channel;
+        counterWord = frame.countWord.counter;
         lastCW.at(tigerID*64 + channelID) = counterWord;
         // printf("TIGER %01X: CW: ChID: %02X CounterWord: %016X\n", tigerID, channelID, counterWord);
         break;
