@@ -106,7 +106,7 @@ public :
     }
     vector<apvHit> hits;
     vector<apvHit> hitsSync;
-    map<int, map<unsigned int, unsigned int>> hitsPerLayer;
+    map<int, map<int, int>> hitsPerLayer;
   };
   map<unsigned long, doubleReadoutHits> GetCentralHits2ROnly(unsigned long long fromSec = 0, unsigned long long toSec = 0);
 

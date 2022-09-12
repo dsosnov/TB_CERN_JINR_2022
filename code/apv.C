@@ -20,7 +20,7 @@ map<unsigned long, apv::doubleReadoutHits> apv::GetCentralHits2ROnly(unsigned lo
   unsigned long long hitsToPrev = 0;
   set<unsigned int> channelsAPVPulser = {};
   unsigned long long previousSync = 0;
-  map<int, map<unsigned int, unsigned int>> hitsPerLayer;
+  map<int, map<int, int>> hitsPerLayer;
   
   for (auto event = 0; event < nentries; event++){
     Long64_t ientry = LoadTree(event);
@@ -49,7 +49,7 @@ map<unsigned long, apv::doubleReadoutHits> apv::GetCentralHits2ROnly(unsigned lo
     channelsAPVPulser.clear();
     hitsPerLayer.clear();
     for(auto i = 0; i < nAPVLayers; i++)
-      hitsPerLayer.emplace(i, map<unsigned int, unsigned int>());
+      hitsPerLayer.emplace(i, map<int, int>());
     for (int j = 0; j < max_q->size(); j++){
       // printf("Record inside entry: %d\n", j);
       auto maxQ = max_q->at(j);
@@ -100,7 +100,7 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
   unsigned long long hitsToPrev = 0;
   set<unsigned int> channelsAPVPulser = {};
   unsigned long long previousSync = 0;
-  map<int, map<unsigned int, unsigned int>> hitsPerLayer;
+  map<int, map<int, int>> hitsPerLayer;
   
   for (auto event = 0; event < nentries; event++){
     Long64_t ientry = LoadTree(event);
@@ -127,7 +127,7 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
     channelsAPVPulser.clear();
     hitsPerLayer.clear();
     for(auto i = 0; i < nAPVLayers; i++)
-      hitsPerLayer.emplace(i, map<unsigned int, unsigned int>());
+      hitsPerLayer.emplace(i, map<int, int>());
     for (int j = 0; j < max_q->size(); j++){
       // printf("Record inside entry: %d\n", j);
       if (syncSignal){
