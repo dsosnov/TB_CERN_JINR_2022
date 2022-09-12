@@ -19,6 +19,30 @@ int apv_time_from_SRS(int srs1, int srs2)
     return round(diff * 25.0 / 1000.0);
 }
 
+int vmmRemoveFirstNPuslers(vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>> &hits_vmm_v, int nRemoved = 637){
+    int firstSyncBcid = 0;
+    int index = -nRemoved; // 650; 665
+
+    unsigned long j = 0;
+    for (j = 0; j < hits_vmm_v.size() && index < 0; j++)
+    {
+        if (hits_vmm_v.at(j).second.sync)
+            index++;
+    }
+    hits_vmm_v.erase(hits_vmm_v.begin(), hits_vmm_v.begin() + j-1); // remove first j elements: from 0 to j-1
+    if (index == 0) // check if arways?
+    {
+        firstSyncBcid = hits_vmm_v.at(0).second.bcid;
+        hits_vmm_v.erase(hits_vmm_v.begin(), hits_vmm_v.begin()); // remove first elements
+    }
+    else if(index < 0)
+    {
+        cout << "Removed all VMM events due to incorrect index value" << endl;
+    }
+    return firstSyncBcid;
+}
+
+
 void hitsMapper()
 {
     pair<string, string> run_pair = {"run_0832_cut", "run423_cut"};
@@ -211,6 +235,10 @@ void hitsMapper()
 
     std::cout << "\t ---> TOTAL N of VMM events " << hits_vmm_v.size() << "\n";
 
+    /* vmm: Remove first -index pulse syncs */
+    int firstSyncBcid = vmmRemoveFirstNPuslers(hits_vmm_v);
+
+
     int mappedHitsVMM = 0;
     int UNmappedHitsVMM = 0;
 
@@ -294,9 +322,8 @@ void hitsMapper()
 
                 vector<pair<int, int>> vmm_hits_vec;
 
-                int index = -637; // 650; 665
                 int bad = 0;
-                int prevSyncBcid = 0;
+                int prevSyncBcid = firstSyncBcid;
                 int prevPrevSyncBcid = 0;
                 int nPeriods = 0;
 
@@ -307,70 +334,57 @@ void hitsMapper()
 
                     if (hits_vmm_v.at(j).second.sync)
                     {
-                        if (index < 0)
+                      int diff = 0;
+                      if (hits_vmm_v.at(j).second.bcid - prevSyncBcid > 0)
+                      {
+                        diff = hits_vmm_v.at(j).second.bcid - prevSyncBcid;
+                      }
+                      else
+                      {
+                        diff = hits_vmm_v.at(j).second.bcid + 4096 - prevSyncBcid;
+                      }
+                      int diffDiff = 0;
+
+                      if (hits_vmm_v.at(j).second.bcid - prevPrevSyncBcid > 0)
+                      {
+                        diffDiff = hits_vmm_v.at(j).second.bcid - prevPrevSyncBcid;
+                      }
+                      else
+                      {
+                        diffDiff = hits_vmm_v.at(j).second.bcid + 4096 - prevPrevSyncBcid;
+                      }
+
+                      if (!(diff >= 2000 - 5 && diff <= 2000 + 5) && !(diff >= 4000 - 5 && diff <= 4000 + 5))
+                      {
+                        // if (diff == 1904)
+                        // {
+                        //     diff = 6000;
+                        // }
+                        // else if (diff == 3904)
+                        // {
+                        //     diff = 8000;
+                        // }
+                        // else
+                        if (!(diffDiff >= 2000 - 5 && diffDiff <= 2000 + 5) && !(diffDiff >= 4000 - 5 && diffDiff <= 4000 + 5))
                         {
-                            index++;
-                            continue;
-                        }
-                        if (index == 0)
-                        {
-                            prevSyncBcid = hits_vmm_v.at(j).second.bcid;
-                            index++;
+                          bad++;
+                          prevPrevSyncBcid = prevSyncBcid;
+                          prevSyncBcid = hits_vmm_v.at(j).second.bcid;
+                          continue;
                         }
                         else
                         {
-                            int diff = 0;
-                            if (hits_vmm_v.at(j).second.bcid - prevSyncBcid > 0)
-                            {
-                                diff = hits_vmm_v.at(j).second.bcid - prevSyncBcid;
-                            }
-                            else
-                            {
-                                diff = hits_vmm_v.at(j).second.bcid + 4096 - prevSyncBcid;
-                            }
-                            int diffDiff = 0;
-
-                            if (hits_vmm_v.at(j).second.bcid - prevPrevSyncBcid > 0)
-                            {
-                                diffDiff = hits_vmm_v.at(j).second.bcid - prevPrevSyncBcid;
-                            }
-                            else
-                            {
-                                diffDiff = hits_vmm_v.at(j).second.bcid + 4096 - prevPrevSyncBcid;
-                            }
-
-                            if (!(diff >= 2000 - 5 && diff <= 2000 + 5) && !(diff >= 4000 - 5 && diff <= 4000 + 5))
-                            {
-                                // if (diff == 1904)
-                                // {
-                                //     diff = 6000;
-                                // }
-                                // else if (diff == 3904)
-                                // {
-                                //     diff = 8000;
-                                // }
-                                // else
-                                if (!(diffDiff >= 2000 - 5 && diffDiff <= 2000 + 5) && !(diffDiff >= 4000 - 5 && diffDiff <= 4000 + 5))
-                                {
-                                    bad++;
-                                    prevPrevSyncBcid = prevSyncBcid;
-                                    prevSyncBcid = hits_vmm_v.at(j).second.bcid;
-                                    continue;
-                                }
-                                else
-                                {
-                                    diff = diffDiff;
-                                }
-                            }
-
-                            prevPrevSyncBcid = prevSyncBcid;
-                            prevSyncBcid = hits_vmm_v.at(j).second.bcid;
-                            nPeriods += round(diff * 1.0 / 2000.0);
-                            pulseTime = nPeriods * 50;
+                          diff = diffDiff;
                         }
+                      }
+
+                      prevPrevSyncBcid = prevSyncBcid;
+                      prevSyncBcid = hits_vmm_v.at(j).second.bcid;
+                      nPeriods += round(diff * 1.0 / 2000.0);
+                      pulseTime = nPeriods * 50;
                     }
 
-                    if ((nPeriods / 200 >= nPeriodsAPV - 1 && nPeriods / 200 <= nPeriodsAPV + 1) && index > 0 && hits_vmm_v.at(j).second.hitsX.size() != 0)
+                    if ((nPeriods / 200 >= nPeriodsAPV - 1 && nPeriods / 200 <= nPeriodsAPV + 1) && hits_vmm_v.at(j).second.hitsX.size() != 0)
                     {
                         int diff_hit = 0;
                         if (hits_vmm_v.at(j).second.bcid - prevSyncBcid >= 0)
