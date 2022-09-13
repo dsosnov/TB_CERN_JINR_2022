@@ -237,13 +237,24 @@ void hitsMapper()
 
     /* vmm: Remove first -index pulse syncs */
     int firstSyncBcid = vmmRemoveFirstNPuslers(hits_vmm_v);
-
+    tuple<unsigned long, int, int, int, long long> beforeLastPulserParameters = {0, firstSyncBcid, 0, 0, 0};
+    auto beforeLastPulserParametersCurrent = beforeLastPulserParameters;
 
     int mappedHitsVMM = 0;
     int UNmappedHitsVMM = 0;
 
     long long prevT_apv = 0;
     long long prevT_vmm = 0;
+
+    int bad, prevSyncBcid, prevPrevSyncBcid, nPeriods;
+
+    long long pulseTime;
+    bool hitMapped;
+
+    vector<pair<int, int>> vmm_hits_vec;
+    vector<pair<int, int>> apv_hits_vec;
+    vector<pair<int, int>> apv_hits_vec_l0;
+    vector<pair<int, int>> apv_hits_vec_l1;
 
     for (unsigned long i = 0; i < hits_apv_v.size(); i++)
     {
@@ -289,9 +300,9 @@ void hitsMapper()
             apv_hit_T = pulser_T + apv_time_from_SRS(prev_pulse_SRS, hits_apv_v.at(i).second.timeSrs);
             if (hits_apv_v.at(i).second.hitsPerLayer.at(0).size() != 0)
             {
-                vector<pair<int, int>> apv_hits_vec;
-                vector<pair<int, int>> apv_hits_vec_l0;
-                vector<pair<int, int>> apv_hits_vec_l1;
+                apv_hits_vec.clear();
+                apv_hits_vec_l0.clear();
+                apv_hits_vec_l1.clear();
                 // std::cout << "---> with hits:" << prev_pulse_SRS << "\t" << hits_apv_v.at(i).second.timeSrs << "\n";
                 // out_APV << "------- APV Period " << nPeriodsAPV << " -------- \n";
                 for (auto &h : hits_apv_v.at(i).second.hitsPerLayer.at(0))
@@ -320,68 +331,71 @@ void hitsMapper()
                     continue;
                 
 
-                vector<pair<int, int>> vmm_hits_vec;
+                vmm_hits_vec.clear();
 
-                int bad = 0;
-                int prevSyncBcid = firstSyncBcid;
-                int prevPrevSyncBcid = 0;
-                int nPeriods = 0;
 
-                long long pulseTime = 0;
-                bool hitMapped = false;
-                for (unsigned long j = 0; j < hits_vmm_v.size(); j++)
+                bad = 0;
+                prevSyncBcid = get<1>(beforeLastPulserParameters);
+                prevPrevSyncBcid = get<2>(beforeLastPulserParameters);
+                nPeriods = get<3>(beforeLastPulserParameters);
+
+                pulseTime = get<4>(beforeLastPulserParameters);
+                hitMapped = false;
+                beforeLastPulserParametersCurrent = beforeLastPulserParameters;
+
+                for (unsigned long j = get<0>(beforeLastPulserParameters); j < hits_vmm_v.size(); j++)
                 {
-
                     if (hits_vmm_v.at(j).second.sync)
                     {
-                      int diff = 0;
-                      if (hits_vmm_v.at(j).second.bcid - prevSyncBcid > 0)
-                      {
-                        diff = hits_vmm_v.at(j).second.bcid - prevSyncBcid;
-                      }
-                      else
-                      {
-                        diff = hits_vmm_v.at(j).second.bcid + 4096 - prevSyncBcid;
-                      }
-                      int diffDiff = 0;
-
-                      if (hits_vmm_v.at(j).second.bcid - prevPrevSyncBcid > 0)
-                      {
-                        diffDiff = hits_vmm_v.at(j).second.bcid - prevPrevSyncBcid;
-                      }
-                      else
-                      {
-                        diffDiff = hits_vmm_v.at(j).second.bcid + 4096 - prevPrevSyncBcid;
-                      }
-
-                      if (!(diff >= 2000 - 5 && diff <= 2000 + 5) && !(diff >= 4000 - 5 && diff <= 4000 + 5))
-                      {
-                        // if (diff == 1904)
-                        // {
-                        //     diff = 6000;
-                        // }
-                        // else if (diff == 3904)
-                        // {
-                        //     diff = 8000;
-                        // }
-                        // else
-                        if (!(diffDiff >= 2000 - 5 && diffDiff <= 2000 + 5) && !(diffDiff >= 4000 - 5 && diffDiff <= 4000 + 5))
+                        beforeLastPulserParametersCurrent = {j, prevSyncBcid, prevPrevSyncBcid, nPeriods, pulseTime};
+                        int diff = 0;
+                        if (hits_vmm_v.at(j).second.bcid - prevSyncBcid > 0)
                         {
-                          bad++;
-                          prevPrevSyncBcid = prevSyncBcid;
-                          prevSyncBcid = hits_vmm_v.at(j).second.bcid;
-                          continue;
+                            diff = hits_vmm_v.at(j).second.bcid - prevSyncBcid;
                         }
                         else
                         {
-                          diff = diffDiff;
+                            diff = hits_vmm_v.at(j).second.bcid + 4096 - prevSyncBcid;
                         }
-                      }
+                        int diffDiff = 0;
 
-                      prevPrevSyncBcid = prevSyncBcid;
-                      prevSyncBcid = hits_vmm_v.at(j).second.bcid;
-                      nPeriods += round(diff * 1.0 / 2000.0);
-                      pulseTime = nPeriods * 50;
+                        if (hits_vmm_v.at(j).second.bcid - prevPrevSyncBcid > 0)
+                        {
+                            diffDiff = hits_vmm_v.at(j).second.bcid - prevPrevSyncBcid;
+                        }
+                        else
+                        {
+                            diffDiff = hits_vmm_v.at(j).second.bcid + 4096 - prevPrevSyncBcid;
+                        }
+
+                        if (!(diff >= 2000 - 5 && diff <= 2000 + 5) && !(diff >= 4000 - 5 && diff <= 4000 + 5))
+                        {
+                            // if (diff == 1904)
+                            // {
+                            //     diff = 6000;
+                            // }
+                            // else if (diff == 3904)
+                            // {
+                            //     diff = 8000;
+                            // }
+                            // else
+                            if (!(diffDiff >= 2000 - 5 && diffDiff <= 2000 + 5) && !(diffDiff >= 4000 - 5 && diffDiff <= 4000 + 5))
+                            {
+                                bad++;
+                                prevPrevSyncBcid = prevSyncBcid;
+                                prevSyncBcid = hits_vmm_v.at(j).second.bcid;
+                                continue;
+                            }
+                            else
+                            {
+                                diff = diffDiff;
+                            }
+                        }
+
+                        prevPrevSyncBcid = prevSyncBcid;
+                        prevSyncBcid = hits_vmm_v.at(j).second.bcid;
+                        nPeriods += round(diff * 1.0 / 2000.0);
+                        pulseTime = nPeriods * 50;
                     }
 
                     if ((nPeriods / 200 >= nPeriodsAPV - 1 && nPeriods / 200 <= nPeriodsAPV + 1) && hits_vmm_v.at(j).second.hitsX.size() != 0)
@@ -495,8 +509,10 @@ void hitsMapper()
                             }
                         }
                     }
-                    if (hitMapped)
+                    if (hitMapped){
+                        beforeLastPulserParameters = beforeLastPulserParametersCurrent;
                         break;
+                    }
                 }
             }
         }
