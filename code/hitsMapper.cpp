@@ -83,6 +83,11 @@ void hitsMapper()
 
     auto out = TFile::Open("../out/mapped_0832_423.root", "recreate");
 
+    auto mappedEventNums = new TTree("mappedEvents", "");
+    long long eventNumAPV, eventNumVMM;
+    mappedEventNums->Branch("apv", &eventNumAPV);
+    mappedEventNums->Branch("vmm", &eventNumVMM);
+
     auto stripsVMM = make_shared<TH1F>("stripsVMM", "stripsVMM", 360, 0, 360);
     auto mappedHitsPdo = make_shared<TH1F>("mappedHitsPdo", "mappedHitsPdo", 2000, 0, 2000);
     auto mappedHitsPdo_apv = make_shared<TH1F>("mappedHitsPdo_apv", "mappedHitsPdo_apv", 2000, 0, 2000);
@@ -513,6 +518,9 @@ void hitsMapper()
 
                     if (hitMapped){
                         beforeLastPulserParameters = beforeLastPulserParametersCurrent;
+                        eventNumAPV = hits_apv_v.at(i).first;
+                        eventNumVMM = hits_vmm_v.at(j).first;
+                        mappedEventNums->Fill();
                         break;
                     }
                 }
