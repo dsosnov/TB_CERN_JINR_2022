@@ -265,37 +265,28 @@ void hitsMapper()
     {
         if (prevSRS == -1)
         {
-            prevSRS = hits_apv_v.at(i).second.timeSrs;
             startT_apv = 25 * hits_apv_v.at(i).second.timeSrs / 1000;
             T_apv = startT_apv;
         }
         else
         {
             T_apv += apv_time_from_SRS(prevSRS, hits_apv_v.at(i).second.timeSrs);
-            prevSRS = hits_apv_v.at(i).second.timeSrs;
         }
+        prevSRS = hits_apv_v.at(i).second.timeSrs;
 
         if (hits_apv_v.at(i).second.sync)
         {
             if (prev_pulse_SRS == -1)
             {
                 startT_pulse_apv = T_apv;
-                prev_pulse_SRS = hits_apv_v.at(i).second.timeSrs;
             }
             else
             {
                 nPeriodsAPV = round((T_apv - startT_pulse_apv) * 1.0 / 1e4);
-                prev_pulse_SRS = hits_apv_v.at(i).second.timeSrs;
                 pulser_T = nPeriodsAPV * 1e4;
             }
+            prev_pulse_SRS = hits_apv_v.at(i).second.timeSrs;
             // std::cout << "Period " << nPeriodsAPV << "--- is sync! N = " << hits_apv_v.at(i).second.hitsPerLayer.at(0).size() << "\n";
-        }
-        else
-        {
-            if (prev_pulse_SRS != -1)
-            {
-                // std::cout << "Not sync! N = " << hits_apv_v.at(i).second.hitsPerLayer.at(0).size() << "\n";
-            }
         }
 
         if (prev_pulse_SRS != -1)
