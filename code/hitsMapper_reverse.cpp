@@ -64,7 +64,7 @@ void hitsMapper_reverse()
         if (hits_vmm_v.at(j).second.hitsX.size() != 0)
         {
             vmm_hits_vec.clear();
-            for (std::map<unsigned int, unsigned int>::iterator it = hits_vmm_v.at(j).second.hitsX.begin(); it != hits_vmm_v.at(j).second.hitsX.end(); ++it)
+            for (auto it = hits_vmm_v.at(j).second.hitsX.begin(); it != hits_vmm_v.at(j).second.hitsX.end(); ++it)
             {
                 int strip = it->first * (1 - 8e-3) - 8.46 / 0.25;
                 int pdo = it->second;
@@ -137,7 +137,7 @@ void hitsMapper_reverse()
         if (hits_vmm_v.at(j).second.hitsX.size() != 0)
         {
             vmm_hits_vec.clear();
-            for (std::map<unsigned int, unsigned int>::iterator it = hits_vmm_v.at(j).second.hitsX.begin(); it != hits_vmm_v.at(j).second.hitsX.end(); ++it)
+            for (auto it = hits_vmm_v.at(j).second.hitsX.begin(); it != hits_vmm_v.at(j).second.hitsX.end(); ++it)
             {
                 int strip = it->first * (1 - 8e-3) - 8.46 / 0.25;
                 int pdo = it->second;
