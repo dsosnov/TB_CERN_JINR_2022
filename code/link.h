@@ -3,6 +3,9 @@
 #include <string>
 #include <map>
 #include "apv_cluster.h"
+#include "analysisGeneral.h"
+#include "apv.h"
+
 namespace {
   std::vector<int> vector_int;
   std::vector<std::vector<int>> vector_vector_int;
@@ -31,4 +34,7 @@ namespace {
 
   std::map<int, int> map_int_int;
   std::map<int, std::map<int, int>> map_int_map_int_int;
+
+  analysisGeneral::mm2CenterHitParameters analysisGeneral_mm2CenterHitParameters;
+  apv::doubleReadoutHits apv_doubleReadoutHits;
 };
