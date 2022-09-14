@@ -26,4 +26,7 @@
 #pragma link C++ class vector<apvTrack>+;
 #pragma link C++ class vector<vector<apvTrack>>+;
 
+#pragma link C++ class map<int, int>+;
+#pragma link C++ class map<int, map<int, int>>+;
+
 #endif

@@ -157,8 +157,13 @@ long long evBuilder::findFirstGoodPulser(unsigned long long fromSec, unsigned lo
   }
   return -1;
 }
-map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentralHits(unsigned long long fromSec, unsigned long long toSec){
+map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentralHits(unsigned long long fromSec, unsigned long long toSec, bool saveOnly){
   printf("evBuilder::GetCentralHits(%llu, %llu)\n", fromSec, toSec);
+
+  auto out = new TFile("../out/out_" + file + "centralHits" + ending, "RECREATE");
+  auto outTree = new TTree("vmm_event", "vmm_event");
+  pair<unsigned long, analysisGeneral::mm2CenterHitParameters> eventData;
+  outTree->Branch("event", &eventData);
 
   map<unsigned long, analysisGeneral::mm2CenterHitParameters> outputData = {};
   unsigned long long hitsToPrev = 0;
@@ -322,7 +327,10 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentra
 
     hit.previousSync = previousSync;
 
-    outputData.emplace(jentry, hit);
+    if(!saveOnly)
+      outputData.emplace(jentry, hit);
+    eventData = make_pair(jentry, hit);
+    outTree->Fill();
 
     if(isSync){
       lastSyncTime = syncTime;
@@ -330,6 +338,8 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentra
     }
   }
   
+  outTree->Write();
+  out->Close();
   return outputData;
 }
 

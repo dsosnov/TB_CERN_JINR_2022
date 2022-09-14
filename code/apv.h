@@ -94,7 +94,7 @@ public :
   virtual ~apv();
   virtual void     Init() override;
   virtual void     Loop(unsigned long n = 0) override;
-  virtual map<unsigned long, analysisGeneral::mm2CenterHitParameters> GetCentralHits(unsigned long long fromSec = 0, unsigned long long toSec = 0) override;
+  virtual map<unsigned long, analysisGeneral::mm2CenterHitParameters> GetCentralHits(unsigned long long fromSec = 0, unsigned long long toSec = 0, bool saveOnly = false) override;
 
   struct doubleReadoutHits{
     bool sync;
@@ -108,7 +108,7 @@ public :
     vector<apvHit> hitsSync;
     map<int, map<int, int>> hitsPerLayer;
   };
-  map<unsigned long, doubleReadoutHits> GetCentralHits2ROnly(unsigned long long fromSec = 0, unsigned long long toSec = 0);
+  map<unsigned long, doubleReadoutHits> GetCentralHits2ROnly(unsigned long long fromSec = 0, unsigned long long toSec = 0, bool saveOnly = false);
 
   static unsigned long long unique_srs_time_stamp(int, int, int);
 
@@ -353,11 +353,13 @@ void apv::constructClusters(){
 #ifndef apv_cxx
 void apv::Loop(unsigned long n) {};
 map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(unsigned long long fromSec,
-                                                                                unsigned long long toSec) {
+                                                                                unsigned long long toSec,
+                                                                                bool saveOnly) {
   return {};
 };
 map<unsigned long, apv::doubleReadoutHits> apv::GetCentralHits2ROnly(unsigned long long fromSec,
-                                                                 unsigned long long toSec){
+                                                                     unsigned long long toSec,
+                                                                     bool saveOnly){
   return {};
 }
 #endif // #ifdef apv_cxx

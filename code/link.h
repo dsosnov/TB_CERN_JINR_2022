@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <string>
+#include <map>
 #include "apv_cluster.h"
 namespace {
   std::vector<int> vector_int;
@@ -28,4 +29,6 @@ namespace {
   std::vector<apvTrack> vector_apvTrack;
   std::vector<std::vector<apvTrack>> vector_vector_apvTrack;
 
+  std::map<int, int> map_int_int;
+  std::map<int, std::map<int, int>> map_int_map_int_int;
 };

@@ -5,8 +5,13 @@
 #include <TF1.h>
 #include <limits>
 
-map<unsigned long, apv::doubleReadoutHits> apv::GetCentralHits2ROnly(unsigned long long fromSec, unsigned long long toSec){
+map<unsigned long, apv::doubleReadoutHits> apv::GetCentralHits2ROnly(unsigned long long fromSec, unsigned long long toSec, bool saveOnly){
   printf("apv::GetCentralHits2ROnly(%llu, %llu)\n", fromSec, toSec);
+
+  auto out = new TFile("../out/out_apv_" + file + "centralHits" + ending, "RECREATE");
+  auto outTree = new TTree("apv_event", "apv_event");
+  pair<unsigned long, apv::doubleReadoutHits> eventData;
+  outTree->Branch("event", &eventData);
 
   map<unsigned long, apv::doubleReadoutHits> outputData = {};
   vector<apvHit> hitsDR;
@@ -48,8 +53,9 @@ map<unsigned long, apv::doubleReadoutHits> apv::GetCentralHits2ROnly(unsigned lo
     hitsSync.clear();
     channelsAPVPulser.clear();
     hitsPerLayer.clear();
-    for(auto i = 0; i < nAPVLayers; i++)
+    for(auto i = 0; i < nAPVLayers; i++){
       hitsPerLayer.emplace(i, map<int, int>());
+    }
     for (int j = 0; j < max_q->size(); j++){
       // printf("Record inside entry: %d\n", j);
       auto maxQ = max_q->at(j);
@@ -82,12 +88,17 @@ map<unsigned long, apv::doubleReadoutHits> apv::GetCentralHits2ROnly(unsigned lo
     apv::doubleReadoutHits drh = {isSyncSignal,
       static_cast<unsigned int>(daqTimeSec), static_cast<unsigned int>(daqTimeMicroSec), srsTimeStamp,
       hitsDR, hitsSync, hitsPerLayer};
-    outputData.emplace(event, drh);
+    if(!saveOnly)
+      outputData.emplace(event, drh);
+    eventData = make_pair(event, drh);
+    outTree->Fill();
   }
+  outTree->Write();
+  out->Close();
   return outputData;
 }
 
-map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(unsigned long long fromSec, unsigned long long toSec){
+map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(unsigned long long fromSec, unsigned long long toSec, bool saveOnly){
   printf("apv::GetCentralHits(%llu, %llu)\n", fromSec, toSec);
 
   map<unsigned long, analysisGeneral::mm2CenterHitParameters> outputData = {};
@@ -96,7 +107,7 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
     return outputData;
   Long64_t nentries = fChain->GetEntries();
 
-  unsigned long long previousSyncTimestamp = 0;
+  long long previousSyncTimestamp = -1;
   unsigned long long hitsToPrev = 0;
   set<unsigned int> channelsAPVPulser = {};
   unsigned long long previousSync = 0;

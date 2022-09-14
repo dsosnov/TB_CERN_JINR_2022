@@ -41,6 +41,29 @@ int vmmRemoveFirstNPuslers(vector<pair<unsigned long, analysisGeneral::mm2Center
     }
     return firstSyncBcid;
 }
+pair<int, int> vmmRemoveFirstNPuslers(TTree* hits_vmm_t, pair<unsigned long, analysisGeneral::mm2CenterHitParameters> *hits_vmm_event, int nRemoved = 637){
+    int firstSyncBcid = 0;
+    int index = -nRemoved; // 650; 665
+
+    unsigned long j = 0;
+    for (j = 0; j < hits_vmm_t->GetEntries() && index < 0; j++)
+    {
+        hits_vmm_t->GetEntry(j);
+        if (hits_vmm_event->second.sync)
+            index++;
+    }
+    if (index == 0) // check if arways?
+    {
+        hits_vmm_t->GetEntry(j);
+        firstSyncBcid = hits_vmm_event->second.bcid;
+        j++;
+    }
+    else if(index < 0)
+    {
+        cout << "Removed all VMM events due to incorrect index value" << endl;
+    }
+    return make_pair(j, firstSyncBcid);
+}
 
 
 void hitsMapper()
@@ -50,15 +73,27 @@ void hitsMapper()
 
     auto apvan = new apv(run_pair.second);
     apvan->useSyncSignal();
-    auto hits_apv = apvan->GetCentralHits2ROnly(from, to);
+    auto hits_apv = apvan->GetCentralHits2ROnly(from, to, true);
     auto vmman = new evBuilder(run_pair.first, "g1_p25_s100-0&60", "map-20220605");
     vmman->useSyncSignal();
-    auto hits_vmm = vmman->GetCentralHits(from, to);
+    auto hits_vmm = vmman->GetCentralHits(from, to, true);
 
-    vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>> hits_vmm_v;
-    hits_vmm_v.assign(hits_vmm.begin(), hits_vmm.end());
-    vector<pair<unsigned long, apv::doubleReadoutHits>> hits_apv_v;
-    hits_apv_v.assign(hits_apv.begin(), hits_apv.end());
+    delete apvan;
+    delete vmman;
+    // vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>> hits_vmm_v;
+    // hits_vmm_v.assign(hits_vmm.begin(), hits_vmm.end());
+    // vector<pair<unsigned long, apv::doubleReadoutHits>> hits_apv_v;
+    // hits_apv_v.assign(hits_apv.begin(), hits_apv.end());
+
+    auto hits_apv_t = static_cast<TTree*>(TFile::Open(TString("../out/out_apv_" + run_pair.second + "centralHits" + ".root"), "read")->Get("apv_event"));
+    static pair<unsigned long, apv::doubleReadoutHits>* hits_apv_event;
+    hits_apv_t->SetBranchAddress("event", &hits_apv_event);
+
+    auto hits_vmm_t = static_cast<TTree*>(TFile::Open(TString("../out/out_" + run_pair.first + "centralHits" + ".root"), "read")->Get("vmm_event"));
+    static pair<unsigned long, analysisGeneral::mm2CenterHitParameters>* hits_vmm_event;
+    hits_vmm_t->SetBranchAddress("event", &hits_vmm_event);
+
+    cout << "Num of events: APV -- " << hits_apv_t->GetEntries() << "; VMM -- " << hits_vmm_t->GetEntries() << endl;
 
     long long startT_apv = 0;
     long long startT_pulse_apv = 0;
@@ -108,40 +143,42 @@ void hitsMapper()
     int a_hat = -5;
     int b = -100;
     long long prevT = 0;
-    for (unsigned long j = 1485; j < hits_vmm_v.size(); j++)
+
+    for (unsigned long j = 1485; j < hits_vmm_t->GetEntries(); j++)
     {
-        if (hits_vmm_v.at(j).second.sync)
+        hits_vmm_t->GetEntry(j);
+        if (hits_vmm_event->second.sync)
         {
             if (a < 0)
             {
                 if (a == -100)
                 {
-                    std::cout << "VMM first pule DAQ t = " << hits_vmm_v.at(j).second.timeFull() << "\n \t PDO = " << hits_vmm_v.at(j).second.pdo << "\n";
+                    std::cout << "VMM first pule DAQ t = " << hits_vmm_event->second.timeFull() << "\n \t PDO = " << hits_vmm_event->second.pdo << "\n";
                     std::cout << "VMM first pule J = " << j << "\n";
-                    prevT = hits_vmm_v.at(j).second.timeFull();
+                    prevT = hits_vmm_event->second.timeFull();
                     a++;
                     continue;
                 }
                 // else
                 // {
-                //     std::cout << "VMM pulses delta T = " << hits_vmm_v.at(j).second.timeFull() - prevT << "\n \t PDO = " << hits_vmm_v.at(j).second.pdo << "\n";
+                //     std::cout << "VMM pulses delta T = " << hits_vmm_event->second.timeFull() - prevT << "\n \t PDO = " << hits_vmm_event->second.pdo << "\n";
                 //     a++;
-                //     prevT = hits_vmm_v.at(j).second.timeFull();
+                //     prevT = hits_vmm_event->second.timeFull();
                 // }
             }
             // else if (a_hat < 0)
             // {
-            //     std::cout << "VMM F*ck'n delta T = " << hits_vmm_v.at(j).second.timeFull() - prevT << "\n \t PDO = " << hits_vmm_v.at(j).second.pdo << "\n";
-            //     prevT = hits_vmm_v.at(j).second.timeFull();
+            //     std::cout << "VMM F*ck'n delta T = " << hits_vmm_event->second.timeFull() - prevT << "\n \t PDO = " << hits_vmm_event->second.pdo << "\n";
+            //     prevT = hits_vmm_event->second.timeFull();
             // }
 
             a_hat++;
         }
 
-        if (hits_vmm_v.at(j).second.hitsX.size() != 0)
+        if (hits_vmm_event->second.hitsX.size() != 0)
         {
             bool flag = false;
-            for (auto it = hits_vmm_v.at(j).second.hitsX.begin(); it != hits_vmm_v.at(j).second.hitsX.end(); ++it)
+            for (auto it = hits_vmm_event->second.hitsX.begin(); it != hits_vmm_event->second.hitsX.end(); ++it)
             {
                 int strip = it->first * (1 - 8e-3) - 8.46 / 0.25;
                 int pdo = it->second;
@@ -156,38 +193,39 @@ void hitsMapper()
             }
             if (flag)
             {
-                tbh_vmm->Fill(hits_vmm_v.at(j).second.timeFull() - prevT);
-                prevT = hits_vmm_v.at(j).second.timeFull();
+                tbh_vmm->Fill(hits_vmm_event->second.timeFull() - prevT);
+                prevT = hits_vmm_event->second.timeFull();
             }
         }
     }
     prevT = 0;
 
-    for (unsigned long i = 0; i < hits_apv_v.size(); i++)
+    for (unsigned long i = 0; i < hits_apv_t->GetEntries(); i++)
     {
-        if (hits_apv_v.at(i).second.sync && b < 0)
+        hits_apv_t->GetEntry(i);
+        if (hits_apv_event->second.sync && b < 0)
         {
             if (b < 0)
             {
                 if (b == -100)
                 {
-                    std::cout << "APV first pule DAQ t = " << hits_apv_v.at(i).second.timeFull() << "\n";
-                    prevT = hits_apv_v.at(i).second.timeFull();
+                    std::cout << "APV first pule DAQ t = " << hits_apv_event->second.timeFull() << "\n";
+                    prevT = hits_apv_event->second.timeFull();
                     b++;
                     continue;
                 }
                 else
                 {
-                    std::cout << "APV pulses delta T = " << (hits_apv_v.at(i).second.timeFull() - prevT) / 1e3 << "\n";
+                    std::cout << "APV pulses delta T = " << (hits_apv_event->second.timeFull() - prevT) / 1e3 << "\n";
                     b++;
-                    prevT = hits_apv_v.at(i).second.timeFull();
+                    prevT = hits_apv_event->second.timeFull();
                 }
             }
         }
-        if (hits_apv_v.at(i).second.hitsPerLayer.at(2).size() != 0)
+        if (hits_apv_event->second.hitsPerLayer.at(2).size() != 0)
         {
             bool flag = false;
-            for (auto &h : hits_apv_v.at(i).second.hitsPerLayer.at(2))
+            for (auto &h : hits_apv_event->second.hitsPerLayer.at(2))
             {
                 int strip = h.first * (1 - 8e-3) - 8.46 / 0.25;
                 int pdo = h.second;
@@ -201,20 +239,21 @@ void hitsMapper()
             }
             if (flag)
             {
-                tbh_apv->Fill(hits_apv_v.at(i).second.timeFull() - prevT);
-                prevT = hits_apv_v.at(i).second.timeFull();
+                tbh_apv->Fill(hits_apv_event->second.timeFull() - prevT);
+                prevT = hits_apv_event->second.timeFull();
             }
         }
     }
     int nHits = 0;
-    for (unsigned long j = 0; j < hits_vmm_v.size(); j++)
+    for (unsigned long j = 0; j < hits_vmm_t->GetEntries(); j++)
     {
+        hits_vmm_t->GetEntry(j);
 
-        if (hits_vmm_v.at(j).second.hitsX.size() != 0)
+        if (hits_vmm_event->second.hitsX.size() != 0)
         {
             out_VMM << "------- VMM event " << j << "\n";
 
-            for (auto it = hits_vmm_v.at(j).second.hitsX.begin(); it != hits_vmm_v.at(j).second.hitsX.end(); ++it)
+            for (auto it = hits_vmm_event->second.hitsX.begin(); it != hits_vmm_event->second.hitsX.end(); ++it)
             {
                 int strip = it->first * (1 - 8e-3) - 8.46 / 0.25;
                 int pdo = it->second;
@@ -238,11 +277,12 @@ void hitsMapper()
 
     // return 0;
 
-    std::cout << "\t ---> TOTAL N of VMM events " << hits_vmm_v.size() << "\n";
+    std::cout << "\t ---> TOTAL N of VMM events " << hits_vmm_t->GetEntries() << "\n";
 
     /* vmm: Remove first -index pulse syncs */
-    int firstSyncBcid = vmmRemoveFirstNPuslers(hits_vmm_v);
-    tuple<unsigned long, int, int, int, long long> beforeLastPulserParameters = {0, firstSyncBcid, 0, 0, 0};
+    // int firstSyncBcid = vmmRemoveFirstNPuslers(hits_vmm_v);
+    auto [firstEvent, firstSyncBcid] = vmmRemoveFirstNPuslers(hits_vmm_t, hits_vmm_event);
+    tuple<unsigned long, int, int, int, long long> beforeLastPulserParameters = {firstEvent, firstSyncBcid, 0, 0, 0};
     auto beforeLastPulserParametersCurrent = beforeLastPulserParameters;
 
     int mappedHitsVMM = 0;
@@ -261,20 +301,21 @@ void hitsMapper()
     vector<pair<int, int>> apv_hits_vec_l0;
     vector<pair<int, int>> apv_hits_vec_l1;
 
-    for (unsigned long i = 0; i < hits_apv_v.size(); i++)
+    for (unsigned long i = 0; i < hits_apv_t->GetEntries(); i++)
     {
+        hits_apv_t->GetEntry(i);
         if (prevSRS == -1)
         {
-            startT_apv = 25 * hits_apv_v.at(i).second.timeSrs / 1000;
+            startT_apv = 25 * hits_apv_event->second.timeSrs / 1000;
             T_apv = startT_apv;
         }
         else
         {
-            T_apv += apv_time_from_SRS(prevSRS, hits_apv_v.at(i).second.timeSrs);
+            T_apv += apv_time_from_SRS(prevSRS, hits_apv_event->second.timeSrs);
         }
-        prevSRS = hits_apv_v.at(i).second.timeSrs;
+        prevSRS = hits_apv_event->second.timeSrs;
 
-        if (hits_apv_v.at(i).second.sync)
+        if (hits_apv_event->second.sync)
         {
             if (prev_pulse_SRS == -1)
             {
@@ -285,37 +326,37 @@ void hitsMapper()
                 nPeriodsAPV = round((T_apv - startT_pulse_apv) * 1.0 / 1e4);
                 pulser_T = nPeriodsAPV * 1e4;
             }
-            prev_pulse_SRS = hits_apv_v.at(i).second.timeSrs;
-            // std::cout << "Period " << nPeriodsAPV << "--- is sync! N = " << hits_apv_v.at(i).second.hitsPerLayer.at(0).size() << "\n";
+            prev_pulse_SRS = hits_apv_event->second.timeSrs;
+            // std::cout << "Period " << nPeriodsAPV << "--- is sync! N = " << hits_apv_event->second.hitsPerLayer.at(0).size() << "\n";
         }
 
         if (prev_pulse_SRS != -1)
         {
-            // std::cout << "\t Total:" << prev_pulse_SRS << "\t" << hits_apv_v.at(i).second.timeSrs << "\n";
+            // std::cout << "\t Total:" << prev_pulse_SRS << "\t" << hits_apv_event->second.timeSrs << "\n";
 
-            apv_hit_T = pulser_T + apv_time_from_SRS(prev_pulse_SRS, hits_apv_v.at(i).second.timeSrs);
-            if (hits_apv_v.at(i).second.hitsPerLayer.at(0).size() != 0)
+            apv_hit_T = pulser_T + apv_time_from_SRS(prev_pulse_SRS, hits_apv_event->second.timeSrs);
+            if (hits_apv_event->second.hitsPerLayer.at(0).size() != 0)
             {
                 apv_hits_vec.clear();
                 apv_hits_vec_l0.clear();
                 apv_hits_vec_l1.clear();
-                // std::cout << "---> with hits:" << prev_pulse_SRS << "\t" << hits_apv_v.at(i).second.timeSrs << "\n";
+                // std::cout << "---> with hits:" << prev_pulse_SRS << "\t" << hits_apv_event->second.timeSrs << "\n";
                 // out_APV << "------- APV Period " << nPeriodsAPV << " -------- \n";
-                for (auto &h : hits_apv_v.at(i).second.hitsPerLayer.at(0))
+                for (auto &h : hits_apv_event->second.hitsPerLayer.at(0))
                 {
                     int strip = h.first;
                     int pdo = h.second;
                     if (strip > 118 && strip < 172)
                         apv_hits_vec_l0.push_back(make_pair(strip, pdo));
                 }
-                for (auto &h : hits_apv_v.at(i).second.hitsPerLayer.at(1))
+                for (auto &h : hits_apv_event->second.hitsPerLayer.at(1))
                 {
                     int strip = h.first * (1 - 2.29e-3) - 2.412 / 0.25;
                     int pdo = h.second;
                     if (strip > 118 && strip < 172)
                         apv_hits_vec_l1.push_back(make_pair(strip, pdo));
                 }
-                for (auto &h : hits_apv_v.at(i).second.hitsPerLayer.at(2))
+                for (auto &h : hits_apv_event->second.hitsPerLayer.at(2))
                 {
                     int strip = h.first * (1 - 8e-3) - 8.46 / 0.25;
                     int pdo = h.second;
@@ -338,29 +379,30 @@ void hitsMapper()
                 hitMapped = false;
                 beforeLastPulserParametersCurrent = beforeLastPulserParameters;
 
-                for (unsigned long j = get<0>(beforeLastPulserParameters); j < hits_vmm_v.size(); j++)
+                for (unsigned long j = get<0>(beforeLastPulserParameters); j < hits_vmm_t->GetEntries(); j++)
                 {
-                    if (hits_vmm_v.at(j).second.sync)
+                    hits_vmm_t->GetEntry(j);
+                    if (hits_vmm_event->second.sync)
                     {
                         beforeLastPulserParametersCurrent = {j, prevSyncBcid, prevPrevSyncBcid, nPeriods, pulseTime};
                         int diff = 0;
-                        if (hits_vmm_v.at(j).second.bcid - prevSyncBcid > 0)
+                        if (hits_vmm_event->second.bcid - prevSyncBcid > 0)
                         {
-                            diff = hits_vmm_v.at(j).second.bcid - prevSyncBcid;
+                            diff = hits_vmm_event->second.bcid - prevSyncBcid;
                         }
                         else
                         {
-                            diff = hits_vmm_v.at(j).second.bcid + 4096 - prevSyncBcid;
+                            diff = hits_vmm_event->second.bcid + 4096 - prevSyncBcid;
                         }
                         int diffDiff = 0;
 
-                        if (hits_vmm_v.at(j).second.bcid - prevPrevSyncBcid > 0)
+                        if (hits_vmm_event->second.bcid - prevPrevSyncBcid > 0)
                         {
-                            diffDiff = hits_vmm_v.at(j).second.bcid - prevPrevSyncBcid;
+                            diffDiff = hits_vmm_event->second.bcid - prevPrevSyncBcid;
                         }
                         else
                         {
-                            diffDiff = hits_vmm_v.at(j).second.bcid + 4096 - prevPrevSyncBcid;
+                            diffDiff = hits_vmm_event->second.bcid + 4096 - prevPrevSyncBcid;
                         }
 
                         if (!(diff >= 2000 - 5 && diff <= 2000 + 5) && !(diff >= 4000 - 5 && diff <= 4000 + 5))
@@ -378,7 +420,7 @@ void hitsMapper()
                             {
                                 bad++;
                                 prevPrevSyncBcid = prevSyncBcid;
-                                prevSyncBcid = hits_vmm_v.at(j).second.bcid;
+                                prevSyncBcid = hits_vmm_event->second.bcid;
                                 continue;
                             }
                             else
@@ -388,34 +430,34 @@ void hitsMapper()
                         }
 
                         prevPrevSyncBcid = prevSyncBcid;
-                        prevSyncBcid = hits_vmm_v.at(j).second.bcid;
+                        prevSyncBcid = hits_vmm_event->second.bcid;
                         nPeriods += round(diff * 1.0 / 2000.0);
                         pulseTime = nPeriods * 50;
                     }
 
-                    if (hits_vmm_v.at(j).second.hitsX.size() == 0 || nPeriods / 200 < nPeriodsAPV - 1)
+                    if (hits_vmm_event->second.hitsX.size() == 0 || nPeriods / 200 < nPeriodsAPV - 1)
                         continue;
                     else if (nPeriods / 200 > nPeriodsAPV + 1)
                         break;
 
                     int diff_hit = 0;
-                    if (hits_vmm_v.at(j).second.bcid - prevSyncBcid >= 0)
+                    if (hits_vmm_event->second.bcid - prevSyncBcid >= 0)
                     {
-                        diff_hit = hits_vmm_v.at(j).second.bcid - prevSyncBcid;
+                        diff_hit = hits_vmm_event->second.bcid - prevSyncBcid;
                     }
                     else
                     {
-                        diff_hit = hits_vmm_v.at(j).second.bcid + 4096 - prevSyncBcid;
+                        diff_hit = hits_vmm_event->second.bcid + 4096 - prevSyncBcid;
                     }
                     int dt_apv_vmm = T_apv - startT_pulse_apv - pulseTime - round(diff_hit * 25.0 / 1000.0);;
                     // int dt_apv_vmm = T_apv - startT_pulse_apv - pulseTime;
 
-                    // std::cout << nPeriods / 200 << " \t " << hits_vmm_v.at(j).second.hitsX.size() << "\n";
+                    // std::cout << nPeriods / 200 << " \t " << hits_vmm_event->second.hitsX.size() << "\n";
                     // out_APV << "------- VMM Period " << nPeriods / 200 << "  (" << nPeriods % 200 << ") -------- dT = " << dt_apv_vmm << "\n";
                     if (abs(dt_apv_vmm) > 1000)
                         continue;
 
-                    for (auto it = hits_vmm_v.at(j).second.hitsX.begin(); it != hits_vmm_v.at(j).second.hitsX.end(); ++it)
+                    for (auto it = hits_vmm_event->second.hitsX.begin(); it != hits_vmm_event->second.hitsX.end(); ++it)
                     {
                         int strip = it->first * (1 - 8e-3) - 8.46 / 0.25;
                         int pdo = it->second;
@@ -509,8 +551,8 @@ void hitsMapper()
 
                     if (hitMapped){
                         beforeLastPulserParameters = beforeLastPulserParametersCurrent;
-                        eventNumAPV = hits_apv_v.at(i).first;
-                        eventNumVMM = hits_vmm_v.at(j).first;
+                        eventNumAPV = hits_apv_event->first;
+                        eventNumVMM = hits_vmm_event->first;
                         mappedEventNums->Fill();
                         break;
                     }

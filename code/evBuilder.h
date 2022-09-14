@@ -18,7 +18,7 @@ public :
    virtual ~evBuilder();
    // virtual void     Init() override;
    virtual void     Loop(unsigned long n = 0) override;
-   virtual map<unsigned long, mm2CenterHitParameters> GetCentralHits(unsigned long long fromSec = 0, unsigned long long toSec = 0) override;
+   virtual map<unsigned long, mm2CenterHitParameters> GetCentralHits(unsigned long long fromSec = 0, unsigned long long toSec = 0, bool saveOnly = false) override;
 
    map<pair<int, int>, float> strawCenterMM = {
      {{1,24}, 156}, // 213 - 21 - 24/1.0 - 12
@@ -69,7 +69,8 @@ evBuilder::~evBuilder()
 void evBuilder::Loop(unsigned long n) {};
 void evBuilder::threePlotDrawF(TH1D *h1, TH1D *h2, TH1D *h3, TString fileEnding) {};
 map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentralHits(unsigned long long fromSec,
-                                                                                      unsigned long long toSec) {
+                                                                                      unsigned long long toSec,
+                                                                                      bool saveOnly) {
   return {};
 };
 long long evBuilder::findFirstGoodPulser(unsigned long long fromSec = 0, unsigned long long toSec = 0){return -1;}
