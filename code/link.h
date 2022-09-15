@@ -4,7 +4,7 @@
 #include <map>
 #include "apv_cluster.h"
 #include "analysisGeneral.h"
-#include "apv.h"
+#include "apv.C"
 
 namespace {
   std::vector<int> vector_int;

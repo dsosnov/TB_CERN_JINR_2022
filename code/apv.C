@@ -1,3 +1,4 @@
+#ifndef apv_cxx
 #define apv_cxx
 #include "apv.h"
 #include <TH2.h>
@@ -543,3 +544,4 @@ void apv::Loop(unsigned long n)
   // out->Print();
   out->Close();
 }
+#endif

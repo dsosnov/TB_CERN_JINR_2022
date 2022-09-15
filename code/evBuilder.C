@@ -1,3 +1,4 @@
+#ifndef evBuilder_cxx
 #define evBuilder_cxx
 #include "evBuilder.h"
 #include <TH1.h>
@@ -1066,3 +1067,4 @@ void evBuilder::Loop(unsigned long n)
   out->Close();
 
 }
+#endif
