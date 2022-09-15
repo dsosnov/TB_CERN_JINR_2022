@@ -163,6 +163,7 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentra
 
   auto out = new TFile("../out/out_" + file + "centralHits" + ending, "RECREATE");
   auto outTree = new TTree("vmm_event", "vmm_event");
+  outTree->AutoSave("10000");
   pair<unsigned long, analysisGeneral::mm2CenterHitParameters> eventData;
   outTree->Branch("event", &eventData);
 
