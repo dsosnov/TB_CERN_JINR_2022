@@ -161,7 +161,7 @@ long long evBuilder::findFirstGoodPulser(unsigned long long fromSec, unsigned lo
 map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentralHits(unsigned long long fromSec, unsigned long long toSec, bool saveOnly){
   printf("evBuilder::GetCentralHits(%llu, %llu)\n", fromSec, toSec);
 
-  auto out = new TFile("../out/out_" + file + "centralHits" + ending, "RECREATE");
+  auto out = new TFile("../out/out_" + file + "_centralHits" + ending, "RECREATE");
   auto outTree = new TTree("vmm_event", "vmm_event");
   outTree->AutoSave("10000");
   pair<unsigned long, analysisGeneral::mm2CenterHitParameters> eventData;

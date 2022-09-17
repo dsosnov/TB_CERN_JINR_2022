@@ -9,7 +9,7 @@
 map<unsigned long, apv::doubleReadoutHits> apv::GetCentralHits2ROnly(unsigned long long fromSec, unsigned long long toSec, bool saveOnly){
   printf("apv::GetCentralHits2ROnly(%llu, %llu)\n", fromSec, toSec);
 
-  auto out = new TFile("../out/out_apv_" + file + "centralHits" + ending, "RECREATE");
+  auto out = new TFile("../out/out_apv_" + file + "_centralHits" + ending, "RECREATE");
   auto outTree = new TTree("apv_event", "apv_event");
   outTree->AutoSave("10000");
   pair<unsigned long, apv::doubleReadoutHits> eventData;

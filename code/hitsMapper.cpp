@@ -85,11 +85,11 @@ void hitsMapper()
     // vector<pair<unsigned long, apv::doubleReadoutHits>> hits_apv_v;
     // hits_apv_v.assign(hits_apv.begin(), hits_apv.end());
 
-    auto hits_apv_t = static_cast<TTree*>(TFile::Open(TString("../out/out_apv_" + run_pair.second + "centralHits" + ".root"), "read")->Get("apv_event"));
+    auto hits_apv_t = static_cast<TTree*>(TFile::Open(TString("../out/out_apv_" + run_pair.second + "_centralHits" + ".root"), "read")->Get("apv_event"));
     static pair<unsigned long, apv::doubleReadoutHits>* hits_apv_event;
     hits_apv_t->SetBranchAddress("event", &hits_apv_event);
 
-    auto hits_vmm_t = static_cast<TTree*>(TFile::Open(TString("../out/out_" + run_pair.first + "centralHits" + ".root"), "read")->Get("vmm_event"));
+    auto hits_vmm_t = static_cast<TTree*>(TFile::Open(TString("../out/out_" + run_pair.first + "_centralHits" + ".root"), "read")->Get("vmm_event"));
     static pair<unsigned long, analysisGeneral::mm2CenterHitParameters>* hits_vmm_event;
     hits_vmm_t->SetBranchAddress("event", &hits_vmm_event);
 
