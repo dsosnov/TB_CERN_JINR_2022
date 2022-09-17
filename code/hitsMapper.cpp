@@ -487,7 +487,8 @@ void hitsMapper()
                     if (hitMapped)
                     {
                         numOfMapped++;
-                        std::cout << "VMM event: " << j << "\t Total of mapped " << numOfMapped << "\n";
+                        std::cout << "APV event: " << i << " (" << hits_apv_event->first << ")" << "\t";
+                        std::cout << "VMM event: " << j << " (" << hits_vmm_event->first << ")" << "\t Total of mapped " << numOfMapped << "\n";
                         // std::cout << "!!! Mapped hits: " << numOfMapped << " !!! \n";
                         if (T_apv - startT_pulse_apv - prevT_apv < 10e3)
                         {
