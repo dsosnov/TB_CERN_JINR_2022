@@ -144,132 +144,132 @@ void hitsMapper()
     int b = -100;
     long long prevT = 0;
 
-    for (unsigned long j = 1485; j < hits_vmm_t->GetEntries(); j++)
-    {
-        hits_vmm_t->GetEntry(j);
-        if (hits_vmm_event->second.sync)
-        {
-            if (a < 0)
-            {
-                if (a == -100)
-                {
-                    std::cout << "VMM first pule DAQ t = " << hits_vmm_event->second.timeFull() << "\n \t PDO = " << hits_vmm_event->second.pdo << "\n";
-                    std::cout << "VMM first pule J = " << j << "\n";
-                    prevT = hits_vmm_event->second.timeFull();
-                    a++;
-                    continue;
-                }
-                // else
-                // {
-                //     std::cout << "VMM pulses delta T = " << hits_vmm_event->second.timeFull() - prevT << "\n \t PDO = " << hits_vmm_event->second.pdo << "\n";
-                //     a++;
-                //     prevT = hits_vmm_event->second.timeFull();
-                // }
-            }
-            // else if (a_hat < 0)
-            // {
-            //     std::cout << "VMM F*ck'n delta T = " << hits_vmm_event->second.timeFull() - prevT << "\n \t PDO = " << hits_vmm_event->second.pdo << "\n";
-            //     prevT = hits_vmm_event->second.timeFull();
-            // }
+    // for (unsigned long j = 1485; j < hits_vmm_t->GetEntries(); j++)
+    // {
+    //     hits_vmm_t->GetEntry(j);
+    //     if (hits_vmm_event->second.sync)
+    //     {
+    //         if (a < 0)
+    //         {
+    //             if (a == -100)
+    //             {
+    //                 std::cout << "VMM first pule DAQ t = " << hits_vmm_event->second.timeFull() << "\n \t PDO = " << hits_vmm_event->second.pdo << "\n";
+    //                 std::cout << "VMM first pule J = " << j << "\n";
+    //                 prevT = hits_vmm_event->second.timeFull();
+    //                 a++;
+    //                 continue;
+    //             }
+    //             // else
+    //             // {
+    //             //     std::cout << "VMM pulses delta T = " << hits_vmm_event->second.timeFull() - prevT << "\n \t PDO = " << hits_vmm_event->second.pdo << "\n";
+    //             //     a++;
+    //             //     prevT = hits_vmm_event->second.timeFull();
+    //             // }
+    //         }
+    //         // else if (a_hat < 0)
+    //         // {
+    //         //     std::cout << "VMM F*ck'n delta T = " << hits_vmm_event->second.timeFull() - prevT << "\n \t PDO = " << hits_vmm_event->second.pdo << "\n";
+    //         //     prevT = hits_vmm_event->second.timeFull();
+    //         // }
 
-            a_hat++;
-        }
+    //         a_hat++;
+    //     }
 
-        if (hits_vmm_event->second.hitsX.size() != 0)
-        {
-            bool flag = false;
-            for (auto it = hits_vmm_event->second.hitsX.begin(); it != hits_vmm_event->second.hitsX.end(); ++it)
-            {
-                int strip = it->first * (1 - 8e-3) - 8.46 / 0.25;
-                int pdo = it->second;
+    //     if (hits_vmm_event->second.hitsX.size() != 0)
+    //     {
+    //         bool flag = false;
+    //         for (auto it = hits_vmm_event->second.hitsX.begin(); it != hits_vmm_event->second.hitsX.end(); ++it)
+    //         {
+    //             int strip = it->first * (1 - 8e-3) - 8.46 / 0.25;
+    //             int pdo = it->second;
 
-                if (pdo < 50)
-                    continue;
+    //             if (pdo < 50)
+    //                 continue;
 
-                stripsVMM->Fill(strip);
-                hitsPdo->Fill(strip, pdo);
-                hitsPdoAll->Fill(pdo);
-                flag = true;
-            }
-            if (flag)
-            {
-                tbh_vmm->Fill(hits_vmm_event->second.timeFull() - prevT);
-                prevT = hits_vmm_event->second.timeFull();
-            }
-        }
-    }
-    prevT = 0;
+    //             stripsVMM->Fill(strip);
+    //             hitsPdo->Fill(strip, pdo);
+    //             hitsPdoAll->Fill(pdo);
+    //             flag = true;
+    //         }
+    //         if (flag)
+    //         {
+    //             tbh_vmm->Fill(hits_vmm_event->second.timeFull() - prevT);
+    //             prevT = hits_vmm_event->second.timeFull();
+    //         }
+    //     }
+    // }
+    // prevT = 0;
 
-    for (unsigned long i = 0; i < hits_apv_t->GetEntries(); i++)
-    {
-        hits_apv_t->GetEntry(i);
-        if (hits_apv_event->second.sync && b < 0)
-        {
-            if (b < 0)
-            {
-                if (b == -100)
-                {
-                    std::cout << "APV first pule DAQ t = " << hits_apv_event->second.timeFull() << "\n";
-                    prevT = hits_apv_event->second.timeFull();
-                    b++;
-                    continue;
-                }
-                else
-                {
-                    std::cout << "APV pulses delta T = " << (hits_apv_event->second.timeFull() - prevT) / 1e3 << "\n";
-                    b++;
-                    prevT = hits_apv_event->second.timeFull();
-                }
-            }
-        }
-        if (hits_apv_event->second.hitsPerLayer.at(2).size() != 0)
-        {
-            bool flag = false;
-            for (auto &h : hits_apv_event->second.hitsPerLayer.at(2))
-            {
-                int strip = h.first * (1 - 8e-3) - 8.46 / 0.25;
-                int pdo = h.second;
+    // for (unsigned long i = 0; i < hits_apv_t->GetEntries(); i++)
+    // {
+    //     hits_apv_t->GetEntry(i);
+    //     if (hits_apv_event->second.sync && b < 0)
+    //     {
+    //         if (b < 0)
+    //         {
+    //             if (b == -100)
+    //             {
+    //                 std::cout << "APV first pule DAQ t = " << hits_apv_event->second.timeFull() << "\n";
+    //                 prevT = hits_apv_event->second.timeFull();
+    //                 b++;
+    //                 continue;
+    //             }
+    //             else
+    //             {
+    //                 std::cout << "APV pulses delta T = " << (hits_apv_event->second.timeFull() - prevT) / 1e3 << "\n";
+    //                 b++;
+    //                 prevT = hits_apv_event->second.timeFull();
+    //             }
+    //         }
+    //     }
+    //     if (hits_apv_event->second.hitsPerLayer.at(2).size() != 0)
+    //     {
+    //         bool flag = false;
+    //         for (auto &h : hits_apv_event->second.hitsPerLayer.at(2))
+    //         {
+    //             int strip = h.first * (1 - 8e-3) - 8.46 / 0.25;
+    //             int pdo = h.second;
 
-                if (strip < 118 || strip > 172)
-                    continue;
+    //             if (strip < 118 || strip > 172)
+    //                 continue;
 
-                hitsPdo_apv->Fill(strip, pdo);
-                hitsPdoAll_apv->Fill(pdo);
-                flag = true;
-            }
-            if (flag)
-            {
-                tbh_apv->Fill(hits_apv_event->second.timeFull() - prevT);
-                prevT = hits_apv_event->second.timeFull();
-            }
-        }
-    }
-    int nHits = 0;
-    for (unsigned long j = 0; j < hits_vmm_t->GetEntries(); j++)
-    {
-        hits_vmm_t->GetEntry(j);
+    //             hitsPdo_apv->Fill(strip, pdo);
+    //             hitsPdoAll_apv->Fill(pdo);
+    //             flag = true;
+    //         }
+    //         if (flag)
+    //         {
+    //             tbh_apv->Fill(hits_apv_event->second.timeFull() - prevT);
+    //             prevT = hits_apv_event->second.timeFull();
+    //         }
+    //     }
+    // }
+    // int nHits = 0;
+    // for (unsigned long j = 0; j < hits_vmm_t->GetEntries(); j++)
+    // {
+    //     hits_vmm_t->GetEntry(j);
 
-        if (hits_vmm_event->second.hitsX.size() != 0)
-        {
-            out_VMM << "------- VMM event " << j << "\n";
+    //     if (hits_vmm_event->second.hitsX.size() != 0)
+    //     {
+    //         out_VMM << "------- VMM event " << j << "\n";
 
-            for (auto it = hits_vmm_event->second.hitsX.begin(); it != hits_vmm_event->second.hitsX.end(); ++it)
-            {
-                int strip = it->first * (1 - 8e-3) - 8.46 / 0.25;
-                int pdo = it->second;
+    //         for (auto it = hits_vmm_event->second.hitsX.begin(); it != hits_vmm_event->second.hitsX.end(); ++it)
+    //         {
+    //             int strip = it->first * (1 - 8e-3) - 8.46 / 0.25;
+    //             int pdo = it->second;
 
-                if (pdo < 50)
-                    continue;
+    //             if (pdo < 50)
+    //                 continue;
 
-                nHits++;
+    //             nHits++;
 
-                out_VMM << "\t Strip: " << strip << "\n";
-                out_VMM << "\t PDO: " << pdo << "\n";
-            }
-        }
-    }
+    //             out_VMM << "\t Strip: " << strip << "\n";
+    //             out_VMM << "\t PDO: " << pdo << "\n";
+    //         }
+    //     }
+    // }
 
-    out_VMM << "\t Lost: " << nHits << "\n";
+    // out_VMM << "\t Lost: " << nHits << "\n";
     out_VMM.close();
 
     // out->Write();
