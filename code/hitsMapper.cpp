@@ -65,6 +65,37 @@ pair<int, int> vmmRemoveFirstNPuslers(TTree* hits_vmm_t, pair<unsigned long, ana
     return make_pair(j, firstSyncBcid);
 }
 
+long long loadNextVMM(long long firstElement, map<long long, vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>>> &hits_vmm_events_map,
+                 TTree* hits_vmm_t, pair<unsigned long, analysisGeneral::mm2CenterHitParameters> *hits_vmm_event,
+                 long long nElements = 1000000){
+    // printf("loadNextVMM(%lld, %p, %p, %p, %lld)\n", firstElement, &hits_vmm_events_map, hits_vmm_t, hits_vmm_event, nElements);
+    if(hits_vmm_events_map.count(firstElement))
+        return hits_vmm_events_map.at(firstElement).size();
+  
+    vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>> elementVector;
+    hits_vmm_t->GetEntry(firstElement);
+    if(!(hits_vmm_event->second.sync)){ // Not a sync event, it seems a problem!
+        printf("First loaded event not the sync!\n");
+        hits_vmm_t->GetEntry(firstElement-1);
+        if(hits_vmm_event->second.sync)
+            printf("First before First loaded is sync!\n");
+        hits_vmm_events_map.emplace(firstElement, elementVector);
+        return 0;
+    };
+    // hits_vmm_event->second.print();
+    long long lastSyncIndex = 0;
+    auto maxEntries = hits_vmm_t->GetEntries() - firstElement;
+    for(auto i = 0; i < maxEntries && lastSyncIndex < nElements; i++){
+        hits_vmm_t->GetEntry(firstElement + i);
+        elementVector.push_back(make_pair(hits_vmm_event->first, hits_vmm_event->second));
+        if(hits_vmm_event->second.sync)
+            lastSyncIndex = i;
+    }
+    // remove last sync and all after
+    elementVector.erase(elementVector.begin() + lastSyncIndex, elementVector.end());
+    hits_vmm_events_map.emplace(firstElement, elementVector);
+    return elementVector.size(); // next start index
+}
 
 void hitsMapper()
 {
@@ -282,8 +313,14 @@ void hitsMapper()
     /* vmm: Remove first -index pulse syncs */
     // int firstSyncBcid = vmmRemoveFirstNPuslers(hits_vmm_v);
     auto [firstEvent, firstSyncBcid] = vmmRemoveFirstNPuslers(hits_vmm_t, hits_vmm_event);
-    tuple<unsigned long, int, int, int, long long> beforeLastPulserParameters = {firstEvent, firstSyncBcid, 0, 0, 0};
+    tuple<long long, unsigned long, int, int, int, long long> beforeLastPulserParameters = {firstEvent, 0, firstSyncBcid, 0, 0, 0};
+    map<long long, vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>>> hits_vmm_events_map;
+    auto nLoaded = loadNextVMM(get<0>(beforeLastPulserParameters), hits_vmm_events_map, hits_vmm_t, hits_vmm_event);
+    printf("nLoaded: %lld\n", nLoaded);
+    if(nLoaded <= 1)
+        return;
     auto beforeLastPulserParametersCurrent = beforeLastPulserParameters;
+    long long vectorPositionInTree;
 
     int mappedHitsVMM = 0;
     int UNmappedHitsVMM = 0;
@@ -292,7 +329,7 @@ void hitsMapper()
     long long prevT_vmm = 0;
 
     int bad, prevSyncBcid, prevPrevSyncBcid, nPeriods;
-
+    long long currentEventsMap;
     long long pulseTime;
     bool hitMapped;
 
@@ -371,38 +408,51 @@ void hitsMapper()
                 vmm_hits_vec.clear();
 
                 bad = 0;
-                prevSyncBcid = get<1>(beforeLastPulserParameters);
-                prevPrevSyncBcid = get<2>(beforeLastPulserParameters);
-                nPeriods = get<3>(beforeLastPulserParameters);
+                prevSyncBcid = get<2>(beforeLastPulserParameters);
+                prevPrevSyncBcid = get<3>(beforeLastPulserParameters);
+                nPeriods = get<4>(beforeLastPulserParameters);
 
-                pulseTime = get<4>(beforeLastPulserParameters);
+                pulseTime = get<5>(beforeLastPulserParameters);
                 hitMapped = false;
                 beforeLastPulserParametersCurrent = beforeLastPulserParameters;
 
-                for (unsigned long j = get<0>(beforeLastPulserParameters); j < hits_vmm_t->GetEntries(); j++)
+                vectorPositionInTree = get<0>(beforeLastPulserParameters); // TODO
+                currentEventsMap = hits_vmm_events_map.at(vectorPositionInTree).size();
+
+                for (unsigned long j = get<1>(beforeLastPulserParameters); j <= currentEventsMap; j++)
                 {
-                    hits_vmm_t->GetEntry(j);
-                    if (hits_vmm_event->second.sync)
+                    if(j == currentEventsMap)
                     {
-                        beforeLastPulserParametersCurrent = {j, prevSyncBcid, prevPrevSyncBcid, nPeriods, pulseTime};
+                        vectorPositionInTree = get<0>(beforeLastPulserParameters) + hits_vmm_events_map.at(vectorPositionInTree).size();
+                        j = 0;
+                    }
+                    if(j == 0)
+                    {
+                        auto nLoaded = loadNextVMM(vectorPositionInTree, hits_vmm_events_map, hits_vmm_t, hits_vmm_event);
+                        if(nLoaded <= 1) break;
+                        long long currentEventsMap = hits_vmm_events_map.at(vectorPositionInTree).size();
+                    }
+                    if (hits_vmm_events_map.at(vectorPositionInTree).at(j).second.sync)
+                    {
+                        beforeLastPulserParametersCurrent = {vectorPositionInTree, j, prevSyncBcid, prevPrevSyncBcid, nPeriods, pulseTime};
                         int diff = 0;
-                        if (hits_vmm_event->second.bcid - prevSyncBcid > 0)
+                        if (hits_vmm_events_map.at(vectorPositionInTree).at(j).second.bcid - prevSyncBcid > 0)
                         {
-                            diff = hits_vmm_event->second.bcid - prevSyncBcid;
+                            diff = hits_vmm_events_map.at(vectorPositionInTree).at(j).second.bcid - prevSyncBcid;
                         }
                         else
                         {
-                            diff = hits_vmm_event->second.bcid + 4096 - prevSyncBcid;
+                            diff = hits_vmm_events_map.at(vectorPositionInTree).at(j).second.bcid + 4096 - prevSyncBcid;
                         }
                         int diffDiff = 0;
 
-                        if (hits_vmm_event->second.bcid - prevPrevSyncBcid > 0)
+                        if (hits_vmm_events_map.at(vectorPositionInTree).at(j).second.bcid - prevPrevSyncBcid > 0)
                         {
-                            diffDiff = hits_vmm_event->second.bcid - prevPrevSyncBcid;
+                            diffDiff = hits_vmm_events_map.at(vectorPositionInTree).at(j).second.bcid - prevPrevSyncBcid;
                         }
                         else
                         {
-                            diffDiff = hits_vmm_event->second.bcid + 4096 - prevPrevSyncBcid;
+                            diffDiff = hits_vmm_events_map.at(vectorPositionInTree).at(j).second.bcid + 4096 - prevPrevSyncBcid;
                         }
 
                         if (!(diff >= 2000 - 5 && diff <= 2000 + 5) && !(diff >= 4000 - 5 && diff <= 4000 + 5))
@@ -420,7 +470,7 @@ void hitsMapper()
                             {
                                 bad++;
                                 prevPrevSyncBcid = prevSyncBcid;
-                                prevSyncBcid = hits_vmm_event->second.bcid;
+                                prevSyncBcid = hits_vmm_events_map.at(vectorPositionInTree).at(j).second.bcid;
                                 continue;
                             }
                             else
@@ -430,24 +480,24 @@ void hitsMapper()
                         }
 
                         prevPrevSyncBcid = prevSyncBcid;
-                        prevSyncBcid = hits_vmm_event->second.bcid;
+                        prevSyncBcid = hits_vmm_events_map.at(vectorPositionInTree).at(j).second.bcid;
                         nPeriods += round(diff * 1.0 / 2000.0);
                         pulseTime = nPeriods * 50;
                     }
 
-                    if (hits_vmm_event->second.hitsX.size() == 0 || nPeriods / 200 < nPeriodsAPV - 1)
+                    if (hits_vmm_events_map.at(vectorPositionInTree).at(j).second.hitsX.size() == 0 || nPeriods / 200 < nPeriodsAPV - 1)
                         continue;
                     else if (nPeriods / 200 > nPeriodsAPV + 1)
                         break;
 
                     int diff_hit = 0;
-                    if (hits_vmm_event->second.bcid - prevSyncBcid >= 0)
+                    if (hits_vmm_events_map.at(vectorPositionInTree).at(j).second.bcid - prevSyncBcid >= 0)
                     {
-                        diff_hit = hits_vmm_event->second.bcid - prevSyncBcid;
+                        diff_hit = hits_vmm_events_map.at(vectorPositionInTree).at(j).second.bcid - prevSyncBcid;
                     }
                     else
                     {
-                        diff_hit = hits_vmm_event->second.bcid + 4096 - prevSyncBcid;
+                        diff_hit = hits_vmm_events_map.at(vectorPositionInTree).at(j).second.bcid + 4096 - prevSyncBcid;
                     }
                     int dt_apv_vmm = T_apv - startT_pulse_apv - pulseTime - round(diff_hit * 25.0 / 1000.0);;
                     // int dt_apv_vmm = T_apv - startT_pulse_apv - pulseTime;
@@ -457,7 +507,7 @@ void hitsMapper()
                     if (abs(dt_apv_vmm) > 1000)
                         continue;
 
-                    for (auto it = hits_vmm_event->second.hitsX.begin(); it != hits_vmm_event->second.hitsX.end(); ++it)
+                    for (auto it = hits_vmm_events_map.at(vectorPositionInTree).at(j).second.hitsX.begin(); it != hits_vmm_events_map.at(vectorPositionInTree).at(j).second.hitsX.end(); ++it)
                     {
                         int strip = it->first * (1 - 8e-3) - 8.46 / 0.25;
                         int pdo = it->second;
@@ -488,7 +538,7 @@ void hitsMapper()
                     {
                         numOfMapped++;
                         std::cout << "APV event: " << i << " (" << hits_apv_event->first << ")" << "\t";
-                        std::cout << "VMM event: " << j << " (" << hits_vmm_event->first << ")" << "\t Total of mapped " << numOfMapped << "\n";
+                        std::cout << "VMM event: " << j << " (" << hits_vmm_events_map.at(vectorPositionInTree).at(j).first << ")" << "\t Total of mapped " << numOfMapped << "\n";
                         // std::cout << "!!! Mapped hits: " << numOfMapped << " !!! \n";
                         if (T_apv - startT_pulse_apv - prevT_apv < 10e3)
                         {
@@ -553,8 +603,15 @@ void hitsMapper()
                     if (hitMapped){
                         beforeLastPulserParameters = beforeLastPulserParametersCurrent;
                         eventNumAPV = hits_apv_event->first;
-                        eventNumVMM = hits_vmm_event->first;
+                        eventNumVMM = hits_vmm_events_map.at(vectorPositionInTree).at(j).first;
                         mappedEventNums->Fill();
+                        // clear memory -- remove unused vectors with VMM events
+                        vector<long long> keysToErase;
+                        for(auto &i: hits_vmm_events_map)
+                            if(i.first < vectorPositionInTree)
+                                keysToErase.push_back(i.first);
+                        for(auto &i: keysToErase)
+                            hits_vmm_events_map.erase(i);
                         break;
                     }
                 }
