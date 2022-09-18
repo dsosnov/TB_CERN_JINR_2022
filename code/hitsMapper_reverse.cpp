@@ -79,7 +79,6 @@ void hitsMapper_reverse()
         }
     }
     std::cout << "Num of good VMM hits: " << num << "\n";
-    return 0;
 
     for (unsigned long j = 0; j < hits_vmm_v.size(); j++)
     {
@@ -204,8 +203,10 @@ void hitsMapper_reverse()
                 if (prev_pulse_SRS != -1)
                 {
                     apv_hit_T = pulser_T + apv_time_from_SRS(prev_pulse_SRS, hits_apv_v.at(i).second.timeSrs);
-                    if (abs(apv_hit_T - vmmHitTime) > 1000 || j < 1485)
+                    if (vmmHitTime - apv_hit_T > 1000 || j < 1485)
                         continue;
+                    if (apv_hit_T - vmmHitTime)
+                        break;
 
                     if (hits_apv_v.at(i).second.hitsPerLayer.at(0).size() != 0)
                     {
