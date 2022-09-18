@@ -154,20 +154,20 @@ void hitsMapper(bool tight = false, bool analyseData = true)
     long long pulser_T = 0;
     long long apv_hit_T = 0;
 
-    TString tightText = tight ? "_tight" : "";
+    string tightText = tight ? "_tight" : "";
 
     ofstream out_APV;
-    out_APV.open("../out/APV_hits_maped_"+run_pair.first+"_"+run_pair.second+tightText+".txt");
+    out_APV.open(TString("../out/APV_hits_maped_"+run_pair.first+"_"+run_pair.second+tightText+".txt").Data());
 
     ofstream out_VMM;
-    out_VMM.open("../out/VMM_hits_"+run_pair.first+"_"+run_pair.second+"_after"+tightText+".txt");
+    out_VMM.open(TString("../out/VMM_hits_"+run_pair.first+"_"+run_pair.second+"_after"+tightText+".txt").Data());
 
     ofstream out_VMM_hits;
-    out_VMM_hits.open("../out/VMM_hits_UNmaped_"+run_pair.first+"_"+run_pair.second+tightText+".txt");
+    out_VMM_hits.open(TString("../out/VMM_hits_UNmaped_"+run_pair.first+"_"+run_pair.second+tightText+".txt").Data());
 
     int numOfMapped = 0;
 
-    auto out = TFile::Open("../out/mapped_"+run_pair.first+"_"+run_pair.second+tightText+".root", "recreate");
+    auto out = TFile::Open(TString("../out/mapped_"+run_pair.first+"_"+run_pair.second+tightText+".root"), "recreate");
 
     auto mappedEventNums = new TTree("mappedEvents", "");
     mappedEventNums->AutoSave("1000");
@@ -177,7 +177,7 @@ void hitsMapper(bool tight = false, bool analyseData = true)
     mappedEventNums->Branch("vmm", &eventNumVMM);
     mappedEventNums->Branch("deltaT", &deltaT);
     TFile* mappedEventBackupFile = nullptr;
-    TString mapBackupFileName = "mappedEvents_"+run_pair.first+"_"+run_pair.second+tightText+"_bak.root";
+    TString mapBackupFileName = TString("mappedEvents_"+run_pair.first+"_"+run_pair.second+tightText+"_bak.root");
 
     auto stripsVMM = make_shared<TH1F>("stripsVMM", "stripsVMM", 360, 0, 360);
     auto mappedHitsPdo = make_shared<TH1F>("mappedHitsPdo", "mappedHitsPdo", 2000, 0, 2000);
