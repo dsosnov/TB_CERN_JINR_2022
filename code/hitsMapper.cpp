@@ -513,7 +513,7 @@ void hitsMapper(bool tight = false, bool analyseData = true)
                     }
                     else if (currEvent->hitsX.size() == 0)
                         continue;
-                    else if (!currEvent->trigger)
+                    else if (!currEvent->trigger) // Important change: passing event without triple scint coincsidence
                         continue;
  
                     diff_hit = (currEvent->bcid - prevSyncBcid >= 0) ? currEvent->bcid - prevSyncBcid : currEvent->bcid + 4096 - prevSyncBcid;
