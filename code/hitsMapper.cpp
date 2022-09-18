@@ -115,24 +115,23 @@ long long loadNextVMM(long long firstElement, map<long long, vector<pair<unsigne
 }
 
 bool PRINT_TO_FILE = false;
-void hitsMapper(bool tight = false)
+void hitsMapper(bool tight = false, bool analyseData = true)
 {
     pair<string, string> run_pair = {"run_0832_cut", "run423_cut"};
-    unsigned long long from = 0, to = 0;
 
-    auto apvan = new apv(run_pair.second);
-    apvan->useSyncSignal();
-    auto hits_apv = apvan->GetCentralHits2ROnly(from, to, true);
-    auto vmman = new evBuilder(run_pair.first, "g1_p25_s100-0&60", "map-20220605");
-    vmman->useSyncSignal();
-    auto hits_vmm = vmman->GetCentralHits(from, to, true);
+    if(analyseData)
+    {
+        unsigned long long from = 0, to = 0;
+        auto apvan = new apv(run_pair.second);
+        apvan->useSyncSignal();
+        auto hits_apv = apvan->GetCentralHits2ROnly(from, to, true);
+        auto vmman = new evBuilder(run_pair.first, "g1_p25_s100-0&60", "map-20220605");
+        vmman->useSyncSignal();
+        auto hits_vmm = vmman->GetCentralHits(from, to, true);
 
-    delete apvan;
-    delete vmman;
-    // vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>> hits_vmm_v;
-    // hits_vmm_v.assign(hits_vmm.begin(), hits_vmm.end());
-    // vector<pair<unsigned long, apv::doubleReadoutHits>> hits_apv_v;
-    // hits_apv_v.assign(hits_apv.begin(), hits_apv.end());
+        delete apvan;
+        delete vmman;
+    }
 
     auto hits_apv_t = static_cast<TTree*>(TFile::Open(TString("../out/out_apv_" + run_pair.second + "_centralHits" + ".root"), "read")->Get("apv_event"));
     static pair<unsigned long, apv::doubleReadoutHits>* hits_apv_event;
