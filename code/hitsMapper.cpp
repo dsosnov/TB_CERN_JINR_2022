@@ -7,7 +7,7 @@ using std::cout, std::endl;
 using std::ifstream, std::ofstream;
 
 // IMPORTANT change: fixSRSTime
-int apv_time_from_SRS(int srs1, int srs2, bool fixSRSTime = true)
+int apv_time_from_SRS(int srs1, int srs2, bool fixSRSTime = false)
 {
     int diff = 0;
     int srsT_period = 16777215;
@@ -117,7 +117,7 @@ long long loadNextVMM(long long firstElement, map<long long, vector<pair<unsigne
 }
 
 bool PRINT_TO_FILE = false;
-void hitsMapper(bool tight = false, bool analyseData = true)
+void hitsMapper(bool tight = false, bool analyseData = true, bool fixSRSTime = false)
 {
     pair<string, string> run_pair = {"run_0832_cut", "run423_cut"};
 
@@ -156,19 +156,20 @@ void hitsMapper(bool tight = false, bool analyseData = true)
     long long apv_hit_T = 0;
 
     string tightText = tight ? "_tight" : "";
+    string fixTimeText = fixSRSTime ? "_timefix" : "";
 
     ofstream out_APV;
-    out_APV.open(TString("../out/APV_hits_maped_"+run_pair.first+"_"+run_pair.second+tightText+".txt").Data());
+    out_APV.open(TString("../out/APV_hits_maped_"+run_pair.first+"_"+run_pair.second+tightText+fixTimeText+".txt").Data());
 
     ofstream out_VMM;
-    out_VMM.open(TString("../out/VMM_hits_"+run_pair.first+"_"+run_pair.second+"_after"+tightText+".txt").Data());
+    out_VMM.open(TString("../out/VMM_hits_"+run_pair.first+"_"+run_pair.second+"_after"+tightText+fixTimeText+".txt").Data());
 
     ofstream out_VMM_hits;
-    out_VMM_hits.open(TString("../out/VMM_hits_UNmaped_"+run_pair.first+"_"+run_pair.second+tightText+".txt").Data());
+    out_VMM_hits.open(TString("../out/VMM_hits_UNmaped_"+run_pair.first+"_"+run_pair.second+tightText+fixTimeText+".txt").Data());
 
     int numOfMapped = 0;
 
-    auto out = TFile::Open(TString("../out/mapped_"+run_pair.first+"_"+run_pair.second+tightText+".root"), "recreate");
+    auto out = TFile::Open(TString("../out/mapped_"+run_pair.first+"_"+run_pair.second+tightText+fixTimeText+".root"), "recreate");
 
     auto mappedEventNums = new TTree("mappedEvents", "");
     mappedEventNums->AutoSave("1000");
@@ -178,7 +179,7 @@ void hitsMapper(bool tight = false, bool analyseData = true)
     mappedEventNums->Branch("vmm", &eventNumVMM);
     mappedEventNums->Branch("deltaT", &deltaT);
     TFile* mappedEventBackupFile = nullptr;
-    TString mapBackupFileName = TString("mappedEvents_"+run_pair.first+"_"+run_pair.second+tightText+"_bak.root");
+    TString mapBackupFileName = TString("mappedEvents_"+run_pair.first+"_"+run_pair.second+tightText+fixTimeText+"_bak.root");
 
     auto stripsVMM = make_shared<TH1F>("stripsVMM", "stripsVMM", 360, 0, 360);
     auto mappedHitsPdo = make_shared<TH1F>("mappedHitsPdo", "mappedHitsPdo", 2000, 0, 2000);
@@ -381,7 +382,7 @@ void hitsMapper(bool tight = false, bool analyseData = true)
         }
         else
         {
-            T_apv += apv_time_from_SRS(prevSRS, hits_apv_event->second.timeSrs);
+            T_apv += apv_time_from_SRS(prevSRS, hits_apv_event->second.timeSrs, fixSRSTime);
         }
         prevSRS = hits_apv_event->second.timeSrs;
 
@@ -404,7 +405,7 @@ void hitsMapper(bool tight = false, bool analyseData = true)
         {
             // std::cout << "\t Total:" << prev_pulse_SRS << "\t" << hits_apv_event->second.timeSrs << "\n";
 
-            apv_hit_T = pulser_T + apv_time_from_SRS(prev_pulse_SRS, hits_apv_event->second.timeSrs);
+            apv_hit_T = pulser_T + apv_time_from_SRS(prev_pulse_SRS, hits_apv_event->second.timeSrs, fixSRSTime);
             if (hits_apv_event->second.hitsPerLayer.at(0).size() != 0)
             {
                 apv_hits_vec.clear();
