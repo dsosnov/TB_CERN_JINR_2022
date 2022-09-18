@@ -633,3 +633,9 @@ void hitsMapper()
     out->Write();
     out->Close();
 }
+
+int main(int argc, char** argv)
+{
+    hitsMapper();
+    return 0;
+}
