@@ -84,7 +84,7 @@ bool freeMemory(map<long long, vector<pair<unsigned long, analysisGeneral::mm2Ce
 
 long long loadNextVMM(long long firstElement, map<long long, vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>>> &hits_vmm_events_map,
                  TTree* hits_vmm_t, pair<unsigned long, analysisGeneral::mm2CenterHitParameters> *hits_vmm_event,
-                 long long nElements = 1000000){
+                 long long nElements = 100000){
     // printf("loadNextVMM(%lld, %p, %p, %p, %lld)\n", firstElement, &hits_vmm_events_map, hits_vmm_t, hits_vmm_event, nElements);
     if(hits_vmm_events_map.count(firstElement))
         return hits_vmm_events_map.at(firstElement).size();
