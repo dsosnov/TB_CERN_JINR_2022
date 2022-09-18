@@ -96,5 +96,5 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentra
                                                                                       bool saveOnly) {
   return {};
 };
-long long evBuilder::findFirstGoodPulser(unsigned long long fromSec = 0, unsigned long long toSec = 0){return -1;}
+long long evBuilder::findFirstGoodPulser(unsigned long long fromSec, unsigned long long toSec){return -1;}
 #endif // #ifdef evBuilder_cxx
