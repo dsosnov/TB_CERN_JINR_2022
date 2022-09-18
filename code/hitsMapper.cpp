@@ -500,14 +500,8 @@ void hitsMapper()
                     }
                     else if (nPeriods / 200 < nPeriodsAPV - 1) // -1
                     {
-                        if(get<0>(beforeLastPulserParametersCurrent) != get<0>(beforeLastPulserParameters))
-                        {
-                            freeMemory(hits_vmm_events_map, vectorPositionInTree);
-                            if(beforeLastPulserParametersCurrent != beforeLastPulserParameters)
-                            {
-                                beforeLastPulserParameters = beforeLastPulserParametersCurrent;
-                            }
-                        }
+                        if(beforeLastPulserParametersCurrent != beforeLastPulserParameters)
+                            beforeLastPulserParameters = beforeLastPulserParametersCurrent;
                         continue;
                     }
                     else if (currEvent->hitsX.size() == 0)
