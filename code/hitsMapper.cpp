@@ -115,7 +115,7 @@ long long loadNextVMM(long long firstElement, map<long long, vector<pair<unsigne
 }
 
 bool PRINT_TO_FILE = false;
-void hitsMapper()
+void hitsMapper(bool tight = false)
 {
     pair<string, string> run_pair = {"run_0832_cut", "run423_cut"};
     unsigned long long from = 0, to = 0;
@@ -154,24 +154,28 @@ void hitsMapper()
     long long pulser_T = 0;
     long long apv_hit_T = 0;
 
+    TString tightText = tight ? "_tight" : "";
+
     ofstream out_APV;
-    out_APV.open("../out/APV_hits_maped_0832_423.txt");
+    out_APV.open("../out/APV_hits_maped_"+run_pair.first+"_"+run_pair.second+tightText+".txt");
 
     ofstream out_VMM;
-    out_VMM.open("../out/VMM_hits_0832_423_after.txt");
+    out_VMM.open("../out/VMM_hits_"+run_pair.first+"_"+run_pair.second+"_after"+tightText+".txt");
 
     ofstream out_VMM_hits;
-    out_VMM_hits.open("../out/VMM_hits_UNmaped_0832_423.txt");
+    out_VMM_hits.open("../out/VMM_hits_UNmaped_"+run_pair.first+"_"+run_pair.second+tightText+".txt");
 
     int numOfMapped = 0;
 
-    auto out = TFile::Open("../out/mapped_0832_423.root", "recreate");
+    auto out = TFile::Open("../out/mapped_"+run_pair.first+"_"+run_pair.second+tightText+".root", "recreate");
 
     auto mappedEventNums = new TTree("mappedEvents", "");
     mappedEventNums->AutoSave("1000");
     long long eventNumAPV, eventNumVMM;
     mappedEventNums->Branch("apv", &eventNumAPV);
     mappedEventNums->Branch("vmm", &eventNumVMM);
+    TFile* mappedEventBackupFile = nullptr;
+    TString mapBackupFileName = "mappedEvents_"+run_pair.first+"_"+run_pair.second+tightText+"_bak.root";
 
     auto stripsVMM = make_shared<TH1F>("stripsVMM", "stripsVMM", 360, 0, 360);
     auto mappedHitsPdo = make_shared<TH1F>("mappedHitsPdo", "mappedHitsPdo", 2000, 0, 2000);
@@ -362,6 +366,7 @@ void hitsMapper()
     int strip, pdo;
     int diff, diffDiff;
 
+    int maxAPVPulserCountDifference = tight ? 0 : 1;
 
     for (unsigned long i = 0; i < hits_apv_t->GetEntries(); i++)
     {
@@ -494,11 +499,11 @@ void hitsMapper()
                         pulseTime = nPeriods * 50;
                     }
 
-                    if (nPeriods / 200 > nPeriodsAPV + 1) // +1
+                    if (nPeriods / 200 > nPeriodsAPV + maxAPVPulserCountDifference)
                     {
                         break;
                     }
-                    else if (nPeriods / 200 < nPeriodsAPV - 1) // -1
+                    else if (nPeriods / 200 < nPeriodsAPV - maxAPVPulserCountDifference)
                     {
                         if(beforeLastPulserParametersCurrent != beforeLastPulserParameters)
                             beforeLastPulserParameters = beforeLastPulserParametersCurrent;
@@ -637,9 +642,12 @@ void hitsMapper()
 
                         if(!(numOfMapped %100))
                         {
-                          mappedEventNums->SaveAs("mappedEvents_bak.root");
+                          mappedEventNums->SaveAs(mapBackupFileName);
                           delete mappedEventNums;
-                          mappedEventNums = static_cast<TTree*>(TFile::Open("mappedEvents_bak.root")->Get("mappedEvents"));
+                          if(mappedEventBackupFile != nullptr )
+                              mappedEventBackupFile->Close();
+                          mappedEventBackupFile = TFile::Open(mapBackupFileName);
+                          mappedEventNums = static_cast<TTree*>(mappedEventBackupFile->Get("mappedEvents"));
                           mappedEventNums->SetDirectory(out);
                           mappedEventNums->AutoSave("1000");
                           mappedEventNums->SetBranchAddress("apv", &eventNumAPV);
