@@ -1,7 +1,10 @@
 #ifndef evBuilder_cxx
 #define evBuilder_cxx
 #include "evBuilder.h"
-#include <TH1.h>
+#include <TStyle.h>
+#include <TF1.h>
+#include <TLegend.h>
+#include <TCanvas.h>
 
 
 void evBuilder::threePlotDrawF(TH1D *h1, TH1D *h2, TH1D *h3, TString fileEnding)

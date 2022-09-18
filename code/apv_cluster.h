@@ -1,5 +1,7 @@
 #pragma once
 
+#include <TObject.h>
+
 #include <vector> 
 #include <map>
 #include <string>
@@ -8,6 +10,8 @@
 
 #include <numeric> // accumulate
 #include <algorithm> // max_element, sort
+
+using std::vector;
 
 struct apvHit{
   int layer = 0;

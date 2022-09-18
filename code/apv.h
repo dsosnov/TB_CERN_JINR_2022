@@ -13,6 +13,7 @@
 #include <utility>
 #include <string>
 #include <memory>
+#include <set>
 
 #include <algorithm> // max_element, sort
 
@@ -22,7 +23,9 @@ using std::vector;
 using std::map;
 using std::string;
 using std::shared_ptr, std::make_shared;
-using std::pair;
+using std::pair, std::make_pair;
+using std::tuple, std::get;
+using std::set;
 
 class apv : public analysisGeneral {
 public :

@@ -6,6 +6,30 @@
 #include <TROOT.h>
 #include <TChain.h>
 #include <TFile.h>
+#include <TString.h>
+
+#include <vector> 
+#include <map>
+#include <utility>
+#include <string>
+#include <memory>
+#include <set>
+
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <algorithm> // max_element, sort
+
+using std::vector;
+using std::map;
+using std::string;
+using std::shared_ptr, std::make_shared;
+using std::pair, std::make_pair;
+using std::tuple, std::get;
+using std::set;
+using std::array;
+using std::begin, std::end;
+using std::ifstream;
 
 // Header file for the classes stored in the TTree if any.
 //#include "c++/v1/vector"

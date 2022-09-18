@@ -3,6 +3,9 @@
 #include <iostream>
 #include <fstream>
 
+using std::cout, std::endl;
+using std::ifstream, std::ofstream;
+
 int apv_time_from_SRS(int srs1, int srs2)
 {
     int diff = 0;
