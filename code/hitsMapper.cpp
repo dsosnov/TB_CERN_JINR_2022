@@ -480,14 +480,18 @@ void hitsMapper()
                         pulseTime = nPeriods * 50;
                     }
 
-                    if (currEvent->hitsX.size() == 0)
+                    if (nPeriods / 200 > nPeriodsAPV + 1) // +1
+                        break;
+                    else if (nPeriods / 200 < nPeriodsAPV - 1) // -1
+                    {
+                        if(beforeLastPulserParametersCurrent != beforeLastPulserParameters)
+                            beforeLastPulserParameters = beforeLastPulserParametersCurrent;
+                        continue;
+                    }
+                    else if (currEvent->hitsX.size() == 0)
                         continue;
                     else if (!currEvent->trigger)
                         continue;
-                    else if (nPeriods / 200 < nPeriodsAPV - 1) // -1
-                        continue;
-                    else if (nPeriods / 200 > nPeriodsAPV + 1) // +1
-                        break;
  
                     diff_hit = (currEvent->bcid - prevSyncBcid >= 0) ? currEvent->bcid - prevSyncBcid : currEvent->bcid + 4096 - prevSyncBcid;
                     dt_apv_vmm = T_apv - startT_pulse_apv - pulseTime - round(diff_hit * 25.0 / 1000.0);;
