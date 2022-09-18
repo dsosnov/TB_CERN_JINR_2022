@@ -19,7 +19,8 @@ int apv_time_from_SRS(int srs1, int srs2)
         diff = srs2 + srsT_period - srs1;
     }
 
-    return round(diff * 25.0 / 1000.0);
+    // Since standard time between SRSTimeStamps is 400038 (400037), but not 400000, correct srsTimeStamp clock time
+    return round(diff * 25.0 * (400037.0/400000.0) / 1000.0);
 }
 
 int vmmRemoveFirstNPuslers(vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>> &hits_vmm_v, int nRemoved = 637){
