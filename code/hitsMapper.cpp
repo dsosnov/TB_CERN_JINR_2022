@@ -68,6 +68,20 @@ pair<int, int> vmmRemoveFirstNPuslers(TTree* hits_vmm_t, pair<unsigned long, ana
     return make_pair(j, firstSyncBcid);
 }
 
+bool freeMemory(map<long long, vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>>> &hits_vmm_events_map, long long firstElement)
+{
+    bool released = false;
+    vector<long long> keysToErase;
+    for(auto &i: hits_vmm_events_map)
+        if(i.first < firstElement)
+            keysToErase.push_back(i.first);
+    if(!keysToErase.empty())
+        released = true;
+    for(auto &i: keysToErase)
+        hits_vmm_events_map.erase(i);
+    return released;
+}
+
 long long loadNextVMM(long long firstElement, map<long long, vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>>> &hits_vmm_events_map,
                  TTree* hits_vmm_t, pair<unsigned long, analysisGeneral::mm2CenterHitParameters> *hits_vmm_event,
                  long long nElements = 1000000){
@@ -481,11 +495,19 @@ void hitsMapper()
                     }
 
                     if (nPeriods / 200 > nPeriodsAPV + 1) // +1
+                    {
                         break;
+                    }
                     else if (nPeriods / 200 < nPeriodsAPV - 1) // -1
                     {
-                        if(beforeLastPulserParametersCurrent != beforeLastPulserParameters)
-                            beforeLastPulserParameters = beforeLastPulserParametersCurrent;
+                        if(get<0>(beforeLastPulserParametersCurrent) != get<0>(beforeLastPulserParameters))
+                        {
+                            freeMemory(hits_vmm_events_map, vectorPositionInTree);
+                            if(beforeLastPulserParametersCurrent != beforeLastPulserParameters)
+                            {
+                                beforeLastPulserParameters = beforeLastPulserParametersCurrent;
+                            }
+                        }
                         continue;
                     }
                     else if (currEvent->hitsX.size() == 0)
@@ -617,12 +639,7 @@ void hitsMapper()
                         eventNumVMM = hits_vmm_events_map.at(vectorPositionInTree).at(j).first;
                         mappedEventNums->Fill();
                         // clear memory -- remove unused vectors with VMM events
-                        vector<long long> keysToErase;
-                        for(auto &i: hits_vmm_events_map)
-                            if(i.first < vectorPositionInTree)
-                                keysToErase.push_back(i.first);
-                        for(auto &i: keysToErase)
-                            hits_vmm_events_map.erase(i);
+                        freeMemory(hits_vmm_events_map, vectorPositionInTree);
 
                         if(!(numOfMapped %100))
                         {
