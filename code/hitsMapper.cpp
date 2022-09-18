@@ -619,6 +619,17 @@ void hitsMapper()
                                 keysToErase.push_back(i.first);
                         for(auto &i: keysToErase)
                             hits_vmm_events_map.erase(i);
+
+                        if(!(numOfMapped %100))
+                        {
+                          mappedEventNums->SaveAs("mappedEvents_bak.root");
+                          delete mappedEventNums;
+                          mappedEventNums = static_cast<TTree*>(TFile::Open("mappedEvents_bak.root")->Get("mappedEvents"));
+                          mappedEventNums->SetDirectory(out);
+                          mappedEventNums->AutoSave("1000");
+                          mappedEventNums->SetBranchAddress("apv", &eventNumAPV);
+                          mappedEventNums->SetBranchAddress("vmm", &eventNumVMM);
+                        }
                         break;
                     }
                 }
