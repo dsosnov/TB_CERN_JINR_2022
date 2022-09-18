@@ -172,8 +172,10 @@ void hitsMapper(bool tight = false)
     auto mappedEventNums = new TTree("mappedEvents", "");
     mappedEventNums->AutoSave("1000");
     long long eventNumAPV, eventNumVMM;
+    int deltaT;
     mappedEventNums->Branch("apv", &eventNumAPV);
     mappedEventNums->Branch("vmm", &eventNumVMM);
+    mappedEventNums->Branch("deltaT", &deltaT);
     TFile* mappedEventBackupFile = nullptr;
     TString mapBackupFileName = "mappedEvents_"+run_pair.first+"_"+run_pair.second+tightText+"_bak.root";
 
@@ -636,6 +638,7 @@ void hitsMapper(bool tight = false)
                         beforeLastPulserParameters = beforeLastPulserParametersCurrent;
                         eventNumAPV = hits_apv_event->first;
                         eventNumVMM = hits_vmm_events_map.at(vectorPositionInTree).at(j).first;
+                        deltaT = dt_apv_vmm;
                         mappedEventNums->Fill();
                         // clear memory -- remove unused vectors with VMM events
                         freeMemory(hits_vmm_events_map, vectorPositionInTree);
