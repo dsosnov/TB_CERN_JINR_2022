@@ -1,13 +1,20 @@
+#include <string>
 
-#include "apv.C"
-#include "evBuilder.C"
+#include "TFile.h"
+#include "TTree.h"
+#include "TString.h"
+
+// #include "apv.C"
+// #include "evBuilder.C"
+
+using std::string;
 
 bool checkTimeDifference = false;
 
-void mergeMapped(TString runVMM = "0832_cut", TString runAPV = "423_cut", bool tight = true, bool timefix = false){
+void mergeMapped(string runVMM = "0832_cut", string runAPV = "423_cut", bool tight = true, bool timefix = false){
   string tightText = tight ? "_tight" : "";
   string fixTimeText = timefix ? "_timefix" : "";
-  auto pairFile = TFile::Open("../out/mapped_run_"+runVMM+"_run"+runAPV+tightText+fixTimeText+".root", "read");
+  auto pairFile = TFile::Open(TString("../out/mapped_run_"+runVMM+"_run"+runAPV+tightText+fixTimeText+".root"), "read");
   auto pairTree = static_cast<TTree*>(pairFile->Get("mappedEvents"));
   long long eventNumAPV, eventNumVMM;
   int deltaT;
@@ -15,16 +22,16 @@ void mergeMapped(TString runVMM = "0832_cut", TString runAPV = "423_cut", bool t
   pairTree->SetBranchAddress("vmm", &eventNumVMM);
   pairTree->SetBranchAddress("deltaT", &deltaT);
 
-  auto vmmFile = TFile::Open("../data/run_"+runVMM+".root", "read");
+  auto vmmFile = TFile::Open(TString("../data/run_"+runVMM+".root"), "read");
   auto vmmTree = static_cast<TTree*>(vmmFile->Get("vmm"));
   // auto vmmEntryList = new TEntryList("","");
   // vmmEntryList->SetTree(vmmTree);
-  auto apvFile = TFile::Open("../data-apv/run"+runAPV+".root", "read");
+  auto apvFile = TFile::Open(TString("../data-apv/run"+runAPV+".root"), "read");
   auto apvTree = static_cast<TTree*>(apvFile->Get("apv_raw"));
   // auto apvEntryList = new TEntryList("","");
   // apvEntryList->SetTree(apvTree);
 
-  auto mergedFile = TFile::Open("../out/runMerged_run_"+runVMM+"_run"+runAPV+tightText+fixTimeText+".root", "recreate");
+  auto mergedFile = TFile::Open(TString("../out/runMerged_run_"+runVMM+"_run"+runAPV+tightText+fixTimeText+".root"), "recreate");
   auto pairTreeNew = pairTree->CloneTree(0);
   pairTreeNew->SetDirectory(mergedFile);
   auto vmmTreeNew = vmmTree->CloneTree(0);
