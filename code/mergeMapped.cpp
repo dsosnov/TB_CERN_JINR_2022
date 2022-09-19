@@ -43,9 +43,7 @@ void mergeMapped(string runVMM = "0832_cut", string runAPV = "423_cut", bool tig
   for(auto i = 0; i < nEntries; i++){
     pairTree->GetEntry(i);
     if(checkTimeDifference && abs(deltaT) > 50) continue;
-    printf("%d -- deltaT: %d\n", i, deltaT);
-    pairTree->LoadTree(i);
-    pairTree->CopyEntries(pairTreeNew, 1);
+    // printf("%d -- deltaT: %d\n", i, deltaT);
     pairTreeNew->Fill();
     vmmTree->GetEntry(eventNumVMM);
     vmmTreeNew->Fill();
