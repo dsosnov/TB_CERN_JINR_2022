@@ -179,7 +179,7 @@ void hitsMapper(bool tight = false, bool analyseData = true, bool fixSRSTime = f
     mappedEventNums->Branch("vmm", &eventNumVMM);
     mappedEventNums->Branch("deltaT", &deltaT);
     TFile* mappedEventBackupFile = nullptr;
-    TString mapBackupFileName = TString("mappedEvents_"+run_pair.first+"_"+run_pair.second+tightText+fixTimeText+"_bak.root");
+    TString mapBackupFileName = TString("../out/mappedEvents_"+run_pair.first+"_"+run_pair.second+tightText+fixTimeText+"_bak.root");
 
     auto stripsVMM = make_shared<TH1F>("stripsVMM", "stripsVMM", 360, 0, 360);
     auto mappedHitsPdo = make_shared<TH1F>("mappedHitsPdo", "mappedHitsPdo", 2000, 0, 2000);
