@@ -519,7 +519,7 @@ void hitsMapper(bool tight = false, bool analyseData = true, bool fixSRSTime = f
                         continue;
  
                     diff_hit = (currEvent->bcid - prevSyncBcid >= 0) ? currEvent->bcid - prevSyncBcid : currEvent->bcid + 4096 - prevSyncBcid;
-                    dt_apv_vmm = T_apv - startT_pulse_apv - pulseTime - round(diff_hit * 25.0 / 1000.0);;
+                    dt_apv_vmm = T_apv - startT_pulse_apv - pulseTime - round(diff_hit * 25.0 / 1000.0);
                     // int dt_apv_vmm = T_apv - startT_pulse_apv - pulseTime;
 
                     // std::cout << nPeriods / 200 << " \t " << hits_vmm_event->second.hitsX.size() << "\n";
@@ -639,8 +639,11 @@ void hitsMapper(bool tight = false, bool analyseData = true, bool fixSRSTime = f
 
                             for (int l = 0; l < vmm_hits_vec.size(); l++)
                             {
-                                out_VMM_hits << "\t Strip: " << vmm_hits_vec.at(l).first << "\n";
-                                out_VMM_hits << "\t PDO: " << vmm_hits_vec.at(l).second << "\n";
+                                if(PRINT_TO_FILE)
+                                {
+                                    out_VMM_hits << "\t Strip: " << vmm_hits_vec.at(l).first << "\n";
+                                    out_VMM_hits << "\t PDO: " << vmm_hits_vec.at(l).second << "\n";
+                                }
                                 UNmappedHitsVMM++;
                             }
                         }

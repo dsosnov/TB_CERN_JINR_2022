@@ -40,6 +40,7 @@ void mergeMapped(string runVMM = "0832_cut", string runAPV = "423_cut", bool tig
   apvTreeNew->SetDirectory(mergedFile);
 
   auto nEntries = pairTree->GetEntries();
+  printf("N paired entries: %lld\n", nEntries);
   for(auto i = 0; i < nEntries; i++){
     pairTree->GetEntry(i);
     if(checkTimeDifference && abs(deltaT) > 50) continue;
