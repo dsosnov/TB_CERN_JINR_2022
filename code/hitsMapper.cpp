@@ -173,7 +173,7 @@ void hitsMapper(bool tight = false, bool analyseData = true, bool fixSRSTime = f
 
     auto mappedEventNums = new TTree("mappedEvents", "");
     mappedEventNums->AutoSave("1000");
-    long long eventNumAPV, eventNumVMM;
+    long long eventNumAPV = -1, eventNumVMM = -1;
     int deltaT;
     mappedEventNums->Branch("apv", &eventNumAPV);
     mappedEventNums->Branch("vmm", &eventNumVMM);
@@ -553,6 +553,16 @@ void hitsMapper(bool tight = false, bool analyseData = true, bool fixSRSTime = f
                         }
                         if (hitMapped)
                             break;
+                    }
+
+                    if (hitMapped)
+                    {
+                        /* Since eventNumVMM was updated only for last mapped event, it still have the pasition of last mapped event */
+                        if(eventNumVMM >= 0 && eventNumVMM >= hits_vmm_events_map.at(vectorPositionInTree).at(j).first)
+                        {
+                            hitMapped = false;
+                            continue;
+                        }
                     }
 
                     if (hitMapped)
