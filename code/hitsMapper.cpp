@@ -673,7 +673,7 @@ void hitsMapper(bool tight = false, bool analyseData = false, bool fixSRSTime = 
                 if (get<0>(bestHit) >= 0)
                 {
                     numOfMapped++;
-                    beforeLastPulserParameters = get<2>(bestHit);
+                    // beforeLastPulserParameters = get<2>(bestHit);
                     printf("APV event: %9lu (%9lu)\t", i, hits_apv_event->first);
                     printf("VMM event: %9lu (%9lld)\t", get<3>(bestHit), get<0>(bestHit));
                     printf("Time difference: %9lld\t", get<1>(bestHit));
