@@ -186,9 +186,14 @@ void hitsMapper(bool tight = false, bool analyseData = false, bool fixSRSTime = 
 
     long long eventNumAPV = -1, eventNumVMM = -1;
     int deltaT;
+    auto mappedEventNums = new TTree("mappedEvents", "");
+    // mappedEventNums->AutoSave("1000");
+    mappedEventNums->Branch("apv", &eventNumAPV);
+    mappedEventNums->Branch("vmm", &eventNumVMM);
+    mappedEventNums->Branch("deltaT", &deltaT);
     // TFile* mappedEventBackupFile = nullptr;
     // TString mapBackupFileName = TString("../out/mappedEvents_"+run_pair.first+"_"+run_pair.second+tightText+fixTimeText+dupText+"_bak.root");
-    map<long long, pair<long long, int>> mappedEventMap = {};
+    // map<long long, pair<long long, int>> mappedEventMap = {};
 
     auto stripsVMM = make_shared<TH1F>("stripsVMM", "stripsVMM", 360, 0, 360);
     auto mappedHitsPdo = make_shared<TH1F>("mappedHitsPdo", "mappedHitsPdo", 2000, 0, 2000);
@@ -681,23 +686,7 @@ void hitsMapper(bool tight = false, bool analyseData = false, bool fixSRSTime = 
                     eventNumAPV = hits_apv_event->first;
                     eventNumVMM = get<0>(bestHit);
                     deltaT = get<1>(bestHit);
-                    if(!mappedEventMap.count(eventNumVMM))
-                    {
-                        mappedEventMap.emplace(eventNumVMM, make_pair(eventNumAPV, deltaT));
-                    }
-                    else
-                    {
-                        if(abs(mappedEventMap.at(eventNumVMM).second) > abs(deltaT))
-                        {
-                            printf("There was the APV event (%9lld) merged with that VMM with greater time difference\n", mappedEventMap.at(eventNumVMM).first);
-                            mappedEventMap[eventNumVMM] = make_pair(eventNumAPV, deltaT);
-                        }
-                        else
-                        {
-                            printf("There was the APV event (%9lld) merged with that VMM with lesser time difference -- event skipped\n", mappedEventMap.at(eventNumVMM).first);
-                        }
-                        numOfMapped--;
-                    }
+                    mappedEventNums->Fill();
                     // clear memory -- remove unused vectors with VMM events
                     freeMemory(hits_vmm_events_map, get<0>(beforeLastPulserParameters));
                     // if(!(numOfMapped %100))
@@ -723,19 +712,6 @@ void hitsMapper(bool tight = false, bool analyseData = false, bool fixSRSTime = 
 
     out_APV.close();
     out_VMM_hits.close();
-
-    auto mappedEventNums = new TTree("mappedEvents", "");
-    // mappedEventNums->AutoSave("1000");
-    mappedEventNums->Branch("apv", &eventNumAPV);
-    mappedEventNums->Branch("vmm", &eventNumVMM);
-    mappedEventNums->Branch("deltaT", &deltaT);
-    for(auto &i: mappedEventMap)
-    {
-        eventNumAPV = i.second.first;
-        eventNumVMM = i.first;
-        deltaT = i.second.second;
-        mappedEventNums->Fill();
-    }
 
     out->Write();
     out->Close();
