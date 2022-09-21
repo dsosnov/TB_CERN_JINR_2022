@@ -3,8 +3,18 @@
 #include <iostream>
 #include <fstream>
 
+#include <vector>
+#include <utility>
+#include <tuple>
+#include <set>
+
 using std::cout, std::endl;
 using std::ifstream, std::ofstream;
+
+using std::vector;
+using std::pair, std::make_pair;
+using std::tuple, std::get;
+using std::set;
 
 // IMPORTANT change: fixSRSTime
 int apv_time_from_SRS(int srs1, int srs2, bool fixSRSTime = false)
@@ -181,6 +191,8 @@ void hitsMapper(bool tight = false, bool analyseData = false, bool fixSRSTime = 
     mappedEventNums->Branch("deltaT", &deltaT);
     TFile* mappedEventBackupFile = nullptr;
     TString mapBackupFileName = TString("../out/mappedEvents_"+run_pair.first+"_"+run_pair.second+tightText+fixTimeText+dupText+"_bak.root");
+    set<long long> pairedVMM = {};
+
 
     auto stripsVMM = make_shared<TH1F>("stripsVMM", "stripsVMM", 360, 0, 360);
     auto mappedHitsPdo = make_shared<TH1F>("mappedHitsPdo", "mappedHitsPdo", 2000, 0, 2000);
@@ -558,8 +570,8 @@ void hitsMapper(bool tight = false, bool analyseData = false, bool fixSRSTime = 
 
                     if (hitMapped && checkDuplicates)
                     {
-                        /* Since eventNumVMM was updated only for last mapped event, it still have the pasition of last mapped event */
-                        if(eventNumVMM >= 0 && eventNumVMM >= hits_vmm_events_map.at(vectorPositionInTree).at(j).first)
+                        /* Checking if current event already paired */
+                        if(pairedVMM.count(hits_vmm_events_map.at(vectorPositionInTree).at(j).first))
                         {
                             hitMapped = false;
                             continue;
@@ -651,6 +663,7 @@ void hitsMapper(bool tight = false, bool analyseData = false, bool fixSRSTime = 
                     }
 
                     if (hitMapped){
+                        pairedVMM.insert(hits_vmm_events_map.at(vectorPositionInTree).at(j).first);
                         beforeLastPulserParameters = beforeLastPulserParametersCurrent;
                         eventNumAPV = hits_apv_event->first;
                         eventNumVMM = hits_vmm_events_map.at(vectorPositionInTree).at(j).first;
