@@ -670,6 +670,7 @@ void hitsMapper(bool tight = false, bool analyseData = true, bool fixSRSTime = f
                           mappedEventNums->AutoSave("1000");
                           mappedEventNums->SetBranchAddress("apv", &eventNumAPV);
                           mappedEventNums->SetBranchAddress("vmm", &eventNumVMM);
+                          mappedEventNums->SetBranchAddress("deltaT", &deltaT);
                         }
                         break;
                     }
