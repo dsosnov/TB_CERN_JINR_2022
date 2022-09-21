@@ -356,7 +356,7 @@ void hitsMapper(bool tight = false, bool analyseData = false, bool fixSRSTime = 
     if(nLoaded <= 1)
         return;
     auto beforeLastPulserParametersCurrent = beforeLastPulserParameters;
-    tuple<long long, int, tuple<long long, unsigned long, int, int, int, long long>, unsigned long> bestHit;
+    tuple<long long, long long, tuple<long long, unsigned long, int, int, int, long long>, unsigned long> bestHit;
     map<long long, int> pairedVMM = {};
     long long vectorPositionInTree;
     analysisGeneral::mm2CenterHitParameters* currEvent;
@@ -377,7 +377,7 @@ void hitsMapper(bool tight = false, bool analyseData = false, bool fixSRSTime = 
     vector<pair<int, int>> apv_hits_vec_l0;
     vector<pair<int, int>> apv_hits_vec_l1;
     int diff_hit;
-    int dt_apv_vmm;
+    long long dt_apv_vmm;
     int strip, pdo;
     int diff, diffDiff;
 
@@ -676,7 +676,7 @@ void hitsMapper(bool tight = false, bool analyseData = false, bool fixSRSTime = 
                     beforeLastPulserParameters = get<2>(bestHit);
                     printf("APV event: %9lu (%9lu)\t", i, hits_apv_event->first);
                     printf("VMM event: %9lu (%9lld)\t", get<3>(bestHit), get<0>(bestHit));
-                    printf("Time difference: %4d\t", get<1>(bestHit));
+                    printf("Time difference: %9lld\t", get<1>(bestHit));
                     printf("Total of mapped: %d\n", numOfMapped);
                     eventNumAPV = hits_apv_event->first;
                     eventNumVMM = get<0>(bestHit);
