@@ -117,7 +117,7 @@ long long loadNextVMM(long long firstElement, map<long long, vector<pair<unsigne
 }
 
 bool PRINT_TO_FILE = false;
-void hitsMapper(bool tight = false, bool analyseData = true, bool fixSRSTime = false)
+void hitsMapper(bool tight = false, bool analyseData = false, bool fixSRSTime = false, bool checkDuplicates = true)
 {
     pair<string, string> run_pair = {"run_0832_cut", "run423_cut"};
 
@@ -157,19 +157,20 @@ void hitsMapper(bool tight = false, bool analyseData = true, bool fixSRSTime = f
 
     string tightText = tight ? "_tight" : "";
     string fixTimeText = fixSRSTime ? "_timefix" : "";
+    string dupText = checkDuplicates ? "" : "_withDup";
 
     ofstream out_APV;
-    out_APV.open(TString("../out/APV_hits_maped_"+run_pair.first+"_"+run_pair.second+tightText+fixTimeText+".txt").Data());
+    out_APV.open(TString("../out/APV_hits_maped_"+run_pair.first+"_"+run_pair.second+tightText+fixTimeText+dupText+".txt").Data());
 
     ofstream out_VMM;
-    out_VMM.open(TString("../out/VMM_hits_"+run_pair.first+"_"+run_pair.second+"_after"+tightText+fixTimeText+".txt").Data());
+    out_VMM.open(TString("../out/VMM_hits_"+run_pair.first+"_"+run_pair.second+"_after"+tightText+fixTimeText+dupText+".txt").Data());
 
     ofstream out_VMM_hits;
-    out_VMM_hits.open(TString("../out/VMM_hits_UNmaped_"+run_pair.first+"_"+run_pair.second+tightText+fixTimeText+".txt").Data());
+    out_VMM_hits.open(TString("../out/VMM_hits_UNmaped_"+run_pair.first+"_"+run_pair.second+tightText+fixTimeText+dupText+".txt").Data());
 
     int numOfMapped = 0;
 
-    auto out = TFile::Open(TString("../out/mapped_"+run_pair.first+"_"+run_pair.second+tightText+fixTimeText+".root"), "recreate");
+    auto out = TFile::Open(TString("../out/mapped_"+run_pair.first+"_"+run_pair.second+tightText+fixTimeText+dupText+".root"), "recreate");
 
     auto mappedEventNums = new TTree("mappedEvents", "");
     mappedEventNums->AutoSave("1000");
@@ -179,7 +180,7 @@ void hitsMapper(bool tight = false, bool analyseData = true, bool fixSRSTime = f
     mappedEventNums->Branch("vmm", &eventNumVMM);
     mappedEventNums->Branch("deltaT", &deltaT);
     TFile* mappedEventBackupFile = nullptr;
-    TString mapBackupFileName = TString("../out/mappedEvents_"+run_pair.first+"_"+run_pair.second+tightText+fixTimeText+"_bak.root");
+    TString mapBackupFileName = TString("../out/mappedEvents_"+run_pair.first+"_"+run_pair.second+tightText+fixTimeText+dupText+"_bak.root");
 
     auto stripsVMM = make_shared<TH1F>("stripsVMM", "stripsVMM", 360, 0, 360);
     auto mappedHitsPdo = make_shared<TH1F>("mappedHitsPdo", "mappedHitsPdo", 2000, 0, 2000);
@@ -555,7 +556,7 @@ void hitsMapper(bool tight = false, bool analyseData = true, bool fixSRSTime = f
                             break;
                     }
 
-                    if (hitMapped)
+                    if (hitMapped && checkDuplicates)
                     {
                         /* Since eventNumVMM was updated only for last mapped event, it still have the pasition of last mapped event */
                         if(eventNumVMM >= 0 && eventNumVMM >= hits_vmm_events_map.at(vectorPositionInTree).at(j).first)
