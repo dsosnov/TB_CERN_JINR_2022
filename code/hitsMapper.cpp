@@ -362,7 +362,7 @@ void hitsMapper(bool tight = false, bool analyseData = false, bool fixSRSTime = 
     /* vmm: Remove first -index pulse syncs */
     // int firstSyncBcid = vmmRemoveFirstNPuslers(hits_vmm_v);
     auto [firstEvent, firstSyncBcid] = vmmRemoveFirstNPuslers(hits_vmm_t, hits_vmm_event);
-    tuple<long long, unsigned long, int, int, int, long long> beforeLastPulserParameters = {firstEvent, 0, firstSyncBcid, 0, 0, 0};
+    tuple<long long, unsigned long, int, int, long long, long long> beforeLastPulserParameters = {firstEvent, 0, firstSyncBcid, 0, 0, 0};
     map<long long, vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>>> hits_vmm_events_map;
     auto nLoaded = loadNextVMM(get<0>(beforeLastPulserParameters), hits_vmm_events_map, hits_vmm_t, hits_vmm_event);
     // printf("nLoaded: %lld\n", nLoaded);
@@ -380,7 +380,8 @@ void hitsMapper(bool tight = false, bool analyseData = false, bool fixSRSTime = 
     long long prevT_apv = 0;
     long long prevT_vmm = 0;
 
-    int bad, prevSyncBcid, prevPrevSyncBcid, nPeriods;
+    int bad, prevSyncBcid, prevPrevSyncBcid;
+    long long nPeriods;
     long long currentEventsMap;
     long long pulseTime;
     bool hitMapped;
@@ -552,7 +553,7 @@ void hitsMapper(bool tight = false, bool analyseData = false, bool fixSRSTime = 
                         continue;
  
                     diff_hit = (currEvent->bcid - prevSyncBcid >= 0) ? currEvent->bcid - prevSyncBcid : currEvent->bcid + 4096 - prevSyncBcid;
-                    dt_apv_vmm = T_apv - startT_pulse_apv - pulseTime - round(diff_hit * 25.0 / 1000.0);
+                    dt_apv_vmm = static_cast<long long>(T_apv) - static_cast<long long>(startT_pulse_apv) - static_cast<long long>(pulseTime) - static_cast<long long>(round(diff_hit * 25.0 / 1000.0));
                     // int dt_apv_vmm = T_apv - startT_pulse_apv - pulseTime;
 
                     // std::cout << nPeriods / 200 << " \t " << hits_vmm_event->second.hitsX.size() << "\n";
