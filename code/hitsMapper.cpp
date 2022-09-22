@@ -369,7 +369,7 @@ void hitsMapper(bool tight = false, bool analyseData = false, bool fixSRSTime = 
     if(nLoaded <= 1)
         return;
     auto beforeLastPulserParametersCurrent = beforeLastPulserParameters;
-    tuple<long long, long long, tuple<long long, unsigned long, int, int, int, long long>, unsigned long> bestHit;
+    tuple<long long, long long, tuple<long long, unsigned long, int, int, int, long long>, unsigned long, int> bestHit;
     map<long long, int> pairedVMM = {};
     long long vectorPositionInTree;
     analysisGeneral::mm2CenterHitParameters* currEvent;
@@ -480,11 +480,12 @@ void hitsMapper(bool tight = false, bool analyseData = false, bool fixSRSTime = 
                 pulseTime = get<5>(beforeLastPulserParameters);
                 hitMapped = false;
                 beforeLastPulserParametersCurrent = beforeLastPulserParameters;
-                bestHit = {-1, 0, beforeLastPulserParametersCurrent, 0};
+                bestHit = {-1, 0, beforeLastPulserParametersCurrent, 0, 0};
 
                 vectorPositionInTree = get<0>(beforeLastPulserParameters); // TODO
                 currentEventsMap = hits_vmm_events_map.at(vectorPositionInTree).size();
 
+                printf("For APV event %lu search starting from VMM event %lu\n", i, get<1>(beforeLastPulserParameters));
                 for (unsigned long j = get<1>(beforeLastPulserParameters); j <= currentEventsMap; j++)
                 {
                     if(j == currentEventsMap)
@@ -556,6 +557,7 @@ void hitsMapper(bool tight = false, bool analyseData = false, bool fixSRSTime = 
 
                     // std::cout << nPeriods / 200 << " \t " << hits_vmm_event->second.hitsX.size() << "\n";
                     // out_APV << "------- VMM Period " << nPeriods / 200 << "  (" << nPeriods % 200 << ") -------- dT = " << dt_apv_vmm << "\n";
+                    printf("APV %lu, VMM %lld -- %lld\n", i, vectorPositionInTree + j, dt_apv_vmm);
                     if (abs(dt_apv_vmm) > 1000)
                         continue;
 
@@ -591,7 +593,10 @@ void hitsMapper(bool tight = false, bool analyseData = false, bool fixSRSTime = 
                     {
                         if(get<0>(bestHit) < 0 || abs(get<1>(bestHit)) > abs(dt_apv_vmm))
                         {
-                            bestHit = {hits_vmm_events_map.at(vectorPositionInTree).at(j).first, dt_apv_vmm, beforeLastPulserParametersCurrent, j};
+                            int hitsMappedInEvent = 0;
+                            for (int l = 0; l < vmm_hits_vec.size(); l++)
+                                hitsMappedInEvent++;
+                            bestHit = {hits_vmm_events_map.at(vectorPositionInTree).at(j).first, dt_apv_vmm, beforeLastPulserParametersCurrent, j, hitsMappedInEvent};
                         }
                         if(findBestVMM)
                         {
@@ -718,6 +723,7 @@ void hitsMapper(bool tight = false, bool analyseData = false, bool fixSRSTime = 
                     //     mappedEventNums->SetBranchAddress("vmm", &eventNumVMM);
                     //     mappedEventNums->SetBranchAddress("deltaT", &deltaT);
                     // }
+                    mappedHitsVMM+=get<4>(bestHit);
                 }
             }
         }
