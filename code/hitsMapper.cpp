@@ -486,7 +486,7 @@ void hitsMapper(bool tight = false, bool analyseData = false, bool fixSRSTime = 
                 vectorPositionInTree = get<0>(beforeLastPulserParameters); // TODO
                 currentEventsMap = hits_vmm_events_map.at(vectorPositionInTree).size();
 
-                printf("For APV event %lu search starting from VMM event %lu\n", i, get<1>(beforeLastPulserParameters));
+                // printf("For APV event %lu search starting from VMM event %lu\n", i, get<1>(beforeLastPulserParameters));
                 for (unsigned long j = get<1>(beforeLastPulserParameters); j <= currentEventsMap; j++)
                 {
                     if(j == currentEventsMap)
@@ -558,7 +558,7 @@ void hitsMapper(bool tight = false, bool analyseData = false, bool fixSRSTime = 
 
                     // std::cout << nPeriods / 200 << " \t " << hits_vmm_event->second.hitsX.size() << "\n";
                     // out_APV << "------- VMM Period " << nPeriods / 200 << "  (" << nPeriods % 200 << ") -------- dT = " << dt_apv_vmm << "\n";
-                    printf("APV %lu, VMM %lld -- %lld\n", i, vectorPositionInTree + j, dt_apv_vmm);
+                    // printf("APV %lu, VMM %lld -- %lld\n", i, vectorPositionInTree + j, dt_apv_vmm);
                     if (abs(dt_apv_vmm) > 1000)
                         continue;
 
