@@ -128,8 +128,8 @@ long long loadNextVMM(long long firstElement, map<long long, vector<pair<unsigne
     return elementVector.size(); // next start index
 }
 
-bool PRINT_TO_FILE = false;
-bool findBestVMM = true;
+constexpr bool PRINT_TO_FILE = false;
+constexpr bool findBestVMM = true;
 void hitsMapper(bool tight = false, bool analyseData = false, bool fixSRSTime = false, int nAll = 1, int n = 0)
 {
     pair<string, string> run_pair = {"run_0832_cut", "run423_cut"};
