@@ -11,10 +11,14 @@ using std::string;
 
 bool checkTimeDifference = false;
 
-void mergeMapped(string runVMM = "0832_cut", string runAPV = "423_cut", bool tight = true, bool timefix = false){
+/*
+ *
+ * partialFileEnd example: "_0-100" for first part out of 100,
+ */
+void mergeMapped(string runVMM = "0832_cut10m", string runAPV = "423_cut10m", bool tight = false, bool timefix = false, string partialfileEnd = ""){
   string tightText = tight ? "_tight" : "";
   string fixTimeText = timefix ? "_timefix" : "";
-  auto pairFile = TFile::Open(TString("../out/mapped_run_"+runVMM+"_run"+runAPV+tightText+fixTimeText+".root"), "read");
+  auto pairFile = TFile::Open(TString("../out/mapped_run_"+runVMM+"_run"+runAPV+tightText+fixTimeText+partialfileEnd+".root"), "read");
   auto pairTree = static_cast<TTree*>(pairFile->Get("mappedEvents"));
   long long eventNumAPV, eventNumVMM;
   int deltaT;
@@ -31,7 +35,7 @@ void mergeMapped(string runVMM = "0832_cut", string runAPV = "423_cut", bool tig
   // auto apvEntryList = new TEntryList("","");
   // apvEntryList->SetTree(apvTree);
 
-  auto mergedFile = TFile::Open(TString("../out/runMerged_run_"+runVMM+"_run"+runAPV+tightText+fixTimeText+".root"), "recreate");
+  auto mergedFile = TFile::Open(TString("../out/runMerged_run_"+runVMM+"_run"+runAPV+tightText+fixTimeText+partialfileEnd+".root"), "recreate");
   auto pairTreeNew = pairTree->CloneTree(0);
   pairTreeNew->SetDirectory(mergedFile);
   auto vmmTreeNew = vmmTree->CloneTree(0);
