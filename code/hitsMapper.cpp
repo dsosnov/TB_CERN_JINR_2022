@@ -357,7 +357,7 @@ void hitsMapper(bool tight = false, bool analyseData = false, bool fixSRSTime = 
 
     // return 0;
 
-    std::cout << "\t ---> TOTAL N of VMM events " << hits_vmm_t->GetEntries() << "\n";
+    // std::cout << "\t ---> TOTAL N of VMM events " << hits_vmm_t->GetEntries() << "\n";
 
     /* vmm: Remove first -index pulse syncs */
     // int firstSyncBcid = vmmRemoveFirstNPuslers(hits_vmm_v);
