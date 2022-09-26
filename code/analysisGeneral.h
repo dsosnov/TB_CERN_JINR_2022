@@ -31,6 +31,7 @@ public :
    virtual void     Init() {};
    virtual void     Loop(unsigned long n = 0) {};
    virtual TChain* GetTree(TString filename = "", TString treeName = "vmm");
+   virtual unsigned int GetEntries(){return fChain->GetEntries();}
 
    bool syncSignal = false;
    void useSyncSignal(bool use = true) {syncSignal = use;}
