@@ -111,6 +111,7 @@ public :
     vector<apvHit> hitsSync;
     map<int, map<int, int>> hitsPerLayer;
   };
+  doubleReadoutHits GetCentralHits2ROnlyData(unsigned long long event);
   map<unsigned long, doubleReadoutHits> GetCentralHits2ROnly(unsigned long long fromSec = 0, unsigned long long toSec = 0, bool saveOnly = false);
 
   static unsigned long long unique_srs_time_stamp(int, int, int);

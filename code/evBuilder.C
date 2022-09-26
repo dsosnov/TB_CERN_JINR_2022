@@ -161,42 +161,46 @@ long long evBuilder::findFirstGoodPulser(unsigned long long fromSec, unsigned lo
   }
   return -1;
 }
-map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentralHits(unsigned long long fromSec, unsigned long long toSec, bool saveOnly){
-  printf("evBuilder::GetCentralHits(%llu, %llu)\n", fromSec, toSec);
+analysisGeneral::mm2CenterHitParameters evBuilder::GetCentralHitsData(unsigned long event){
+  // printf("evBuilder::GetCentralHitsData(%lu)\n", event);
 
-  auto out = new TFile("../out/out_" + file + "_centralHits" + ending, "RECREATE");
-  auto outTree = new TTree("vmm_event", "vmm_event");
-  outTree->AutoSave("10000");
-  pair<unsigned long, analysisGeneral::mm2CenterHitParameters> eventData;
-  outTree->Branch("event", &eventData);
+  analysisGeneral::mm2CenterHitParameters hit;
+    hit.signal = false;
+    hit.sync = false;
+    hit.trigger = false;
+    // hit.approx = false;
+    // hit.signal = meanCh != 0;
+    // hit.sync = isSync;
+    // hit.trigger = isTrigger;
+    // hit.stripX = meanCh;
+    // hit.pdo = syncPDO;
+    // hit.bcid = syncBcid;
+    // hit.pdoRelative = maxPdo / 1024.0;
+    // hit.nHitsToPrev = hitsToPrev;
+    // hit.time = trigTime - meanT;
 
-  map<unsigned long, analysisGeneral::mm2CenterHitParameters> outputData = {};
-  unsigned long long hitsToPrev = 0;
 
-  if (fChain == 0)
-    return outputData;
+  // if (fChain == 0)
+  //   return outputData;
 
-  unsigned int pdoThr = 100;
+  // unsigned int pdoThr = 100;
   unsigned int nLoopEntriesAround = 0;
-  Long64_t nentries = fChain->GetEntries();
-  double lastSyncTime = -1;
-  unsigned long long previousSync = 0;
+  // Long64_t nentries = fChain->GetEntries();
+  // double lastSyncTime = -1;
+  // unsigned long long previousSync = 0;
 
   Long64_t nbytes = 0, nb = 0, mbytes = 0, mb = 0;
 
   // =============================== CORRELATION FINDING ===============================
-  for (Long64_t jentry = 0; jentry < nentries; jentry++) // You can remove "/ 10" and use the whole dataset
-  {
-    Long64_t ientry = LoadTree(jentry);
+  
+    Long64_t ientry = LoadTree(event);
     if (ientry < 0)
-      break;
-    nb = fChain->GetEntry(jentry);
+      return hit;
+    nb = fChain->GetEntry(event);
     nbytes += nb;
 
-    if(fromSec > 0 && daq_timestamp_s->at(0) < fromSec)
-      continue;
-    else if(toSec > 0 && toSec >= fromSec && daq_timestamp_s->at(0) > toSec)
-      break;
+    hit.timeSec = daq_timestamp_s->at(0);
+    hit.timeMSec = daq_timestamp_ns->at(0) / 1000;
 
     bool isTrigger = false;
     bool isSync = false;
@@ -241,7 +245,7 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentra
       }
     }
     if(!isTrigger && !isSync){
-      continue;
+      return hit;
     }
     if(!isTrigger && isSync)
       trigTime = syncTime;
@@ -251,7 +255,7 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentra
     MmCluster.clear();
     mbytes = 0, mb = 0;
 
-    for (Long64_t kentry = jentry - nLoopEntriesAround; kentry <= jentry + nLoopEntriesAround; kentry++)
+    for (Long64_t kentry = event - nLoopEntriesAround; kentry <= event + nLoopEntriesAround; kentry++)
     {
       Long64_t iientry = LoadTree(kentry);
       if (iientry < 0)
@@ -290,57 +294,89 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentra
     double minT_straw_mm = 600;
     auto [meanT, meanCh, maxPdo] = getClusterParameters(trigTime, minT_straw_mm, 1);
 
-    if(meanCh == 0 && !isSync){
-      hitsToPrev++;
-      continue;
-    }
-
-
-    analysisGeneral::mm2CenterHitParameters hit;
     hit.approx = false;
     hit.signal = meanCh != 0;
     hit.sync = isSync;
     hit.trigger = isTrigger;
-    hit.timeSec = daq_timestamp_s->at(0);
-    hit.timeMSec = daq_timestamp_ns->at(0) / 1000;
     hit.stripX = meanCh;
     hit.pdo = syncPDO;
     hit.bcid = syncBcid;
     hit.pdoRelative = maxPdo / 1024.0;
-    hit.nHitsToPrev = hitsToPrev;
+    hit.nHitsToPrev = 0;
     hit.time = trigTime - meanT;
 
+    if(meanCh == 0 && !isSync)
+      return hit;
+
     if(meanCh != 0){
-      hitsToPrev = 0;
       for(auto h: MmCluster){
         hit.hitsX.emplace(h.channel, h.pdo);
       }
     }
 
-    double syncTimeDiff = syncTime - lastSyncTime;
-    if(lastSyncTime < 0)
-      syncTimeDiff = lastSyncTime;
-    else if(syncTime < lastSyncTime)
-      syncTimeDiff += 4096 * 25.0;
-    hit.timeSinceSync = syncTimeDiff / 1000.0;
+    return hit;
+}
+map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentralHits(unsigned long long fromSec, unsigned long long toSec, bool saveOnly){
+  printf("evBuilder::GetCentralHits(%llu, %llu)\n", fromSec, toSec);
 
-    double deltaTimeSyncTrigger = 0;
-    if(isTrigger && isSync){
-      deltaTimeSyncTrigger = trigTime - syncTime;
+  auto out = new TFile("../out/out_" + file + "_centralHits" + ending, "RECREATE");
+  auto outTree = new TTree("vmm_event", "vmm_event");
+  outTree->AutoSave("10000");
+  pair<unsigned long, analysisGeneral::mm2CenterHitParameters> eventData;
+  outTree->Branch("event", &eventData);
+
+  map<unsigned long, analysisGeneral::mm2CenterHitParameters> outputData = {};
+  unsigned long long hitsToPrev = 0;
+
+  if (fChain == 0)
+    return outputData;
+
+  unsigned int pdoThr = 100;
+  unsigned int nLoopEntriesAround = 0;
+  Long64_t nentries = fChain->GetEntries();
+  double lastSyncTime = -1;
+  unsigned long long previousSync = 0;
+
+  Long64_t nbytes = 0, nb = 0, mbytes = 0, mb = 0;
+
+  // =============================== CORRELATION FINDING ===============================
+  for (Long64_t jentry = 0; jentry < nentries; jentry++) // You can remove "/ 10" and use the whole dataset
+  {
+    auto hit = GetCentralHitsData(jentry);
+    if(fromSec > 0 && hit.timeSec < fromSec)
+      continue;
+    else if(toSec > 0 && toSec >= fromSec && hit.timeSec > toSec)
+      break;
+
+    if(!hit.signal && !hit.sync){
+      hitsToPrev++;
+      continue;
     }
-    hit.deltaTimeSyncTrigger = deltaTimeSyncTrigger;
 
-    hit.previousSync = previousSync;
+    // double syncTimeDiff = syncTime - lastSyncTime;
+    // if(lastSyncTime < 0)
+    //   syncTimeDiff = lastSyncTime;
+    // else if(syncTime < lastSyncTime)
+    //   syncTimeDiff += 4096 * 25.0;
+    // hit.timeSinceSync = syncTimeDiff / 1000.0;
+
+    // double deltaTimeSyncTrigger = 0;
+    // if(isTrigger && isSync){
+    //   deltaTimeSyncTrigger = trigTime - syncTime;
+    // }
+    // hit.deltaTimeSyncTrigger = deltaTimeSyncTrigger;
+
+    // hit.previousSync = previousSync;
 
     if(!saveOnly)
       outputData.emplace(jentry, hit);
     eventData = make_pair(jentry, hit);
     outTree->Fill();
 
-    if(isSync){
-      lastSyncTime = syncTime;
-      previousSync = jentry;
-    }
+    // if(isSync){
+    //   lastSyncTime = syncTime;
+    //   previousSync = jentry;
+    // }
   }
   
   outTree->Write();

@@ -82,7 +82,8 @@ public :
      }
 
    };
-  virtual map<unsigned long, mm2CenterHitParameters> GetCentralHits(unsigned long long fromSec = 0, unsigned long long toSec = 0, bool saveOnly = false) {return {};};
+   virtual mm2CenterHitParameters GetCentralHitsData(unsigned long) {return {};};
+   virtual map<unsigned long, mm2CenterHitParameters> GetCentralHits(unsigned long long fromSec = 0, unsigned long long toSec = 0, bool saveOnly = false) {return {};};
 };
 
 TChain* analysisGeneral::GetTree(TString filename, TString treeName){

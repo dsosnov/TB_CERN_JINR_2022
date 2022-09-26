@@ -42,6 +42,7 @@ public :
    // virtual void     Init() override;
    virtual void     Loop(unsigned long n = 0) override;
    virtual map<unsigned long, mm2CenterHitParameters> GetCentralHits(unsigned long long fromSec = 0, unsigned long long toSec = 0, bool saveOnly = false) override;
+   virtual mm2CenterHitParameters GetCentralHitsData(unsigned long event) override;
 
    map<pair<int, int>, float> strawCenterMM = {
      {{1,24}, 156}, // 213 - 21 - 24/1.0 - 12

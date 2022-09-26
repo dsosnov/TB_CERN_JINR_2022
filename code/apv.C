@@ -6,6 +6,76 @@
 #include <TF1.h>
 #include <limits>
 
+apv::doubleReadoutHits apv::GetCentralHits2ROnlyData(unsigned long long event){
+    Long64_t ientry = LoadTree(event);
+
+    set<unsigned int> channelsAPVPulser = {};
+
+    doubleReadoutHits hit;
+    hit.sync = false;
+    hit.timeSec = 0;
+    hit.timeMSec = 0;
+    hit.timeSrs = 0;
+    hit.hits = {};
+    hit.hitsSync = {};
+    hit.hitsPerLayer = {};
+    
+    if (ientry < 0)
+      return hit;
+    GetEntry(event);
+    if(error)
+      return hit;
+    
+  /* Checking if there is any mapped channels */
+    bool notErr = false;
+    for (auto &r: *mmReadout)
+      notErr = notErr || (r != 'E');
+    if(!syncSignal && !notErr)
+      return {};
+
+    hit.timeSec = static_cast<unsigned int>(daqTimeSec);
+    hit.timeMSec = static_cast<unsigned int>(daqTimeMicroSec);
+    hit.timeSrs = srsTimeStamp;
+    
+    unsigned long long currentTimestamp = daqTimeSec * 1E6 + daqTimeMicroSec;
+
+    hit.hits.clear();
+    hit.hits.clear();
+    hit.hitsSync.clear();
+    channelsAPVPulser.clear();
+    hit.hitsPerLayer.clear();
+    for(auto i = 0; i < nAPVLayers; i++){
+      hit.hitsPerLayer.emplace(i, map<int, int>());
+    }
+    for (int j = 0; j < max_q->size(); j++){
+      // printf("Record inside entry: %d\n", j);
+      auto maxQ = max_q->at(j);
+      auto maxTime = t_max_q->at(j);
+      if (syncSignal){
+        auto chip = srsChip->at(j);
+        auto chan = srsChan->at(j);
+        if(chip == pulserAPV){
+          channelsAPVPulser.emplace(chan);
+          hit.hitsSync.push_back({5, static_cast<int>(chan), maxQ, maxTime, raw_q->at(j)});
+        }
+      }
+      auto readout = mmReadout->at(j);
+      if(readout == 'E') //non-mapped channel
+        continue;
+      auto layer = mmLayer->at(j);
+      auto strip = mmStrip->at(j);
+
+      hits.push_back({layer, strip, maxQ, maxTime, raw_q->at(j)});      
+      if(layer == layerDoubleReadout && strip > 153 && strip < 210)
+        hit.hits.push_back({layer, strip, maxQ, maxTime, raw_q->at(j)});
+      hit.hitsPerLayer.at(layer).emplace(strip, maxQ);
+    }
+
+    hit.sync = channelsAPVPulser.size() >= 127;
+    if(!hit.sync && (hit.hits.size() == 0))
+      return hit;
+    return hit;
+}
 map<unsigned long, apv::doubleReadoutHits> apv::GetCentralHits2ROnly(unsigned long long fromSec, unsigned long long toSec, bool saveOnly){
   printf("apv::GetCentralHits2ROnly(%llu, %llu)\n", fromSec, toSec);
 
@@ -23,76 +93,23 @@ map<unsigned long, apv::doubleReadoutHits> apv::GetCentralHits2ROnly(unsigned lo
     return outputData;
   Long64_t nentries = fChain->GetEntries();
 
-  unsigned long long previousSyncTimestamp = 0;
-  unsigned long long hitsToPrev = 0;
   set<unsigned int> channelsAPVPulser = {};
-  unsigned long long previousSync = 0;
   map<int, map<int, int>> hitsPerLayer;
   
   for (auto event = 0; event < nentries; event++){
-    Long64_t ientry = LoadTree(event);
-    if (ientry < 0) break;
-    GetEntry(event);
-    // printf("Entry: %d: error - %d\n", event, error);
-    if(error)
-      continue;
+    auto hit = GetCentralHits2ROnlyData(event);
       
-    if(fromSec > 0 && daqTimeSec < fromSec)
+    if(fromSec > 0 && hit.timeSec < fromSec)
       continue;
-    if(toSec > 0 && toSec >= fromSec && daqTimeSec > toSec)
+    if(toSec > 0 && toSec >= fromSec && hit.timeSec > toSec)
       break;
 
-    /* Checking if there is any mapped channels */
-    bool notErr = false;
-    for (auto &r: *mmReadout)
-      notErr = notErr || (r != 'E');
-    if(!syncSignal && !notErr) continue;
-    
-    unsigned long long currentTimestamp = daqTimeSec * 1E6 + daqTimeMicroSec;
-
-    hits.clear();
-    hitsDR.clear();
-    hitsSync.clear();
-    channelsAPVPulser.clear();
-    hitsPerLayer.clear();
-    for(auto i = 0; i < nAPVLayers; i++){
-      hitsPerLayer.emplace(i, map<int, int>());
-    }
-    for (int j = 0; j < max_q->size(); j++){
-      // printf("Record inside entry: %d\n", j);
-      auto maxQ = max_q->at(j);
-      auto maxTime = t_max_q->at(j);
-      if (syncSignal){
-        auto chip = srsChip->at(j);
-        auto chan = srsChan->at(j);
-        if(chip == pulserAPV){
-          channelsAPVPulser.emplace(chan);
-          hitsSync.push_back({5, static_cast<int>(chan), maxQ, maxTime, raw_q->at(j)});
-        }
-      }
-      auto readout = mmReadout->at(j);
-      if(readout == 'E') //non-mapped channel
-        continue;
-      auto layer = mmLayer->at(j);
-      auto strip = mmStrip->at(j);
-      
-
-      hits.push_back({layer, strip, maxQ, maxTime, raw_q->at(j)});      
-      if(layer == layerDoubleReadout && strip > 153 && strip < 210)
-        hitsDR.push_back({layer, strip, maxQ, maxTime, raw_q->at(j)});
-      hitsPerLayer.at(layer).emplace(strip, maxQ);
-    }
-
-    hitsToPrev++;
-    bool isSyncSignal = channelsAPVPulser.size() >= 127;
-    if(!isSyncSignal && (hitsDR.size() == 0))
+    if(!hit.sync && (hit.hits.size() == 0))
       continue;
-    apv::doubleReadoutHits drh = {isSyncSignal,
-      static_cast<unsigned int>(daqTimeSec), static_cast<unsigned int>(daqTimeMicroSec), srsTimeStamp,
-      hitsDR, hitsSync, hitsPerLayer};
+
     if(!saveOnly)
-      outputData.emplace(event, drh);
-    eventData = make_pair(event, drh);
+      outputData.emplace(event, hit);
+    eventData = make_pair(event, hit);
     outTree->Fill();
   }
   outTree->Write();
