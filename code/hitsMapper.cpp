@@ -151,7 +151,7 @@ long long loadNextVMM(long long firstElement,
     auto maxEntries = vmman->GetEntries() - firstElement;
     for(auto i = 0; i < maxEntries && lastSyncIndex < nElements; i++){
         hit_vmm = vmman->GetCentralHitsData(firstElement + i);
-        elementVector.push_back(make_pair(i, hit_vmm));
+        elementVector.push_back(make_pair(firstElement+i, hit_vmm));
         if(hit_vmm.sync)
             lastSyncIndex = i;
     }
