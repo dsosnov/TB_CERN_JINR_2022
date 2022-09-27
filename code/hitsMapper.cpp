@@ -435,6 +435,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
             if (prev_pulse_SRS == -1)
             {
                 startT_pulse_apv = T_apv;
+                printf("First APV sync-signal: %lu\n", i);
             }
             else
             {
