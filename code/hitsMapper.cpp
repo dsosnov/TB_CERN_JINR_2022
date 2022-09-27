@@ -127,41 +127,59 @@ long long loadNextVMM(long long firstElement, map<long long, vector<pair<unsigne
     hits_vmm_events_map.emplace(firstElement, elementVector);
     return elementVector.size(); // next start index
 }
+long long loadNextVMM(long long firstElement,
+                      map<long long, vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>>> &hits_vmm_events_map,
+                      evBuilder* vmman,
+                 long long nElements = 100000){
+    // printf("loadNextVMM(%lld, %p, %p, %p, %lld)\n", firstElement, &hits_vmm_events_map, hits_vmm_t, hits_vmm_event, nElements);
+    if(hits_vmm_events_map.count(firstElement))
+        return hits_vmm_events_map.at(firstElement).size();
+  
+    vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>> elementVector;
+    auto hit_vmm = vmman->GetCentralHitsData(firstElement);
+    if(!(hit_vmm.sync)){ // Not a sync event, it seems a problem!
+        printf("First loaded event not the sync!\n");
+        auto hit_vmm_prev = vmman->GetCentralHitsData(firstElement-1);
+        if(hit_vmm_prev.sync)
+            printf("First before First loaded is sync!\n");
+        hits_vmm_events_map.emplace(firstElement, elementVector);
+        return 0;
+    };
+    // hits_vmm_event->second.print();
+    long long lastSyncIndex = 0;
+    auto maxEntries = vmman->GetEntries() - firstElement;
+    for(auto i = 0; i < maxEntries && lastSyncIndex < nElements; i++){
+        hit_vmm = vmman->GetCentralHitsData(firstElement + i);
+        elementVector.push_back(make_pair(i, hit_vmm));
+        if(hit_vmm.sync)
+            lastSyncIndex = i;
+    }
+    // remove last sync and all after
+    elementVector.erase(elementVector.begin() + lastSyncIndex, elementVector.end());
+    hits_vmm_events_map.emplace(firstElement, elementVector);
+    return elementVector.size(); // next start index
+}
 
 constexpr bool PRINT_TO_FILE = false;
 constexpr bool findBestVMM = true;
-void hitsMapper(bool tight = false, bool analyseData = false, bool fixSRSTime = false, int nAll = 1, int n = 0)
+void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n = 0)
 {
+    // pair<string, string> run_pair = {"run_0832", "run423"};
+    // pair<string, string> run_pair = {"run_0832_cut10m", "run423_cut10m"};
     pair<string, string> run_pair = {"run_0832_cut", "run423_cut"};
+    pair<int,int> firstSelectedEntries = {180038, 7042};
 
-    if(analyseData)
-    {
-        unsigned long long from = 0, to = 0;
-        auto apvan = new apv(run_pair.second);
-        apvan->useSyncSignal();
-        auto hits_apv = apvan->GetCentralHits2ROnly(from, to, true);
-        auto vmman = new evBuilder(run_pair.first, "g1_p25_s100-0&60", "map-20220605");
-        vmman->useSyncSignal();
-        auto hits_vmm = vmman->GetCentralHits(from, to, true);
+    auto apvan = new apv(run_pair.second);
+    apvan->useSyncSignal();
+    auto vmman = new evBuilder(run_pair.first, "g1_p25_s100-0&60", "map-20220605");
+    vmman->useSyncSignal();
 
-        delete apvan;
-        delete vmman;
-    }
-
-    auto hits_apv_t = static_cast<TTree*>(TFile::Open(TString("../out/out_apv_" + run_pair.second + "_centralHits" + ".root"), "read")->Get("apv_event"));
-    static pair<unsigned long, apv::doubleReadoutHits>* hits_apv_event;
-    hits_apv_t->SetBranchAddress("event", &hits_apv_event);
-
-    auto hits_vmm_t = static_cast<TTree*>(TFile::Open(TString("../out/out_" + run_pair.first + "_centralHits" + ".root"), "read")->Get("vmm_event"));
-    static pair<unsigned long, analysisGeneral::mm2CenterHitParameters>* hits_vmm_event;
-    hits_vmm_t->SetBranchAddress("event", &hits_vmm_event);
-
-    cout << "Num of events: APV -- " << hits_apv_t->GetEntries() << "; VMM -- " << hits_vmm_t->GetEntries() << endl;
+    cout << "Num of events: APV -- " << apvan->GetEntries() << "; VMM -- " << vmman->GetEntries() << endl;
 
     if(nAll < 1) nAll = 1;  
-    int nEntriesPerRun = hits_apv_t->GetEntries() / nAll;
+    int nEntriesPerRun = apvan->GetEntries() / nAll;
     int firstEntry = n * nEntriesPerRun;
-    int lastEntry = (n == nAll - 1) ? hits_apv_t->GetEntries() - 1 : (n+1) * nEntriesPerRun - 1;    
+    int lastEntry = (n == nAll - 1) ? apvan->GetEntries() - 1 : (n+1) * nEntriesPerRun - 1;    
     string numberingText = (nAll == 1) ? "" : Form("_%d-%d", n, nAll);
     printf("APV entries for analysis: [%d, %d)\n", firstEntry, lastEntry);
     
@@ -359,12 +377,10 @@ void hitsMapper(bool tight = false, bool analyseData = false, bool fixSRSTime = 
 
     // std::cout << "\t ---> TOTAL N of VMM events " << hits_vmm_t->GetEntries() << "\n";
 
-    /* vmm: Remove first -index pulse syncs */
-    // int firstSyncBcid = vmmRemoveFirstNPuslers(hits_vmm_v);
-    auto [firstEvent, firstSyncBcid] = vmmRemoveFirstNPuslers(hits_vmm_t, hits_vmm_event);
-    tuple<long long, unsigned long, int, int, long long, long long> beforeLastPulserParameters = {firstEvent, 0, firstSyncBcid, 0, 0, 0};
+    auto firstSyncBcid = vmman->GetCentralHitsData(firstSelectedEntries.first).bcid;
+    tuple<long long, unsigned long, int, int, long long, long long> beforeLastPulserParameters = {firstSelectedEntries.first, 0, firstSyncBcid, 0, 0, 0}; // TODO
     map<long long, vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>>> hits_vmm_events_map;
-    auto nLoaded = loadNextVMM(get<0>(beforeLastPulserParameters), hits_vmm_events_map, hits_vmm_t, hits_vmm_event);
+    auto nLoaded = loadNextVMM(get<0>(beforeLastPulserParameters), hits_vmm_events_map, vmman);
     // printf("nLoaded: %lld\n", nLoaded);
     if(nLoaded <= 1)
         return;
@@ -397,21 +413,21 @@ void hitsMapper(bool tight = false, bool analyseData = false, bool fixSRSTime = 
 
     int maxAPVPulserCountDifference = tight ? 0 : 1;
 
-    for (unsigned long i = 0; i < hits_apv_t->GetEntries(); i++)
+    for (unsigned long i = firstSelectedEntries.second; i < apvan->GetEntries(); i++)
     {
-        hits_apv_t->GetEntry(i);
+        auto hit_apv = apvan->GetCentralHits2ROnlyData(i);
         if (prevSRS == -1)
         {
-            startT_apv = 25 * hits_apv_event->second.timeSrs / 1000;
+            startT_apv = 25 * hit_apv.timeSrs / 1000;
             T_apv = startT_apv;
         }
         else
         {
-            T_apv += apv_time_from_SRS(prevSRS, hits_apv_event->second.timeSrs, fixSRSTime);
+            T_apv += apv_time_from_SRS(prevSRS, hit_apv.timeSrs, fixSRSTime);
         }
-        prevSRS = hits_apv_event->second.timeSrs;
+        prevSRS = hit_apv.timeSrs;
 
-        if (hits_apv_event->second.sync)
+        if (hit_apv.sync)
         {
             if (prev_pulse_SRS == -1)
             {
@@ -422,8 +438,8 @@ void hitsMapper(bool tight = false, bool analyseData = false, bool fixSRSTime = 
                 nPeriodsAPV = round((T_apv - startT_pulse_apv) * 1.0 / 1e4);
                 pulser_T = nPeriodsAPV * 1e4;
             }
-            prev_pulse_SRS = hits_apv_event->second.timeSrs;
-            // std::cout << "Period " << nPeriodsAPV << "--- is sync! N = " << hits_apv_event->second.hitsPerLayer.at(0).size() << "\n";
+            prev_pulse_SRS = hit_apv.timeSrs;
+            // std::cout << "Period " << nPeriodsAPV << "--- is sync! N = " << hit_apv.hitsPerLayer.at(0).size() << "\n";
         }
 
         if (i < firstEntry)
@@ -432,34 +448,37 @@ void hitsMapper(bool tight = false, bool analyseData = false, bool fixSRSTime = 
             printf("Merging started...\n");
         else if(i > lastEntry)
             break;
+
+        if(!hit_apv.hits.size())
+            continue;
         
         if (prev_pulse_SRS != -1)
         {
-            // std::cout << "\t Total:" << prev_pulse_SRS << "\t" << hits_apv_event->second.timeSrs << "\n";
+            // std::cout << "\t Total:" << prev_pulse_SRS << "\t" << hit_apv.timeSrs << "\n";
 
-            apv_hit_T = pulser_T + apv_time_from_SRS(prev_pulse_SRS, hits_apv_event->second.timeSrs, fixSRSTime);
-            if (hits_apv_event->second.hitsPerLayer.at(0).size() != 0)
+            apv_hit_T = pulser_T + apv_time_from_SRS(prev_pulse_SRS, hit_apv.timeSrs, fixSRSTime);
+            if (hit_apv.hitsPerLayer.at(0).size() != 0)
             {
                 apv_hits_vec.clear();
                 apv_hits_vec_l0.clear();
                 apv_hits_vec_l1.clear();
-                // std::cout << "---> with hits:" << prev_pulse_SRS << "\t" << hits_apv_event->second.timeSrs << "\n";
+                // std::cout << "---> with hits:" << prev_pulse_SRS << "\t" << hit_apv.timeSrs << "\n";
                 // out_APV << "------- APV Period " << nPeriodsAPV << " -------- \n";
-                for (auto &h : hits_apv_event->second.hitsPerLayer.at(0))
+                for (auto &h : hit_apv.hitsPerLayer.at(0))
                 {
                     strip = h.first;
                     pdo = h.second;
                     if (strip > 118 && strip < 172)
                         apv_hits_vec_l0.push_back(make_pair(strip, pdo));
                 }
-                for (auto &h : hits_apv_event->second.hitsPerLayer.at(1))
+                for (auto &h : hit_apv.hitsPerLayer.at(1))
                 {
                     strip = h.first * (1 - 2.29e-3) - 2.412 / 0.25;
                     pdo = h.second;
                     if (strip > 118 && strip < 172)
                         apv_hits_vec_l1.push_back(make_pair(strip, pdo));
                 }
-                for (auto &h : hits_apv_event->second.hitsPerLayer.at(2))
+                for (auto &h : hit_apv.hitsPerLayer.at(2))
                 {
                     strip = h.first * (1 - 8e-3) - 8.46 / 0.25;
                     pdo = h.second;
@@ -496,7 +515,7 @@ void hitsMapper(bool tight = false, bool analyseData = false, bool fixSRSTime = 
                     }
                     if(j == 0)
                     {
-                        auto nLoaded = loadNextVMM(vectorPositionInTree, hits_vmm_events_map, hits_vmm_t, hits_vmm_event);
+                        auto nLoaded = loadNextVMM(vectorPositionInTree, hits_vmm_events_map, vmman);
                         if(nLoaded <= 1) break;
                         currentEventsMap = hits_vmm_events_map.at(vectorPositionInTree).size();
                     }
@@ -700,11 +719,11 @@ void hitsMapper(bool tight = false, bool analyseData = false, bool fixSRSTime = 
                 {
                     numOfMapped++;
                     // beforeLastPulserParameters = get<2>(bestHit);
-                    printf("APV event: %9lu (%9lu)\t", i, hits_apv_event->first);
+                    printf("APV event: %9lu (%9lu)\t", i, i);
                     printf("VMM event: %9lu (%9lld)\t", get<3>(bestHit), get<0>(bestHit));
                     printf("Time difference: %9lld\t", get<1>(bestHit));
                     printf("Total of mapped: %d\n", numOfMapped);
-                    eventNumAPV = hits_apv_event->first;
+                    eventNumAPV = i;
                     eventNumVMM = get<0>(bestHit);
                     deltaT = get<1>(bestHit);
                     mappedEventNums->Fill();
@@ -737,6 +756,8 @@ void hitsMapper(bool tight = false, bool analyseData = false, bool fixSRSTime = 
 
     out->Write();
     out->Close();
+    delete apvan;
+    delete vmman;
 }
 
 int main(int argc, char** argv)
