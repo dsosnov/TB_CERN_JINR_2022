@@ -604,9 +604,9 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
 
                     hitMapped = false;
 
-                    for (int k = 0; k < apv_hits_vec.size(); k++)
+                    for (unsigned long k = 0; k < apv_hits_vec.size(); k++)
                     {
-                        for (int l = 0; l < vmm_hits_vec.size(); l++)
+                        for (unsigned long l = 0; l < vmm_hits_vec.size(); l++)
                         {
                             if (vmm_hits_vec.size() != 0 && abs(apv_hits_vec.at(k).first - vmm_hits_vec.at(l).first) < 5){
                                 hitMapped = true;
@@ -622,7 +622,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                         if(get<0>(bestHit) < 0 || abs(get<1>(bestHit)) > abs(dt_apv_vmm))
                         {
                             int hitsMappedInEvent = 0;
-                            for (int l = 0; l < vmm_hits_vec.size(); l++)
+                            for (unsigned long l = 0; l < vmm_hits_vec.size(); l++)
                                 hitsMappedInEvent++;
                             bestHit = {hits_vmm_events_map.at(vectorPositionInTree).at(j).first, dt_apv_vmm, beforeLastPulserParametersCurrent, j, hitsMappedInEvent};
                         }
