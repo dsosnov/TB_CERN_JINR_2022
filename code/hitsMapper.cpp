@@ -74,6 +74,7 @@ pair<int, int> vmmRemoveFirstNPuslers(TTree* hits_vmm_t, pair<unsigned long, ana
         hits_vmm_t->GetEntry(j);
         firstSyncBcid = hits_vmm_event->second.bcid;
         j++;
+        printf("First VMM sync-signal: %lu\n", hits_vmm_event->first);
     }
     else if(index < 0)
     {
