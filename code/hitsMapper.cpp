@@ -219,8 +219,8 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
     mappedEventNums->Branch("apv", &eventNumAPV);
     mappedEventNums->Branch("vmm", &eventNumVMM);
     mappedEventNums->Branch("deltaT", &deltaT);
-    // TFile* mappedEventBackupFile = nullptr;
-    // TString mapBackupFileName = TString("../out/mappedEvents_"+run_pair.first+"_"+run_pair.second+tightText+fixTimeText+dupText+numberingText+"_bak.root");
+    TFile* mappedEventBackupFile = nullptr;
+    TString mapBackupFileName = TString("../out/mappedEvents_"+run_pair.first+"_"+run_pair.second+tightText+fixTimeText+dupText+numberingText+"_bak.root");
     // map<long long, pair<long long, int>> mappedEventMap = {};
 
     auto stripsVMM = make_shared<TH1F>("stripsVMM", "stripsVMM", 360, 0, 360);
@@ -737,20 +737,20 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                     mappedEventNums->Fill();
                     // clear memory -- remove unused vectors with VMM events
                     freeMemory(hits_vmm_events_map, get<0>(beforeLastPulserParameters));
-                    // if(!(numOfMapped %100))
-                    // {
-                    //     mappedEventNums->SaveAs(mapBackupFileName);
-                    //     delete mappedEventNums;
-                    //     if(mappedEventBackupFile != nullptr )
-                    //         mappedEventBackupFile->Close();
-                    //     mappedEventBackupFile = TFile::Open(mapBackupFileName);
-                    //     mappedEventNums = static_cast<TTree*>(mappedEventBackupFile->Get("mappedEvents"));
-                    //     mappedEventNums->SetDirectory(out);
-                    //     mappedEventNums->AutoSave("1000");
-                    //     mappedEventNums->SetBranchAddress("apv", &eventNumAPV);
-                    //     mappedEventNums->SetBranchAddress("vmm", &eventNumVMM);
-                    //     mappedEventNums->SetBranchAddress("deltaT", &deltaT);
-                    // }
+                    if(!(numOfMapped %100))
+                    {
+                        mappedEventNums->SaveAs(mapBackupFileName);
+                        delete mappedEventNums;
+                        if(mappedEventBackupFile != nullptr )
+                            mappedEventBackupFile->Close();
+                        mappedEventBackupFile = TFile::Open(mapBackupFileName);
+                        mappedEventNums = static_cast<TTree*>(mappedEventBackupFile->Get("mappedEvents"));
+                        mappedEventNums->SetDirectory(out);
+                        // mappedEventNums->AutoSave("1000");
+                        mappedEventNums->SetBranchAddress("apv", &eventNumAPV);
+                        mappedEventNums->SetBranchAddress("vmm", &eventNumVMM);
+                        mappedEventNums->SetBranchAddress("deltaT", &deltaT);
+                    }
                     mappedHitsVMM+=get<4>(bestHit);
                 }
             }
