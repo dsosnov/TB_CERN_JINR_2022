@@ -187,6 +187,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
     long long startT_apv = 0;
     long long startT_pulse_apv = 0;
     long long T_apv = 0;
+    long long T_apv_sincePulse = 0;
     int nPeriodsAPV = 0;
 
     int prevSRS = -1;
@@ -419,12 +420,13 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
         auto hit_apv = apvan->GetCentralHits2ROnlyData(i);
         if (prevSRS == -1)
         {
-            startT_apv = 25 * hit_apv.timeSrs / 1000;
+            startT_apv = hit_apv.timeSec*1E6 + hit_apv.timeMSec;
             T_apv = startT_apv;
         }
         else
         {
-            T_apv += apv_time_from_SRS(prevSRS, hit_apv.timeSrs, fixSRSTime);
+            T_apv = hit_apv.timeSec*1E6 + hit_apv.timeMSec;
+            T_apv_sincePulse += apv_time_from_SRS(prevSRS, hit_apv.timeSrs, fixSRSTime);
         }
         prevSRS = hit_apv.timeSrs;
 
@@ -440,6 +442,8 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                 pulser_T = nPeriodsAPV * 1e4;
             }
             prev_pulse_SRS = hit_apv.timeSrs;
+            T_apv_sincePulse = 0;
+            // printf("N periods APV: %d\n", nPeriodsAPV);
             // std::cout << "Period " << nPeriodsAPV << "--- is sync! N = " << hit_apv.hitsPerLayer.at(0).size() << "\n";
         }
 
@@ -457,7 +461,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
         {
             // std::cout << "\t Total:" << prev_pulse_SRS << "\t" << hit_apv.timeSrs << "\n";
 
-            apv_hit_T = pulser_T + apv_time_from_SRS(prev_pulse_SRS, hit_apv.timeSrs, fixSRSTime);
+            // apv_hit_T = pulser_T + apv_time_from_SRS(prev_pulse_SRS, hit_apv.timeSrs, fixSRSTime);
             if (hit_apv.hitsPerLayer.at(0).size() != 0)
             {
                 apv_hits_vec.clear();
@@ -489,7 +493,6 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
 
                 if (apv_hits_vec.size() == 0)
                     continue;
-                
 
                 vmm_hits_vec.clear();
 
@@ -573,7 +576,10 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                         continue;
  
                     diff_hit = (currEvent->bcid - prevSyncBcid >= 0) ? currEvent->bcid - prevSyncBcid : currEvent->bcid + 4096 - prevSyncBcid;
-                    dt_apv_vmm = static_cast<long long>(T_apv) - static_cast<long long>(startT_pulse_apv) - static_cast<long long>(pulseTime) - static_cast<long long>(round(diff_hit * 25.0 / 1000.0));
+                    // pulseTime - time of last pulser, uS
+                    // diffHit - since last pulser
+                    dt_apv_vmm = T_apv_sincePulse - static_cast<long long>((nPeriods - nPeriodsAPV*200) * 50) - static_cast<long long>(round(diff_hit * 25.0 / 1000.0));
+                    // printf("dt_apv_vmm = %lld - (%lld - %d*200) * 50 - %d*25/1000 = %lld\n", T_apv_sincePulse, nPeriods, nPeriodsAPV, diff_hit, dt_apv_vmm);
                     // int dt_apv_vmm = T_apv - startT_pulse_apv - pulseTime;
 
                     // std::cout << nPeriods / 200 << " \t " << hits_vmm_event->second.hitsX.size() << "\n";
