@@ -189,10 +189,14 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
     long long startT_pulse_apv = 0;
     long long T_apv = 0;
     long long T_apv_sincePulse = 0;
-    int nPeriodsAPV = 0;
+    long long T_apv_pulse_prev = 0;
+    long long nPeriodsAPV = 0;
+    // if time between two syncs larger then multiple pulser periods, merging fails due to calculation N periods for APV from pulser time only
+    long long nPeriodsAPV_corrected = 0;
 
     int prevSRS = -1;
     int prev_pulse_SRS = -1;
+    long long prev_pulse_time_s, prev_pulse_time_ms = 0;
     long long pulser_T = 0;
     long long apv_hit_T = 0;
 
@@ -415,18 +419,18 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
     int diff, diffDiff;
 
     int maxAPVPulserCountDifference = tight ? 0 : 1;
+    bool ignoreNextSync = true;
 
     for (unsigned long i = firstSelectedEntries.second; i < apvan->GetEntries(); i++)
     {
         auto hit_apv = apvan->GetCentralHits2ROnlyData(i);
+        T_apv = hit_apv.timeSec*1E6 + hit_apv.timeMSec;
         if (prevSRS == -1)
         {
-            startT_apv = hit_apv.timeSec*1E6 + hit_apv.timeMSec;
-            T_apv = startT_apv;
+            startT_apv = T_apv;
         }
         else
         {
-            T_apv = hit_apv.timeSec*1E6 + hit_apv.timeMSec;
             T_apv_sincePulse += apv_time_from_SRS(prevSRS, hit_apv.timeSrs, fixSRSTime);
         }
         prevSRS = hit_apv.timeSrs;
@@ -440,14 +444,19 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
             }
             else
             {
-                nPeriodsAPV = round((T_apv - startT_pulse_apv) * 1.0 / 1e4);
+                nPeriodsAPV += round((T_apv - T_apv_pulse_prev) * 1.0 / 1e4);
                 pulser_T = nPeriodsAPV * 1e4;
             }
+            // printf("T_apv: %lld;\tT_apv_prev: %lld;\tdiff: %g (%g)\n", T_apv, T_apv_pulse_prev, (T_apv - T_apv_pulse_prev) * 1.0 / 1e4, round((T_apv - T_apv_pulse_prev) * 1.0 / 1e4));
+            // printf("N periods APV: %lld\n", nPeriodsAPV);
+            T_apv_pulse_prev = T_apv;
             prev_pulse_SRS = hit_apv.timeSrs;
             T_apv_sincePulse = 0;
-            // printf("N periods APV: %d\n", nPeriodsAPV);
             // std::cout << "Period " << nPeriodsAPV << "--- is sync! N = " << hit_apv.hitsPerLayer.at(0).size() << "\n";
         }
+        nPeriodsAPV_corrected = nPeriodsAPV + T_apv_sincePulse / 10000;
+        // if(nPeriodsAPV_corrected != nPeriodsAPV)
+        //     printf("nPeriodsAPV_corrected != nPeriodsAPV: time %lld, previous pulser: %lld, difference by DAC: %lld, by srsTimeStamp: %lld\n", T_apv, T_apv_pulse_prev, T_apv - T_apv_pulse_prev, T_apv_sincePulse);
 
         if (i < firstEntry)
             continue;
@@ -528,48 +537,65 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                     currEvent = &(hits_vmm_events_map.at(vectorPositionInTree).at(j).second);
                     if (currEvent->sync)
                     {
-                        beforeLastPulserParametersCurrent = {vectorPositionInTree, j, prevSyncBcid, prevPrevSyncBcid, nPeriods, pulseTime};
-                        diff = (currEvent->bcid - prevSyncBcid > 0) ? currEvent->bcid - prevSyncBcid : currEvent->bcid + 4096 - prevSyncBcid;
-                        diffDiff = (currEvent->bcid - prevPrevSyncBcid > 0) ? currEvent->bcid - prevPrevSyncBcid: currEvent->bcid + 4096 - prevPrevSyncBcid;
-
-                        if (!(diff >= 2000 - 5 && diff <= 2000 + 5) && !(diff >= 4000 - 5 && diff <= 4000 + 5))
+                        if(ignoreNextSync)
                         {
-                            // if (diff == 1904)
-                            // {
-                            //     diff = 6000;
-                            // }
-                            // else if (diff == 3904)
-                            // {
-                            //     diff = 8000;
-                            // }
-                            // else
-                            if (!(diffDiff >= 2000 - 5 && diffDiff <= 2000 + 5) && !(diffDiff >= 4000 - 5 && diffDiff <= 4000 + 5))
-                            {
-                                bad++;
-                                prevPrevSyncBcid = prevSyncBcid;
-                                prevSyncBcid = currEvent->bcid;
-                                continue;
-                            }
-                            else
-                            {
-                                diff = diffDiff;
-                            }
+                            ignoreNextSync = false;
                         }
+                        else
+                        {
+                            beforeLastPulserParametersCurrent = {vectorPositionInTree, j, prevSyncBcid, prevPrevSyncBcid, nPeriods, pulseTime};
+                            diff = (currEvent->bcid - prevSyncBcid > 0) ? currEvent->bcid - prevSyncBcid : currEvent->bcid + 4096 - prevSyncBcid;
+                            diffDiff = (currEvent->bcid - prevPrevSyncBcid > 0) ? currEvent->bcid - prevPrevSyncBcid: currEvent->bcid + 4096 - prevPrevSyncBcid;
 
+                            if (!(diff >= 2000 - 5 && diff <= 2000 + 5) && !(diff >= 4000 - 5 && diff <= 4000 + 5))
+                            {
+                                // if (diff == 1904)
+                                // {
+                                //     diff = 6000;
+                                // }
+                                // else if (diff == 3904)
+                                // {
+                                //     diff = 8000;
+                                // }
+                                // else
+                                if (!(diffDiff >= 2000 - 5 && diffDiff <= 2000 + 5) && !(diffDiff >= 4000 - 5 && diffDiff <= 4000 + 5))
+                                {
+                                    bad++;
+                                    prevPrevSyncBcid = prevSyncBcid;
+                                    prevSyncBcid = currEvent->bcid;
+                                    continue;
+                                }
+                                else
+                                {
+                                    diff = diffDiff;
+                                }
+                            }
+
+                            nPeriods += round(diff * 1.0 / 2000.0);
+                        }
                         prevPrevSyncBcid = prevSyncBcid;
                         prevSyncBcid = currEvent->bcid;
-                        nPeriods += round(diff * 1.0 / 2000.0);
                         pulseTime = nPeriods * 50;
                     }
 
-                    if (nPeriods / 200 > nPeriodsAPV + maxAPVPulserCountDifference)
+                    // printf("vmm %lu | T APV: %lld; T VMM: %lld; difference: %lld; nPeriodsAPV: %lld; nPeriods APV, corrected: %lld; nPeriodsVMM: %lld; difference: %lld (%lld); time since pulser: %lld\n",
+                    //        j, T_apv, currEvent->timeFull(), T_apv - currEvent->timeFull(),
+                    //        nPeriodsAPV, nPeriodsAPV_corrected, nPeriods, nPeriodsAPV_corrected*200 - nPeriods,
+                    //        static_cast<long long>((nPeriodsAPV_corrected*200 - nPeriods)*50),
+                    //        T_apv_sincePulse%10000);
+                    
+                    if (nPeriods / 200 > nPeriodsAPV_corrected + maxAPVPulserCountDifference)
                     {
                         break;
                     }
-                    else if (nPeriods / 200 < nPeriodsAPV - maxAPVPulserCountDifference)
+                    else if (nPeriods / 200 < nPeriodsAPV_corrected - maxAPVPulserCountDifference)
                     {
+                        // printf("%lld / 200 = %lld < %lld - %d\n", nPeriods, nPeriods / 200, nPeriodsAPV_corrected, maxAPVPulserCountDifference);
                         if(beforeLastPulserParametersCurrent != beforeLastPulserParameters)
+                        {
                             beforeLastPulserParameters = beforeLastPulserParametersCurrent;
+                            // printf("beforeLastPulserParameters updated\n");
+                        }
                         continue;
                     }
                     else if (currEvent->hitsX.size() == 0)
@@ -578,10 +604,8 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                         continue;
  
                     diff_hit = (currEvent->bcid - prevSyncBcid >= 0) ? currEvent->bcid - prevSyncBcid : currEvent->bcid + 4096 - prevSyncBcid;
-                    // pulseTime - time of last pulser, uS
-                    // diffHit - since last pulser
                     dt_apv_vmm = T_apv_sincePulse - static_cast<long long>((nPeriods - nPeriodsAPV*200) * 50) - static_cast<long long>(round(diff_hit * 25.0 / 1000.0));
-                    // printf("dt_apv_vmm = %lld - (%lld - %d*200) * 50 - %d*25/1000 = %lld\n", T_apv_sincePulse, nPeriods, nPeriodsAPV, diff_hit, dt_apv_vmm);
+                    // printf("dt_apv_vmm = %lld - (%lld - %lld*200) * 50 - %d*25/1000 = %lld\n", T_apv_sincePulse, nPeriods, nPeriodsAPV, diff_hit, dt_apv_vmm);
                     // int dt_apv_vmm = T_apv - startT_pulse_apv - pulseTime;
 
                     // std::cout << nPeriods / 200 << " \t " << hits_vmm_event->second.hitsX.size() << "\n";
