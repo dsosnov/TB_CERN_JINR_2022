@@ -163,6 +163,7 @@ long long loadNextVMM(long long firstElement,
 
 constexpr bool PRINT_TO_FILE = false;
 constexpr bool findBestVMM = true;
+constexpr bool printMerged = true;
 void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n = 0)
 {
     // pair<string, string> run_pair = {"run_0832", "run423"};
@@ -727,10 +728,13 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                 {
                     numOfMapped++;
                     // beforeLastPulserParameters = get<2>(bestHit);
-                    printf("APV event: %9lu (%9lu)\t", i, i);
-                    printf("VMM event: %9lu (%9lld)\t", get<3>(bestHit), get<0>(bestHit));
-                    printf("Time difference: %9lld\t", get<1>(bestHit));
-                    printf("Total of mapped: %d\n", numOfMapped);
+                    if(printMerged)
+                    {
+                        printf("APV event: %9lu (%9lu)\t", i, i);
+                        printf("VMM event: %9lu (%9lld)\t", get<3>(bestHit), get<0>(bestHit));
+                        printf("Time difference: %9lld\t", get<1>(bestHit));
+                        printf("Total of mapped: %d\n", numOfMapped);
+                    }
                     eventNumAPV = i;
                     eventNumVMM = get<0>(bestHit);
                     deltaT = get<1>(bestHit);
@@ -756,6 +760,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
             }
         }
     }
+    std::cout << "Total number of mapped: " << numOfMapped << "\n";
     std::cout << "N of MAPPED hits in VMM " << mappedHitsVMM << "\n";
     out_VMM_hits << "N of unMAPPED hits in VMM " << UNmappedHitsVMM << "\n";
 
