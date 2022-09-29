@@ -163,13 +163,14 @@ long long loadNextVMM(long long firstElement,
 
 constexpr bool PRINT_TO_FILE = false;
 constexpr bool findBestVMM = true;
-constexpr bool printMerged = true;
+constexpr bool printMerged = false;
+constexpr bool saveBackup = false;
 void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n = 0)
 {
     // pair<string, string> run_pair = {"run_0832", "run423"};
     // pair<string, string> run_pair = {"run_0832_cut10m", "run423_cut10m"};
     pair<string, string> run_pair = {"run_0832_cut", "run423_cut"};
-    pair<int,int> firstSelectedEntries = {180038, 7042};
+    pair<int,int> firstSelectedEntries = {180038 + 21, 7042};
 
     auto apvan = new apv(run_pair.second);
     apvan->useSyncSignal();
@@ -220,7 +221,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
     long long eventNumAPV = -1, eventNumVMM = -1;
     int deltaT;
     auto mappedEventNums = new TTree("mappedEvents", "");
-    // mappedEventNums->AutoSave("1000");
+    mappedEventNums->AutoSave("1000");
     mappedEventNums->Branch("apv", &eventNumAPV);
     mappedEventNums->Branch("vmm", &eventNumVMM);
     mappedEventNums->Branch("deltaT", &deltaT);
@@ -765,19 +766,27 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                     mappedEventNums->Fill();
                     // clear memory -- remove unused vectors with VMM events
                     freeMemory(hits_vmm_events_map, get<0>(beforeLastPulserParameters));
-                    if(!(numOfMapped %100))
+                    if(!(numOfMapped %1000))
                     {
-                        mappedEventNums->SaveAs(mapBackupFileName);
-                        delete mappedEventNums;
-                        if(mappedEventBackupFile != nullptr )
-                            mappedEventBackupFile->Close();
-                        mappedEventBackupFile = TFile::Open(mapBackupFileName);
-                        mappedEventNums = static_cast<TTree*>(mappedEventBackupFile->Get("mappedEvents"));
-                        mappedEventNums->SetDirectory(out);
-                        // mappedEventNums->AutoSave("1000");
-                        mappedEventNums->SetBranchAddress("apv", &eventNumAPV);
-                        mappedEventNums->SetBranchAddress("vmm", &eventNumVMM);
-                        mappedEventNums->SetBranchAddress("deltaT", &deltaT);
+                        if(saveBackup)
+                        {
+                            mappedEventNums->SaveAs(mapBackupFileName);
+                            delete mappedEventNums;
+                            if(mappedEventBackupFile != nullptr )
+                                mappedEventBackupFile->Close();
+                            mappedEventBackupFile = TFile::Open(mapBackupFileName);
+                            mappedEventNums = static_cast<TTree*>(mappedEventBackupFile->Get("mappedEvents"));
+                            mappedEventNums->SetDirectory(out);
+                            mappedEventNums->AutoSave("1000");
+                            mappedEventNums->SetBranchAddress("apv", &eventNumAPV);
+                            mappedEventNums->SetBranchAddress("vmm", &eventNumVMM);
+                            mappedEventNums->SetBranchAddress("deltaT", &deltaT);
+                        }
+                        if(!printMerged)
+                        {
+                            printf("APV event: %9lu;\t", i);
+                            printf("Total of mapped: %d\n", numOfMapped);
+                        }
                     }
                     mappedHitsVMM+=get<4>(bestHit);
                 }
