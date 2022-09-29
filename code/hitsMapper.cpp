@@ -167,7 +167,7 @@ constexpr bool DEBUG_PRINT = false;
 constexpr bool findBestVMM = true;
 constexpr bool printMerged = false;
 constexpr bool saveBackup = false;
-constexpr bool saveTemporaryParameters = true;
+constexpr bool saveTemporaryParameters = false;
 
 void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n = 0)
 {
