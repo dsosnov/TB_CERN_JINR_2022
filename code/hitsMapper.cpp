@@ -222,10 +222,10 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
 
     auto out = TFile::Open(TString("../out/mapped_"+run_pair.first+"_"+run_pair.second+tightText+fixTimeText+dupText+numberingText+".root"), "recreate");
 
-    long long eventNumAPV = -1, eventNumVMM = -1;
-    int deltaT;
+    static long long eventNumAPV = -1, eventNumVMM = -1;
+    static long long deltaT;
     auto mappedEventNums = new TTree("mappedEvents", "");
-    mappedEventNums->AutoSave("1000");
+    // mappedEventNums->AutoSave("1000");
     mappedEventNums->Branch("apv", &eventNumAPV);
     mappedEventNums->Branch("vmm", &eventNumVMM);
     mappedEventNums->Branch("deltaT", &deltaT);
@@ -617,8 +617,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                                 mappedEventBackupFile->Close();
                             mappedEventBackupFile = TFile::Open(mapBackupFileName);
                             mappedEventNums = static_cast<TTree*>(mappedEventBackupFile->Get("mappedEvents"));
-                            mappedEventNums->SetDirectory(out);
-                            mappedEventNums->AutoSave("1000");
+                            // mappedEventNums->AutoSave("1000");
                             mappedEventNums->SetBranchAddress("apv", &eventNumAPV);
                             mappedEventNums->SetBranchAddress("vmm", &eventNumVMM);
                             mappedEventNums->SetBranchAddress("deltaT", &deltaT);
