@@ -19,6 +19,7 @@ using std::map;
 using std::set;
 
 // IMPORTANT change: fixSRSTime
+// return: time, us
 int apv_time_from_SRS(int srs1, int srs2, bool fixSRSTime = false)
 {
     int diff = 0;
