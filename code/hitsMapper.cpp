@@ -167,6 +167,8 @@ constexpr bool DEBUG_PRINT = false;
 constexpr bool findBestVMM = true;
 constexpr bool printMerged = false;
 constexpr bool saveBackup = false;
+constexpr bool saveTemporaryParameters = true;
+
 void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n = 0)
 {
     // pair<string, string> run_pair = {"run_0832", "run423"};
@@ -252,8 +254,62 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
 
     // std::cout << "\t ---> TOTAL N of VMM events " << hits_vmm_t->GetEntries() << "\n";
 
-    auto firstSyncBcid = vmman->GetCentralHitsData(firstSelectedEntries.first).bcid;
-    tuple<long long, unsigned long, int, int, long long, long long> beforeLastPulserParameters = {firstSelectedEntries.first, 0, firstSyncBcid, 0, 0, 0}; // TODO
+    unsigned long startIndexAPV = firstSelectedEntries.second;
+    long long vectorPositionInTree = firstSelectedEntries.first;
+    unsigned long startIndex = 0;
+    int prevSyncBcid = vmman->GetCentralHitsData(vectorPositionInTree).bcid;
+    int prevPrevSyncBcid = 0;
+    long long nPeriods = 0;
+    long long pulseTime = 0;
+
+    /* Try to load variables from previous runs */
+    if(saveTemporaryParameters)
+    {
+        TString tmpFileName = TString("../out/beforeLastPulserParameters_"+run_pair.first+"_"+run_pair.second+tightText+fixTimeText+".root");
+        auto file = TFile::Open(tmpFileName, "read");
+        if(file != nullptr)
+        {
+            auto tree = static_cast<TTree*>(file->Get("beforeLastPulserParameters"));
+            unsigned long apvN;
+            long long bestAPVn, bestAPVni = -1;;
+            tree->SetBranchAddress("apvN", &apvN);
+            for(auto i = 0; i < tree->GetEntries(); i++)
+            {
+                tree->GetEntry(i);
+                if(apvN > firstEntry) continue;
+                if(bestAPVni < 0 || bestAPVn < apvN)
+                {
+                    bestAPVn = apvN;
+                    bestAPVni = i;
+                }
+            }
+            if(bestAPVni >= 0)
+            {
+                printf("Found parameters from previous running for event %lld\n", bestAPVn);
+                tree->SetBranchAddress("T_apv", &T_apv);
+                tree->SetBranchAddress("T_apv_sincePulse", &T_apv_sincePulse);
+                tree->SetBranchAddress("T_apv_pulse_prev", &T_apv_pulse_prev);
+                tree->SetBranchAddress("nPeriodsAPV", &nPeriodsAPV);
+                tree->SetBranchAddress("nPeriodsAPV_corrected", &nPeriodsAPV_corrected);
+                tree->SetBranchAddress("prevSRS", &prevSRS);
+                tree->SetBranchAddress("prev_pulse_SRS", &prev_pulse_SRS);
+                tree->SetBranchAddress("vectorPositionInTree", &vectorPositionInTree);
+                tree->SetBranchAddress("index", &startIndex);
+                tree->SetBranchAddress("prevSyncBcid", &prevSyncBcid);
+                tree->SetBranchAddress("prevPrevSyncBcid", &prevPrevSyncBcid);
+                tree->SetBranchAddress("nPeriods", &nPeriods);
+                tree->SetBranchAddress("pulseTime", &pulseTime);
+                tree->GetEntry(bestAPVni);
+                tree->ResetBranchAddresses();
+                startIndexAPV = bestAPVn;
+            }
+            delete tree;
+            file->Close();
+            delete file;
+       }
+    }
+    
+    tuple<long long, unsigned long, int, int, long long, long long> beforeLastPulserParameters = {vectorPositionInTree, 0, prevSyncBcid, 0, 0, 0}; // TODO
     map<long long, vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>>> hits_vmm_events_map;
     auto nLoaded = loadNextVMM(get<0>(beforeLastPulserParameters), hits_vmm_events_map, vmman);
     // printf("nLoaded: %lld\n", nLoaded);
@@ -262,19 +318,14 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
     auto beforeLastPulserParametersCurrent = beforeLastPulserParameters;
     tuple<long long, long long, tuple<long long, unsigned long, int, int, int, long long>, unsigned long, int> bestHit;
     map<long long, int> pairedVMM = {};
-    long long vectorPositionInTree;
     analysisGeneral::mm2CenterHitParameters* currEvent;
+
 
     int mappedHitsVMM = 0;
     int UNmappedHitsVMM = 0;
 
-    long long prevT_apv = 0;
-    long long prevT_vmm = 0;
-
-    int bad, prevSyncBcid, prevPrevSyncBcid;
-    long long nPeriods;
+    int bad;
     long long currentEventsMap;
-    long long pulseTime;
     bool hitMapped;
 
     vector<pair<int, int>> vmm_hits_vec;
@@ -289,7 +340,8 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
     int maxAPVPulserCountDifference = tight ? 0 : 1;
     bool ignoreNextSync = true;
 
-    for (unsigned long i = firstSelectedEntries.second; i < apvan->GetEntries(); i++)
+    unsigned long i;
+    for (i = startIndexAPV; i < apvan->GetEntries(); i++)
     {
         auto hit_apv = apvan->GetCentralHits2ROnlyData(i);
         T_apv = hit_apv.timeSec*1E6 + hit_apv.timeMSec;
@@ -593,6 +645,43 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
     out->Close();
     delete apvan;
     delete vmman;
+
+    if(saveTemporaryParameters)
+    {
+        TString tmpFileName = TString("../out/beforeLastPulserParameters_out_"+run_pair.first+"_"+run_pair.second+tightText+fixTimeText+dupText+numberingText+".root");
+        auto file = TFile::Open(tmpFileName, "recreate");
+        auto tree = new TTree("beforeLastPulserParameters", "");
+        tree->SetDirectory(file);
+        tree->Branch("apvN", &i);
+        tree->Branch("T_apv", &T_apv);
+        tree->Branch("T_apv_sincePulse", &T_apv_sincePulse);
+        tree->Branch("T_apv_pulse_prev", &T_apv_pulse_prev);
+        tree->Branch("nPeriodsAPV", &nPeriodsAPV);
+        tree->Branch("nPeriodsAPV_corrected", &nPeriodsAPV_corrected);
+        tree->Branch("prevSRS", &prevSRS);
+        tree->Branch("prev_pulse_SRS", &prev_pulse_SRS);
+        long long vectorPositionInTree;
+        unsigned long index;
+        int prevSyncBcid;
+        int prevPrevSyncBcid;
+        long long nPeriods;
+        long long pulseTime;
+        tree->Branch("vectorPositionInTree", &vectorPositionInTree);
+        tree->Branch("index", &index);
+        tree->Branch("prevSyncBcid", &prevSyncBcid);
+        tree->Branch("prevPrevSyncBcid", &prevPrevSyncBcid);
+        tree->Branch("nPeriods", &nPeriods);
+        tree->Branch("pulseTime", &pulseTime);
+        vectorPositionInTree = get<0>(beforeLastPulserParameters); 
+        index = get<1>(beforeLastPulserParameters);
+        prevSyncBcid = get<2>(beforeLastPulserParameters);
+        prevPrevSyncBcid = get<3>(beforeLastPulserParameters);
+        nPeriods = get<4>(beforeLastPulserParameters);
+        pulseTime = get<5>(beforeLastPulserParameters);
+        tree->Fill();
+        tree->Write();
+        file->Close();
+    }
 }
 
 int main(int argc, char** argv)
