@@ -188,7 +188,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
     int firstEntry = n * nEntriesPerRun;
     int lastEntry = (n == nAll - 1) ? apvan->GetEntries() - 1 : (n+1) * nEntriesPerRun - 1;    
     string numberingText = (nAll == 1) ? "" : Form("_%d-%d", n, nAll);
-    printf("APV entries for analysis: [%d, %d)\n", firstEntry, lastEntry);
+    printf("APV entries for analysis: [%d, %d]\n", firstEntry, lastEntry);
     
     long long startT_apv = 0;
     long long startT_pulse_apv = 0;
