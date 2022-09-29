@@ -309,7 +309,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
        }
     }
     
-    tuple<long long, unsigned long, int, int, long long, long long> beforeLastPulserParameters = {vectorPositionInTree, 0, prevSyncBcid, 0, 0, 0}; // TODO
+    tuple<long long, unsigned long, int, int, long long, long long> beforeLastPulserParameters = {vectorPositionInTree, startIndex, prevSyncBcid, prevPrevSyncBcid, nPeriods, pulseTime}; // TODO
     map<long long, vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>>> hits_vmm_events_map;
     auto nLoaded = loadNextVMM(get<0>(beforeLastPulserParameters), hits_vmm_events_map, vmman);
     // printf("nLoaded: %lld\n", nLoaded);
