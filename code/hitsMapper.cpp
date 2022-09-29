@@ -163,6 +163,7 @@ long long loadNextVMM(long long firstElement,
 }
 
 constexpr bool PRINT_TO_FILE = false;
+constexpr bool DEBUG_PRINT = false;
 constexpr bool findBestVMM = true;
 constexpr bool printMerged = false;
 constexpr bool saveBackup = false;
@@ -387,7 +388,8 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                 vectorPositionInTree = get<0>(beforeLastPulserParameters); // TODO
                 currentEventsMap = hits_vmm_events_map.at(vectorPositionInTree).size();
 
-                // printf("For APV event %lu search starting from VMM event %lu\n", i, get<1>(beforeLastPulserParameters));
+                if(DEBUG_PRINT)
+                    printf("For APV event %lu search starting from VMM event %lu\n", i, get<1>(beforeLastPulserParameters));
                 for (unsigned long j = get<1>(beforeLastPulserParameters); j <= currentEventsMap; j++)
                 {
                     if(j == currentEventsMap)
@@ -445,11 +447,12 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                         pulseTime = nPeriods * 50;
                     }
 
-                    // printf("vmm %lu | T APV: %lld; T VMM: %lld; difference: %lld; nPeriodsAPV: %lld; nPeriods APV, corrected: %lld; nPeriodsVMM: %lld; difference: %lld (%lld); time since pulser: %lld\n",
-                    //        j, T_apv, currEvent->timeFull(), T_apv - currEvent->timeFull(),
-                    //        nPeriodsAPV, nPeriodsAPV_corrected, nPeriods, nPeriodsAPV_corrected*200 - nPeriods,
-                    //        static_cast<long long>((nPeriodsAPV_corrected*200 - nPeriods)*50),
-                    //        T_apv_sincePulse%10000);
+                    if(DEBUG_PRINT)
+                        printf("vmm %lu | T APV: %lld; T VMM: %lld; difference: %lld; nPeriodsAPV: %lld; nPeriods APV, corrected: %lld; nPeriodsVMM: %lld; difference: %lld (%lld); time since pulser: %lld\n",
+                           j, T_apv, currEvent->timeFull(), T_apv - currEvent->timeFull(),
+                           nPeriodsAPV, nPeriodsAPV_corrected, nPeriods, nPeriodsAPV_corrected*200 - nPeriods,
+                           static_cast<long long>((nPeriodsAPV_corrected*200 - nPeriods)*50),
+                           T_apv_sincePulse%10000);
                     
                     if (nPeriods / 200 > nPeriodsAPV_corrected + maxAPVPulserCountDifference)
                     {
@@ -461,7 +464,12 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                         if(beforeLastPulserParametersCurrent != beforeLastPulserParameters)
                         {
                             beforeLastPulserParameters = beforeLastPulserParametersCurrent;
-                            // printf("beforeLastPulserParameters updated\n");
+                            if(DEBUG_PRINT)
+                                printf("beforeLastPulserParameters updated\n");
+                        }
+                        if(i == firstEntry && j == 0)
+                        {
+                          freeMemory(hits_vmm_events_map, get<0>(beforeLastPulserParameters));
                         }
                         continue;
                     }
