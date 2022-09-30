@@ -41,26 +41,34 @@ optional<double> getMeanPosition(map<int, int> hitsPerLayer, int layer){
   return center;
 }
 
+/*
+ * positions:
+ * L0 - L1: 285
+ * L1 - L2: 345
+ * L2 - Straw: 523
+ * return: position in mm, from Layer 0
+ */
+int getLayerPosition(int layer){
+  int y = 0;
+  switch(layer){
+    case 3:
+      y += 523;
+    case 2:
+      y += 345;
+    case 1:
+      y += 285;
+    case 0:
+      y += 0;
+  }
+  return y;
+}
+
 pair<double, double> getEstimatedTrack(map<int, double> positions){
   int n = 0;
   double sumXY = 0, sumX = 0, sumY = 0, sumX2 = 0, sumY2 = 0;
   int y; double x; // x: horizontal, y - vertical coordinate
   for(auto &pos: positions){
-    y = 0;
-    /*
-     * positions:
-     * L0 - L1: 285
-     * L1 - L2: 345
-     * L2 - Straw: 523
-     */
-    switch(pos.first){
-      case 2:
-        y += 345;
-      case 1:
-        y += 285;
-      case 0:
-        y += 0;
-    }
+    y = getLayerPosition(pos.first);
     x = pos.second;
     sumXY += x * y;
     sumX += x;
@@ -77,14 +85,14 @@ pair<double, double> getEstimatedTrack(map<int, double> positions){
   return {a0, b0};
 }
 
-double estimatePositionInStraw(pair<double, double> trackAB){
-  double y = 285 + 345 + 523;
+double estimatePositionInLayer(pair<double, double> trackAB, int layer){
+  double y = getLayerPosition(layer);
   double x = (y - trackAB.second) / trackAB.first;
   return x;
 }
 
-TH2F* renormToUnity(TH2F* histIn){
-  TString newName = TString(histIn->GetName()) + TString("_norm");
+TH2F* renormToUnityByY(TH2F* histIn){
+  TString newName = TString(histIn->GetName()) + TString("_normY");
   auto histOut = static_cast<TH2F*>(histIn->Clone(newName));
   // histOut->SetTitle(Form("%s: microMegas vs additional straw spatial correaltion (normed);straw ch;MM ch", file.Data()));
   for(auto i = 1; i <= histOut->GetNbinsX(); i++){
@@ -99,10 +107,27 @@ TH2F* renormToUnity(TH2F* histIn){
   }
   return histOut;
 }
+TH2F* renormToUnityByX(TH2F* histIn){
+  TString newName = TString(histIn->GetName()) + TString("_normX");
+  auto histOut = static_cast<TH2F*>(histIn->Clone(newName));
+  // histOut->SetTitle(Form("%s: microMegas vs additional straw spatial correaltion (normed);straw ch;MM ch", file.Data()));
+  for(auto j = 1; j <= histOut->GetNbinsY(); j++){
+    auto integ = histOut->Integral(1, histOut->GetNbinsX(), j, j);
+    if(!integ) continue;
+    for(auto i = 1; i <= histOut->GetNbinsX(); i++){
+      auto c = histOut->GetBinContent(i, j);
+      auto e = histOut->GetBinError(i, j);
+      histOut->SetBinContent(i, j, static_cast<float>(c) / static_cast<float>(integ));
+      histOut->SetBinError(i, j, static_cast<float>(e) / static_cast<float>(integ));
+    }
+  }
+  return histOut;
+}
 
 void analyseMerged(){
   // string mergedFileName = "../out/runMerged_run_0832_run423.root";
-  TString mergedFileName = "../out/runMerged_run_0832_run423_timefix_all-100.root";
+  // TString mergedFileName = "../out/runMerged_run_0832_run423_timefix_all-100.root";
+  TString mergedFileName = "../out/runMerged_run_0832_run423_timefix_5-10.root";
   // auto f = TFile::Open(mergedFileName, "read");
 
   auto tVMM = new TChain("vmm");
@@ -118,12 +143,23 @@ void analyseMerged(){
 
   auto fOut = TFile::Open("_analysed_.root", "recreate");
 
+  auto hL0Straw = new TH2F("hL0Straw", "hL0Straw; straw; L0 strip", 6, 24, 30, 206, 54, 260);
+  auto hL1Straw = new TH2F("hL1Straw", "hL2Straw; straw; L1 strip", 6, 24, 30, 206, 54, 260);
+  auto hL2Straw = new TH2F("hL2Straw", "hL2Straw; straw; L2 strip", 6, 24, 30, 206, 54, 260);
+  auto estimatedStraw = new TH2F("estimatedStraw", "Estimated track position; straw; estimated position in L2 coords", 6, 24, 30, 206, 54, 260);
 
-  auto hL0Straw = new TH2F("hL0Straw", "hL0Straw; straw; L0 strip", 6, 24, 30, 56, 154, 210);
-  auto hL1Straw = new TH2F("hL1Straw", "hL2Straw; straw; L2 strip", 6, 24, 30, 56, 154, 210);
-  auto hL2Straw = new TH2F("hL2Straw", "hL2Straw; straw; L2 strip", 6, 24, 30, 56, 154, 210);
-  auto estimatedStraw = new TH2F("estimatedStraw", "Estimated track position; estimated position in L2 coords; straw", 206, 54, 260, 6, 24, 30);
-  
+  map<pair<int,int>, TH2F*> dtHists;
+  for(auto &straw: {25, 26, 27, 28, 29}){
+    for(auto &l: {0, 1, 2}){
+      dtHists.emplace(make_pair(l, straw), new TH2F(Form("hL%dStraw%dDT",l, straw), Form("hL%dStraw%dDT; MM strip; dT, ns",l, straw), 206, 54, 260, 200, -100, 100));
+    }
+  }
+  map<int, TH2F*> dtHistsProj;
+  for(auto &straw: {25, 26, 27, 28, 29}){
+    dtHistsProj.emplace(straw, new TH2F(Form("hProjecteddStraw%dDT",straw), Form("hProjecteddStraw%dDT; MM strip; dT, ns",straw), 206, 54, 260, 200, -100, 100));
+  }
+
+
   int nGood = 0;
   auto nEvents = apvan->GetEntries();
   for(auto event = 0; event < nEvents; event++){
@@ -158,23 +194,29 @@ void analyseMerged(){
           for(auto &hAPV: layerData)
             hist->Fill(h.strip, hAPV.first);
         }
+        for(auto &hAPV: layerData){
+          // printf("Filling %d, %d\n",i, h.strip);
+          dtHists.at(make_pair(i, h.strip))->Fill(hAPV.first, h.timeToScint);
+        }
       }
     }
     if(positions.size() < 2)
       continue;
     // printf("Event %d\t", event);
     auto trackParam = getEstimatedTrack(positions);
-    auto estimatedCoord = estimatePositionInStraw(trackParam);
+    auto estimatedCoord = estimatePositionInLayer(trackParam, 3);
     for(auto h: dataVMM){
       if(h.detector != 1)
         continue;
-      estimatedStraw->Fill(estimatedCoord, h.strip);
+      estimatedStraw->Fill(h.strip, estimatedCoord);
+      dtHistsProj.at(h.strip)->Fill(estimatedCoord, h.timeToScint);
     }
     nGood++;
   }
 
   for(auto &h: {hL0Straw, hL1Straw, hL2Straw}){
-    renormToUnity(h);
+    renormToUnityByY(h);
+    renormToUnityByX(h);
   }
 
   fOut->Write();
