@@ -90,7 +90,7 @@ public :
 
    vmm(TString, TString runType_ = "g1_p25_s100", TString mapFile_ = "map-strawOnly.txt");
    vmm(vector<TString>, TString runType_ = "g1_p25_s100", TString mapFile_ = "map-strawOnly.txt");
-   vmm(TChain *tree = nullptr);
+   vmm(TChain *tree = nullptr, TString runType_ = "g1_p25_s100", TString mapFile_ = "map-strawOnly.txt");
    virtual ~vmm();
    virtual void     Init() override;
    virtual void     Loop(unsigned long n = 0) override;
@@ -147,13 +147,14 @@ vmm::vmm(vector<TString> filenames, TString runType_, TString mapFile_) : runTyp
   Init();
 }
 
-vmm::vmm(TChain *tree) : analysisGeneral(tree),  triggerTimeStamp(nullptr), triggerCounter(nullptr),
-   boardId(nullptr), chip(nullptr), eventSize(nullptr),
-   daq_timestamp_s(nullptr), daq_timestamp_ns(nullptr),
-   tdo(nullptr), pdo(nullptr), flag(nullptr), threshold(nullptr),
-   bcid(nullptr), relbcid(nullptr), overflow(nullptr), orbitCount(nullptr), grayDecoded(nullptr),
-   channel(nullptr), febChannel(nullptr), mappedChannel(nullptr),
-   art_valid(nullptr), art(nullptr), art_trigger(nullptr)
+vmm::vmm(TChain *tree, TString runType_, TString mapFile_) : analysisGeneral(tree),  runType(runType_), mapFile(mapFile_),
+                                                             triggerTimeStamp(nullptr), triggerCounter(nullptr),
+                                                             boardId(nullptr), chip(nullptr), eventSize(nullptr),
+                                                             daq_timestamp_s(nullptr), daq_timestamp_ns(nullptr),
+                                                             tdo(nullptr), pdo(nullptr), flag(nullptr), threshold(nullptr),
+                                                             bcid(nullptr), relbcid(nullptr), overflow(nullptr), orbitCount(nullptr), grayDecoded(nullptr),
+                                                             channel(nullptr), febChannel(nullptr), mappedChannel(nullptr),
+                                                             art_valid(nullptr), art(nullptr), art_trigger(nullptr)
 {
   fChain = (tree == nullptr) ? GetTree("") : tree;
   Init();

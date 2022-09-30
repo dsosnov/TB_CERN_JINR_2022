@@ -85,6 +85,14 @@ public :
    };
    virtual mm2CenterHitParameters GetCentralHitsData(unsigned long) {return {};};
    virtual map<unsigned long, mm2CenterHitParameters> GetCentralHits(unsigned long long fromSec = 0, unsigned long long toSec = 0, bool saveOnly = false) {return {};};
+
+  struct hitParam{
+    int detector, strip;
+    int pdo;
+    long long timestamp;
+    double timeToScint;
+  };
+  virtual vector<hitParam> getHits(unsigned long){return {};}
 };
 
 TChain* analysisGeneral::GetTree(TString filename, TString treeName){

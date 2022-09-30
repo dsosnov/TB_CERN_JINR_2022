@@ -37,7 +37,7 @@ class evBuilder : public vmm {
 public :
    evBuilder(TString, TString runType_ = "g1_p25_s100-0&60", TString mapFile_ = "map-20220523.txt");
    evBuilder(vector<TString> filenames, TString runType_ = "g1_p25_s100-0&60", TString mapFile_ = "map-20220523.txt");
-   evBuilder(TChain *tree = nullptr);
+   evBuilder(TChain *tree = nullptr, TString runType_ = "g1_p25_s100-0&60", TString mapFile_ = "map-20220523.txt");
    virtual ~evBuilder();
    // virtual void     Init() override;
    virtual void     Loop(unsigned long n = 0) override;
@@ -70,6 +70,8 @@ public :
    tuple<double, double, double> getClusterParameters(double t_srtraw, double minT_straw_mm, int workType = 0);
   long long findFirstGoodPulser(unsigned long long fromSec = 0, unsigned long long toSec = 0);
 
+  virtual vector<hitParam> getHits(unsigned long) override;
+
   unsigned int mmDoubleReadout = 4; // 2  
 };
 
@@ -80,7 +82,7 @@ evBuilder::evBuilder(vector<TString> filenames, TString runType_, TString mapFil
 {
 }
 
-evBuilder::evBuilder(TChain *tree) : vmm(tree)
+evBuilder::evBuilder(TChain *tree, TString runType_, TString mapFile_) : vmm(tree, runType_, mapFile_)
 {
 }
 

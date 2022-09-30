@@ -1,9 +1,11 @@
 #ifndef vmm_cxx
 #define vmm_cxx
 #include "vmm.h"
-#include <TH2.h>
-#include <TH1.h>
-#include <TF1.h>
+#include "TH2.h"
+#include "TH1.h"
+#include "TF1.h"
+#include "TH2D.h"
+#include "TH1D.h"
 
 void vmm::Loop(unsigned long n)
 {

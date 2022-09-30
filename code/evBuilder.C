@@ -1,11 +1,12 @@
 #ifndef evBuilder_cxx
 #define evBuilder_cxx
 #include "evBuilder.h"
-#include <TStyle.h>
-#include <TF1.h>
-#include <TLegend.h>
-#include <TCanvas.h>
-
+#include "TStyle.h"
+#include "TF1.h"
+#include "TLegend.h"
+#include "TCanvas.h"
+#include "TH2D.h"
+#include "TH1D.h"
 
 void evBuilder::threePlotDrawF(TH1D *h1, TH1D *h2, TH1D *h3, TString fileEnding)
 {
@@ -161,6 +162,60 @@ long long evBuilder::findFirstGoodPulser(unsigned long long fromSec, unsigned lo
   }
   return -1;
 }
+
+vector<analysisGeneral::hitParam> evBuilder::getHits(unsigned long entry){
+  Long64_t ientry = LoadTree(entry);
+  if (ientry < 0)
+    return {};
+  fChain->GetEntry(entry);
+
+  double t_srtraw = 0;
+  int straw_bcid_ch_srtraw = 0;
+  int straw_pdo_ch_srtraw = 0;
+  unsigned int pdoThr = 100;
+
+  vector<hitParam> hitsScint0; // Scintillator 0
+  vector<hitParam> hitsStraw; // straw
+
+  for (int j = 0; j < channel->at(0).size(); j++)
+  {
+    int fch = channel->at(0).at(j);
+    int fchD = getMappedDetector(fch);
+    int fchM = getMappedChannel(fch);
+
+    int fpdoUC = pdo->at(0).at(j); // Uncorrected PDO, used at time calibration
+    int fpdo = correctPDO(fch, fpdoUC);
+    int ftdo = tdo->at(0).at(j);
+    int fbcid = grayDecoded->at(0).at(j);
+
+    if(fpdo < pdoThr) continue;
+    if(fchD == -1) continue;
+
+    if (fchD == 0 && fchM == 0){ // Sci 0
+      t_srtraw = getTimeByHand(fbcid, ftdo, 88, 140); //'hand' limits
+      hitsScint0.push_back({fchD, fchM, fpdo, 0, t_srtraw});        
+    } else if (fchD == 1){ // All straw ch
+      t_srtraw = getTime(fch, fbcid, ftdo, fpdoUC); // 'auto' limits
+      // t_srtraw = getTimeByHand(fbcid, ftdo, Y, Y); //'hand' limits
+      hitsStraw.push_back({fchD, fchM, fpdo, 0, t_srtraw});
+    } else {
+      continue;
+    }
+  }
+  if(!hitsScint0.size())
+    return {};
+  for(auto &h: hitsStraw){
+    int minTScint = 0;
+    for(auto sN = 1; sN < hitsScint0.size(); sN++){
+      if(fabs(h.timeToScint - hitsScint0.at(sN).timeToScint) < fabs(h.timeToScint - hitsScint0.at(minTScint).timeToScint))
+        minTScint = sN;
+    }
+    h.timeToScint = h.timeToScint - hitsScint0.at(minTScint).timeToScint;
+  }
+  return hitsStraw;
+
+}
+
 analysisGeneral::mm2CenterHitParameters evBuilder::GetCentralHitsData(unsigned long event){
   // printf("evBuilder::GetCentralHitsData(%lu)\n", event);
 
@@ -237,6 +292,7 @@ analysisGeneral::mm2CenterHitParameters evBuilder::GetCentralHitsData(unsigned l
             // }
           }
           isSync = true;
+          // printf("event %lu -- synchrosignal at %d (pdo %d)\n", event, j, fpdo);
           syncTime = getTime(fch, fbcid, ftdo, fpdoUC);
           prevbcid63 = fbcid;
           syncBcid = fbcid;
