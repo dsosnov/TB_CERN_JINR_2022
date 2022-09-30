@@ -218,6 +218,11 @@ double estimatePositionInStraw(pair<double, double> trackAB){
   double x = (y - trackAB.second) / trackAB.first;
   return x;
 }
+double estimatePositionInL2(pair<double, double> trackAB){
+  double y = 285 + 345;
+  double x = (y - trackAB.second) / trackAB.first;
+  return x;
+}
 
 constexpr bool PRINT_TO_FILE = false;
 constexpr bool DEBUG_PRINT = false;
@@ -484,7 +489,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
 
                 map<int, double> means = {{0, weightedMean(apv_hits_vec_l0)}, {1, weightedMean(apv_hits_vec_l1)}};
                 auto tr = getEstimatedTrack(means);
-                int propogated = static_cast<int>(round(estimatePositionInStraw(tr)));
+                int propogated = static_cast<int>(round(estimatePositionInL2(tr)));
 
                 vmm_hits_vec.clear();
 
