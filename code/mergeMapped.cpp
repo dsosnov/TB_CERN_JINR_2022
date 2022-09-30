@@ -4,8 +4,8 @@
 #include "TTree.h"
 #include "TString.h"
 
-// #include "apv.C"
-// #include "evBuilder.C"
+#include "apv.C"
+#include "evBuilder.C"
 
 using std::string;
 
@@ -21,7 +21,7 @@ void mergeMapped(string runVMM = "0832_cut10m", string runAPV = "423_cut10m", bo
   auto pairFile = TFile::Open(TString("../out/mapped_run_"+runVMM+"_run"+runAPV+tightText+fixTimeText+partialfileEnd+".root"), "read");
   auto pairTree = static_cast<TTree*>(pairFile->Get("mappedEvents"));
   long long eventNumAPV, eventNumVMM;
-  int deltaT;
+  long long deltaT;
   pairTree->SetBranchAddress("apv", &eventNumAPV);
   pairTree->SetBranchAddress("vmm", &eventNumVMM);
   pairTree->SetBranchAddress("deltaT", &deltaT);
@@ -48,7 +48,7 @@ void mergeMapped(string runVMM = "0832_cut10m", string runAPV = "423_cut10m", bo
   for(auto i = 0; i < nEntries; i++){
     pairTree->GetEntry(i);
     if(checkTimeDifference && abs(deltaT) > 50) continue;
-    // printf("%d -- deltaT: %d\n", i, deltaT);
+    printf("%d -- deltaT: %lld\n", i, deltaT);
     pairTreeNew->Fill();
     vmmTree->GetEntry(eventNumVMM);
     vmmTreeNew->Fill();

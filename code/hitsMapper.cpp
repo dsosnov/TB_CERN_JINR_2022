@@ -171,9 +171,9 @@ constexpr bool saveTemporaryParameters = true;
 
 void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n = 0)
 {
-    // pair<string, string> run_pair = {"run_0832", "run423"};
+    pair<string, string> run_pair = {"run_0832", "run423"};
     // pair<string, string> run_pair = {"run_0832_cut10m", "run423_cut10m"};
-    pair<string, string> run_pair = {"run_0832_cut", "run423_cut"};
+    // pair<string, string> run_pair = {"run_0832_cut", "run423_cut"};
     pair<int,int> firstSelectedEntries = {180038 + 21, 7042};
 
     auto apvan = new apv(run_pair.second);
