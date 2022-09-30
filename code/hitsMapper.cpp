@@ -578,6 +578,68 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                                 hitsMappedInEvent++;
                             bestHit = {hits_vmm_events_map.at(vectorPositionInTree).at(j).first, dt_apv_vmm, beforeLastPulserParametersCurrent, j, hitsMappedInEvent};
                         }
+                        {
+                            std::cout << "APV event: " << i << " (" << i << ")" << "\t";
+                            std::cout << "VMM event: " << j << " (" << hits_vmm_events_map.at(vectorPositionInTree).at(j).first << ")" << "\t Total of mapped " << numOfMapped << "\n";
+                            printf("dt_apv_vmm = %lld - %lld - %lld - round(%d * 25.0 / 1000.0) = %d\n", T_apv, startT_pulse_apv, pulseTime, diff_hit, dt_apv_vmm);
+                            // printf("Event parameters: %lld, %lu, %d, %d, %d, %lld\n", get<0>(beforeLastPulserParameters), get<1>(beforeLastPulserParameters), get<2>(beforeLastPulserParameters),
+                            //        get<3>(beforeLastPulserParameters), get<4>(beforeLastPulserParameters), get<5>(beforeLastPulserParameters));
+                            // std::cout << "!!! Mapped hits: " << numOfMapped << " !!! \n";
+                            if(PRINT_TO_FILE)
+                            {
+                                if (T_apv_sincePulse < 10e3)
+                                {
+                                    out_APV << "------- APV Double ReadOut Period shiiiish " << nPeriodsAPV << " -------- T = " << T_apv - startT_pulse_apv << " [us] \n";
+                                }
+                                else
+                                {
+                                    out_APV << "------- APV Double ReadOut Period " << nPeriodsAPV << " -------- T = " << T_apv - startT_pulse_apv << " [us] \n";
+                                }
+                            }
+                            for (int k = 0; k < apv_hits_vec.size(); k++)
+                            {
+                                if(PRINT_TO_FILE)
+                                {
+                                    out_APV << k << "\t Strip: " << apv_hits_vec.at(k).first << "\n";
+                                    out_APV << "  \t PDO: " << apv_hits_vec.at(k).second << "\n";
+                                }
+                                mappedHitsPdo_apv->Fill(apv_hits_vec.at(k).second);
+                            }
+                            if(PRINT_TO_FILE)
+                            {
+                                out_APV << "------- APV Layer 0 -------- \n";
+                                for (int k = 0; k < apv_hits_vec_l0.size(); k++)
+                                {
+                                    out_APV << k << "\t Strip: " << apv_hits_vec_l0.at(k).first << "\n";
+                                    out_APV << "  \t PDO: " << apv_hits_vec_l0.at(k).second << "\n";
+                                }
+                                out_APV << "------- APV Layer 1 -------- \n";
+                                for (int k = 0; k < apv_hits_vec_l1.size(); k++)
+                                {
+                                    out_APV << k << "\t Strip: " << apv_hits_vec_l1.at(k).first << "\n";
+                                    out_APV << "  \t PDO: " << apv_hits_vec_l1.at(k).second << "\n";
+                                }
+
+                                out_APV << "------- VMM Period " << nPeriods / 200 << "  (" << nPeriods % 200 << ") -------- T = " << pulseTime + diff_hit * 25 / 1000 << "[us] (dT = " << dt_apv_vmm << " [us]) \n";
+                            }
+
+                            for (int l = 0; l < vmm_hits_vec.size(); l++)
+                            {
+                                if(PRINT_TO_FILE)
+                                {
+                                    out_APV << "\t Strip: " << vmm_hits_vec.at(l).first << "\n";
+                                    out_APV << "\t PDO: " << vmm_hits_vec.at(l).second << "\n";
+                                }
+                                mappedHitsPdo->Fill(vmm_hits_vec.at(l).second);
+                                // mappedHitsVMM++;
+                            }
+                            // tbh_apv_mapped->Fill(T_apv - startT_pulse_apv - prevT_apv);
+                            // tbh_vmm_mapped->Fill(pulseTime + diff_hit * 25 / 1000 - prevT_vmm);
+                            // tb_vmm_apv->Fill(abs(dt_apv_vmm));
+
+                            // prevT_apv = T_apv - startT_pulse_apv;
+                            // prevT_vmm = pulseTime + diff_hit * 25 / 1000;
+                        }
                         if(findBestVMM)
                         {
                             hitMapped = false;
@@ -586,6 +648,24 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                         else
                         {
                             break;
+                        }
+                    }
+                    else
+                    {
+                        if (vmm_hits_vec.size() != 0)
+                        {
+                            if(PRINT_TO_FILE)
+                                out_VMM_hits << "------- VMM Period " << nPeriods / 200 << "  (" << nPeriods % 200 << ") -------- T = " << pulseTime + diff_hit * 25 / 1000 << "[us] (dT = " << dt_apv_vmm << " [us]) \n";
+
+                            for (int l = 0; l < vmm_hits_vec.size(); l++)
+                            {
+                                if(PRINT_TO_FILE)
+                                {
+                                    out_VMM_hits << "\t Strip: " << vmm_hits_vec.at(l).first << "\n";
+                                    out_VMM_hits << "\t PDO: " << vmm_hits_vec.at(l).second << "\n";
+                                }
+                                UNmappedHitsVMM++;
+                            }
                         }
                     }
 
