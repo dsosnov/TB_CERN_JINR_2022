@@ -177,26 +177,34 @@ double weightedMean(vector<pair<int, int>> hits){
     return center;
 }
 
+/*
+ * positions:
+ * L0 - L1: 285
+ * L1 - L2: 345
+ * L2 - Straw: 523
+ * return: position in mm, from Layer 0
+ */
+int getLayerPosition(int layer){
+  int y = 0;
+  switch(layer){
+    case 3:
+      y += 523;
+    case 2:
+      y += 345;
+    case 1:
+      y += 285;
+    case 0:
+      y += 0;
+  }
+  return y;
+}
+
 pair<double, double> getEstimatedTrack(map<int, double> positions){
   int n = 0;
   double sumXY = 0, sumX = 0, sumY = 0, sumX2 = 0, sumY2 = 0;
   int y; double x; // x: horizontal, y - vertical coordinate
   for(auto &pos: positions){
-    y = 0;
-    /*
-     * positions:
-     * L0 - L1: 285
-     * L1 - L2: 345
-     * L2 - Straw: 523
-     */
-    switch(pos.first){
-      case 2:
-        y += 345;
-      case 1:
-        y += 285;
-      case 0:
-        y += 0;
-    }
+    y = getLayerPosition(pos.first);
     x = pos.second;
     sumXY += x * y;
     sumX += x;
@@ -213,13 +221,8 @@ pair<double, double> getEstimatedTrack(map<int, double> positions){
   return {a0, b0};
 }
 
-double estimatePositionInStraw(pair<double, double> trackAB){
-  double y = 285 + 345 + 523;
-  double x = (y - trackAB.second) / trackAB.first;
-  return x;
-}
-double estimatePositionInL2(pair<double, double> trackAB){
-  double y = 285 + 345;
+double estimatePositionInLayer(pair<double, double> trackAB, int layer){
+  double y = getLayerPosition(layer);
   double x = (y - trackAB.second) / trackAB.first;
   return x;
 }
@@ -489,7 +492,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
 
                 map<int, double> means = {{0, weightedMean(apv_hits_vec_l0)}, {1, weightedMean(apv_hits_vec_l1)}};
                 auto tr = getEstimatedTrack(means);
-                int propogated = static_cast<int>(round(estimatePositionInL2(tr)));
+                int propogated = static_cast<int>(round(estimatePositionInLayer(tr, 2)));
 
                 vmm_hits_vec.clear();
 
