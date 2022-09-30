@@ -162,6 +162,63 @@ long long loadNextVMM(long long firstElement,
     return elementVector.size(); // next start index
 }
 
+double weightedMean(vector<pair<int, int>> hits){
+    long long sum = 0, sumWeights = 0, nHits = 0;
+    for(auto &h: hits){
+        long long strip = h.first;
+        long long pdo = h.second;
+        sum += strip * pdo;
+        sumWeights += pdo;
+        nHits++;
+    }
+    double center = -1;
+    if(nHits)
+        center = static_cast<double>(sum) / static_cast<double>(sumWeights);
+    return center;
+}
+
+pair<double, double> getEstimatedTrack(map<int, double> positions){
+  int n = 0;
+  double sumXY = 0, sumX = 0, sumY = 0, sumX2 = 0, sumY2 = 0;
+  int y; double x; // x: horizontal, y - vertical coordinate
+  for(auto &pos: positions){
+    y = 0;
+    /*
+     * positions:
+     * L0 - L1: 285
+     * L1 - L2: 345
+     * L2 - Straw: 523
+     */
+    switch(pos.first){
+      case 2:
+        y += 345;
+      case 1:
+        y += 285;
+      case 0:
+        y += 0;
+    }
+    x = pos.second;
+    sumXY += x * y;
+    sumX += x;
+    sumY += y;
+    sumX2 += x * x;
+    // sumY2 += y * y;
+    n++;
+  }
+  double a0 = (n * sumXY - sumX * sumY)/(n * sumX2 - sumX * sumX);
+  double b0 = (sumY - a0*sumX)/n;
+  // double b1 = (sumX2 * sumY - sumXY * sumX) / (n * sumX2 - sumX * sumX);
+  // double a1 = (sumY - n*b1) / sumX;
+  // printf("%d layers -- a0: %g, b0: %g; a1: %g, b1: %g;\n", n, a0, b0, a1, b1);
+  return {a0, b0};
+}
+
+double estimatePositionInStraw(pair<double, double> trackAB){
+  double y = 285 + 345 + 523;
+  double x = (y - trackAB.second) / trackAB.first;
+  return x;
+}
+
 constexpr bool PRINT_TO_FILE = false;
 constexpr bool DEBUG_PRINT = false;
 constexpr bool findBestVMM = true;
@@ -422,8 +479,12 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                         apv_hits_vec.push_back(make_pair(strip, pdo));
                 }
 
-                if (apv_hits_vec.size() == 0)
+                if (!apv_hits_vec.size() || !apv_hits_vec_l0.size() || !apv_hits_vec_l1.size())
                     continue;
+
+                map<int, double> means = {{0, weightedMean(apv_hits_vec_l0)}, {1, weightedMean(apv_hits_vec_l1)}};
+                auto tr = getEstimatedTrack(means);
+                int propogated = static_cast<int>(round(estimatePositionInStraw(tr)));
 
                 vmm_hits_vec.clear();
 
@@ -556,18 +617,26 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
 
                     hitMapped = false;
 
-                    for (unsigned long k = 0; k < apv_hits_vec.size(); k++)
+                    for (unsigned long l = 0; l < vmm_hits_vec.size(); l++)
                     {
-                        for (unsigned long l = 0; l < vmm_hits_vec.size(); l++)
-                        {
-                            if (vmm_hits_vec.size() != 0 && abs(apv_hits_vec.at(k).first - vmm_hits_vec.at(l).first) < 5){
-                                hitMapped = true;
-                                break;
-                            }
-                        }
-                        if (hitMapped)
+                        if (abs(propogated - vmm_hits_vec.at(l).first) < 5){
+                            hitMapped = true;
                             break;
+                        }
                     }
+
+                    // for (unsigned long k = 0; k < apv_hits_vec.size(); k++)
+                    // {
+                    //     for (unsigned long l = 0; l < vmm_hits_vec.size(); l++)
+                    //     {
+                    //         if (vmm_hits_vec.size() != 0 && abs(apv_hits_vec.at(k).first - vmm_hits_vec.at(l).first) < 5){
+                    //             hitMapped = true;
+                    //             break;
+                    //         }
+                    //     }
+                    //     if (hitMapped)
+                    //         break;
+                    // }
 
                     if (hitMapped)
                     {
@@ -579,9 +648,12 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                             bestHit = {hits_vmm_events_map.at(vectorPositionInTree).at(j).first, dt_apv_vmm, beforeLastPulserParametersCurrent, j, hitsMappedInEvent};
                         }
                         {
+                            if(DEBUG_PRINT)
+                            {
                             std::cout << "APV event: " << i << " (" << i << ")" << "\t";
                             std::cout << "VMM event: " << j << " (" << hits_vmm_events_map.at(vectorPositionInTree).at(j).first << ")" << "\t Total of mapped " << numOfMapped << "\n";
-                            printf("dt_apv_vmm = %lld - %lld - %lld - round(%d * 25.0 / 1000.0) = %d\n", T_apv, startT_pulse_apv, pulseTime, diff_hit, dt_apv_vmm);
+                            printf("dt_apv_vmm = %lld - %lld - %lld - round(%d * 25.0 / 1000.0) = %lld\n", T_apv, startT_pulse_apv, pulseTime, diff_hit, dt_apv_vmm);
+                            }
                             // printf("Event parameters: %lld, %lu, %d, %d, %d, %lld\n", get<0>(beforeLastPulserParameters), get<1>(beforeLastPulserParameters), get<2>(beforeLastPulserParameters),
                             //        get<3>(beforeLastPulserParameters), get<4>(beforeLastPulserParameters), get<5>(beforeLastPulserParameters));
                             // std::cout << "!!! Mapped hits: " << numOfMapped << " !!! \n";
