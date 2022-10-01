@@ -227,19 +227,58 @@ double estimatePositionInLayer(pair<double, double> trackAB, int layer){
   return x;
 }
 
-constexpr bool PRINT_TO_FILE = false;
+map<pair<string, string>, pair<int, int>> firstPulserMap = {
+    {{"run_0832", "run423"}, {180059, 7042}}, // First APV vs VMM dt = 23209318 or 2320 pulses
+    {{"run_0832_cut", "run423_cut"}, {180059, 7042}}, // First APV vs VMM dt = 23209318 or 2320 pulses
+    {{"run_0832_cut10m", "run423_cut10m"}, {180059, 7042}}, // First APV vs VMM dt = 23209318 or 2320 pulses
+    {{"run_0831", "run422"}, {151740, 7675}}, // First APV vs VMM dt = 32988 or 3 pulses
+    {{"run_0830", "run421"}, {239786, 7633}}, // First APV vs VMM dt = 17748110 or 1774 pulses
+    {{"run_0828", "run420"}, {138863, 3669}}, // First APV vs VMM dt = 32934 or 3 pulses
+    {{"run_0827", "run419"}, {254990, 7638}}, // First APV vs VMM dt = 18284390 or 1828 pulses
+    {{"run_0826", "run418"}, {80142, 3928}}, // First APV vs VMM dt = 32524 or 3 pulses
+    // {{"run_0825", "run417"} //No vmm pulses
+    {{"run_0824", "run416"}, {166310, 3429}}, // First APV vs VMM dt = 1477467 or 147 pulses
+    {{"run_0821", "run412"}, {245637, 7662}}, // First APV vs VMM dt = 23988401 or 2398 pulses
+    {{"run_0818", "run411"}, {141763, 3709}}, // First APV vs VMM dt = 26874351 or 2687 pulses
+    // {{"run_0817", "run410"}, {53049, 126}}, // First APV vs VMM dt = 33004 or 3 pulses -- during acces
+    // {{"run_0816", "run409"} // No apv pulses; No vmm pulses
+    {{"run_0815", "run408"}, {238541, 7439}}, // First APV vs VMM dt = 25239911 or 2523 pulses
+    {{"run_0814", "run407"}, {227778, 7572}}, // First APV vs VMM dt = 33027 or 3 pulses ; gaps between first n pulses in APV
+    // {{"run_0813", "run406"} // No apv pulses
+    // {{"run_0812", "run405"} // No apv pulses
+    // {{"run_0809", "run399"} // No apv pulses
+    // {{"run_0808", "run398"} // No apv pulses; No vmm pulses
+    // {{"run_0807", "run397"} // No apv pulses
+    {{"run_0805", "run395"}, {202993, 7800}}, // First APV vs VMM dt = 32394 or 3 pulses
+    {{"run_0802", "run394"}, {218605, 9372}}, // First APV vs VMM dt = 32976 or 3 pulses
+    {{"run_0801", "run393"}, {229541, 11715}}, // First APV vs VMM dt = 33058 or 3 pulses
+    // {{"run_0800", "run392"} // No apv pulses
+    // {{"run_0797", "run388"} // No apv pulses
+    {{"run_0794", "run385"}, {330200, 11716}}, // First APV vs VMM dt = 41550608 or 4155 pulses
+    {{"run_0792", "run383"}, {265274, 11227}}, // First APV vs VMM dt = 18083779 or 1808 pulses
+    // {{"run_0791", "run382"} // First APV vs VMM dt = -5158615 or -515 pulses; *(VMM is earlier than APV)
+    // {{"run_0789", "run380"} // First APV vs VMM dt = -6584644 or -658 pulses *(VMM is earlier than APV)
+    {{"run_0788", "run379"}, {350758, 18140}}, // First APV vs VMM dt = 15829384 or 1582 pulses
+};
+
+constexpr bool PRINT_TO_FILE = true;
 constexpr bool DEBUG_PRINT = false;
 constexpr bool findBestVMM = true;
 constexpr bool printMerged = false;
 constexpr bool saveBackup = false;
 constexpr bool saveTemporaryParameters = true;
 
-void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n = 0)
+void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n = 0, string runVMM="0832", string runAPV = "423")
 {
-    pair<string, string> run_pair = {"run_0832", "run423"};
-    // pair<string, string> run_pair = {"run_0832_cut10m", "run423_cut10m"};
+    pair<string, string> run_pair = {Form("run_%s", runVMM.c_str()), Form("run%s", runAPV.c_str())};
+    if(!firstPulserMap.count(run_pair))
+    {
+        printf("No such event in firstPulserMap! Exiting...\n");
+        exit(0);
+    }
     // pair<string, string> run_pair = {"run_0832_cut", "run423_cut"};
-    pair<int,int> firstSelectedEntries = {180038 + 21, 7042};
+    // pair<int,int> firstSelectedEntries = {180038 + 21, 7042};
+    pair<int,int> firstSelectedEntries = firstPulserMap.at(run_pair);
 
     auto apvan = new apv(run_pair.second);
     apvan->useSyncSignal();
