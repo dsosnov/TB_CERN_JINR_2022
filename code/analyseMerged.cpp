@@ -176,7 +176,8 @@ void analyseMerged(string runVMM = "0832", string runAPV = "423", bool tight = f
       auto meanPos = getMeanPosition(layerData, i);
       if(!meanPos)
         continue;
-      positions.emplace(i, meanPos.value());
+      if(i < 2)
+        positions.emplace(i, meanPos.value());
       // printf("Event %d, position for layer %d: %g\n", event, i, meanPos.value());
       TH2F* hist = nullptr;
       switch(i){
