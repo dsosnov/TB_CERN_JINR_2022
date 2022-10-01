@@ -124,10 +124,13 @@ TH2F* renormToUnityByX(TH2F* histIn){
   return histOut;
 }
 
-void analyseMerged(){
+void analyseMerged(string runVMM = "0832", string runAPV = "423", bool tight = false, bool timefix = true, string partialfileEnd = ""){
+  string tightText = tight ? "_tight" : "";
+  string fixTimeText = timefix ? "_timefix" : "";
   // string mergedFileName = "../out/runMerged_run_0832_run423.root";
   // TString mergedFileName = "../out/runMerged_run_0832_run423_timefix_all-100.root";
-  TString mergedFileName = "../out/runMerged_run_0832_run423_timefix_5-10.root";
+  // TString mergedFileName = "../out/runMerged_run_0832_run423_timefix_5-10.root";
+  auto mergedFileName = TString("../out/runMerged_run_"+runVMM+"_run"+runAPV+tightText+fixTimeText+partialfileEnd+".root");
   // auto f = TFile::Open(mergedFileName, "read");
 
   auto tVMM = new TChain("vmm");
