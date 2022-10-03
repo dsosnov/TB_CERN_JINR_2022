@@ -20,6 +20,10 @@ using std::set;
 
 // IMPORTANT change: fixSRSTime
 // return: time, us
+double apvTimeTimeSRSTimestamp(int diff, bool fixSRSTime = false){
+    return diff * 25.0 * (fixSRSTime ? 400000.0/400037.0 : 1.0) / 1000.0;
+}
+
 int apv_time_from_SRS(int srs1, int srs2, bool fixSRSTime = false)
 {
     int diff = 0;
@@ -34,7 +38,8 @@ int apv_time_from_SRS(int srs1, int srs2, bool fixSRSTime = false)
     }
 
     // Since standard time between SRSTimeStamps is 400038 (400037), but not 400000, correct srsTimeStamp clock time
-    return round(diff * 25.0 * (fixSRSTime ? 400000.0/400037.0 : 1.0) / 1000.0);
+    // return round(diff * 25.0 * (fixSRSTime ? 400000.0/400037.0 : 1.0) / 1000.0);
+    return round(apvTimeTimeSRSTimestamp(diff, fixSRSTime));
 }
 
 int vmmRemoveFirstNPuslers(vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>> &hits_vmm_v, int nRemoved = 637){
@@ -227,19 +232,93 @@ double estimatePositionInLayer(pair<double, double> trackAB, int layer){
   return x;
 }
 
-constexpr bool PRINT_TO_FILE = false;
+map<pair<string, string>, pair<int, int>> firstPulserMap = {
+    {{"run_0832", "run423"}, {180059, 7042}}, // First APV vs VMM dt = 23209318 or 2320 pulses
+    {{"run_0832_cut", "run423_cut"}, {180059, 7042}}, // First APV vs VMM dt = 23209318 or 2320 pulses
+    {{"run_0832_cut10m", "run423_cut10m"}, {180059, 7042}}, // First APV vs VMM dt = 23209318 or 2320 pulses
+    {{"run_0831", "run422"}, {151740, 7675}}, // First APV vs VMM dt = 32988 or 3 pulses
+    {{"run_0830", "run421"}, {239786, 7633}}, // First APV vs VMM dt = 17748110 or 1774 pulses
+    {{"run_0828", "run420"}, {138863, 3669}}, // First APV vs VMM dt = 32934 or 3 pulses
+    {{"run_0827", "run419"}, {254990, 7638}}, // First APV vs VMM dt = 18284390 or 1828 pulses
+    {{"run_0826", "run418"}, {80142, 3928}}, // First APV vs VMM dt = 32524 or 3 pulses
+    // {{"run_0825", "run417"} //No vmm pulses
+    {{"run_0824", "run416"}, {166310, 3429}}, // First APV vs VMM dt = 1477467 or 147 pulses
+    {{"run_0821", "run412"}, {245637, 7662}}, // First APV vs VMM dt = 23988401 or 2398 pulses
+    {{"run_0818", "run411"}, {141763, 3709}}, // First APV vs VMM dt = 26874351 or 2687 pulses
+    // {{"run_0817", "run410"}, {53049, 126}}, // First APV vs VMM dt = 33004 or 3 pulses -- during acces
+    // {{"run_0816", "run409"} // No apv pulses; No vmm pulses
+    {{"run_0815", "run408"}, {238541, 7439}}, // First APV vs VMM dt = 25239911 or 2523 pulses
+    {{"run_0814", "run407"}, {227778, 7572}}, // First APV vs VMM dt = 33027 or 3 pulses ; gaps between first n pulses in APV
+    // {{"run_0813", "run406"} // No apv pulses
+    // {{"run_0812", "run405"} // No apv pulses
+    // {{"run_0809", "run399"} // No apv pulses
+    // {{"run_0808", "run398"} // No apv pulses; No vmm pulses
+    // {{"run_0807", "run397"} // No apv pulses
+    {{"run_0805", "run395"}, {202993, 7800}}, // First APV vs VMM dt = 32394 or 3 pulses
+    {{"run_0802", "run394"}, {218605, 9372}}, // First APV vs VMM dt = 32976 or 3 pulses
+    {{"run_0801", "run393"}, {229541, 11715}}, // First APV vs VMM dt = 33058 or 3 pulses
+    // {{"run_0800", "run392"} // No apv pulses
+    // {{"run_0797", "run388"} // No apv pulses
+    {{"run_0794", "run385"}, {330200, 11716}}, // First APV vs VMM dt = 41550608 or 4155 pulses
+    {{"run_0792", "run383"}, {265274, 11227}}, // First APV vs VMM dt = 18083779 or 1808 pulses
+    // {{"run_0791", "run382"} // First APV vs VMM dt = -5158615 or -515 pulses; *(VMM is earlier than APV)
+    // {{"run_0789", "run380"} // First APV vs VMM dt = -6584644 or -658 pulses *(VMM is earlier than APV)
+    {{"run_0788", "run379"}, {350758, 18140}}, // First APV vs VMM dt = 15829384 or 1582 pulses
+};
+// Alternative: first VMM pulser, usiailly about 33ms before first APV
+map<pair<string, string>, pair<int, int>> firstPulserMapAlternative = {
+    {{"run_0832", "run423"}, {179396, 7042}}, // First APV vs VMM dt = 23209318 or 2320 pulses
+    {{"run_0832_cut", "run423_cut"}, {179396, 7042}}, // First APV vs VMM dt = 23209318 or 2320 pulses
+    {{"run_0832_cut10m", "run423_cut10m"}, {179396, 7042}}, // First APV vs VMM dt = 23209318 or 2320 pulses
+    {{"run_0831", "run422"}, {151064, 7675}}, // First APV vs VMM dt = 32988 or 3 pulses
+    {{"run_0830", "run421"}, {239117, 7633}}, // First APV vs VMM dt = 17748110 or 1774 pulses
+    {{"run_0828", "run420"}, {138204, 3669}}, // First APV vs VMM dt = 32934 or 3 pulses
+    // {{"run_0827", "run419"}, {, 7638}}, // First APV vs VMM dt = 18284390 or 1828 pulses // VMM started 30 sec before APV and counts normally
+    {{"run_0826", "run418"}, {79477, 3928}}, // First APV vs VMM dt = 32524 or 3 pulses
+    // {{"run_0825", "run417"} //No vmm pulses
+    // {{"run_0824", "run416"}, {, 3429}}, // First APV vs VMM dt = 1477467 or 147 pulses // VMM started 0.7 sec before APV and counts normally
+    {{"run_0821", "run412"}, {245098, 7662}}, // First APV vs VMM dt = 23988401 or 2398 pulses
+    {{"run_0818", "run411"}, {141090, 3709}}, // First APV vs VMM dt = 26874351 or 2687 pulses
+    // {{"run_0817", "run410"}, {53049, 126}}, // First APV vs VMM dt = 33004 or 3 pulses -- during acces
+    // {{"run_0816", "run409"} // No apv pulses; No vmm pulses
+    {{"run_0815", "run408"}, {237884, 7439}}, // First APV vs VMM dt = 25239911 or 2523 pulses
+    {{"run_0814", "run407"}, {193345, 7572}}, // First APV vs VMM dt = 33027 or 3 pulses ; gaps between first n pulses in APV
+    // {{"run_0813", "run406"} // No apv pulses
+    // {{"run_0812", "run405"} // No apv pulses
+    // {{"run_0809", "run399"} // No apv pulses
+    // {{"run_0808", "run398"} // No apv pulses; No vmm pulses
+    // {{"run_0807", "run397"} // No apv pulses
+    {{"run_0805", "run395"}, {202356, 7800}}, // First APV vs VMM dt = 32394 or 3 pulses
+    {{"run_0802", "run394"}, {217939, 9372}}, // First APV vs VMM dt = 32976 or 3 pulses
+    {{"run_0801", "run393"}, {228878, 11715}}, // First APV vs VMM dt = 33058 or 3 pulses
+    // {{"run_0800", "run392"} // No apv pulses
+    // {{"run_0797", "run388"} // No apv pulses
+    {{"run_0794", "run385"}, {329538, 11716}}, // First APV vs VMM dt = 41550608 or 4155 pulses
+    {{"run_0792", "run383"}, {264602, 11227}}, // First APV vs VMM dt = 18083779 or 1808 pulses
+    // {{"run_0791", "run382"} // First APV vs VMM dt = -5158615 or -515 pulses; *(VMM is earlier than APV)
+    // {{"run_0789", "run380"} // First APV vs VMM dt = -6584644 or -658 pulses *(VMM is earlier than APV)
+    {{"run_0788", "run379"}, {350095, 18140}}, // First APV vs VMM dt = 15829384 or 1582 pulses
+};
+
+constexpr bool PRINT_TO_FILE = true;
 constexpr bool DEBUG_PRINT = false;
 constexpr bool findBestVMM = true;
 constexpr bool printMerged = false;
 constexpr bool saveBackup = false;
 constexpr bool saveTemporaryParameters = true;
 
-void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n = 0)
+// AlternativeStart -- first VMM selected as first good VMM pulser in case the difference between first good APV and VMM is about 33ms
+void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n = 0, string runVMM="0832", string runAPV = "423", bool alternativeStart = false)
 {
-    pair<string, string> run_pair = {"run_0832", "run423"};
-    // pair<string, string> run_pair = {"run_0832_cut10m", "run423_cut10m"};
+    pair<string, string> run_pair = {Form("run_%s", runVMM.c_str()), Form("run%s", runAPV.c_str())};
+    if(!firstPulserMap.count(run_pair))
+    {
+        printf("No such event in firstPulserMap! Exiting...\n");
+        exit(0);
+    }
     // pair<string, string> run_pair = {"run_0832_cut", "run423_cut"};
-    pair<int,int> firstSelectedEntries = {180038 + 21, 7042};
+    // pair<int,int> firstSelectedEntries = {180038 + 21, 7042};
+    pair<int,int> firstSelectedEntries = alternativeStart ? firstPulserMapAlternative.at(run_pair) : firstPulserMap.at(run_pair);
 
     auto apvan = new apv(run_pair.second);
     apvan->useSyncSignal();
@@ -256,9 +335,11 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
     printf("APV entries for analysis: [%d, %d]\n", firstEntry, lastEntry);
     
     long long startT_apv = 0;
+    long long finishT_apv = 0;
     long long startT_pulse_apv = 0;
     long long T_apv = 0;
     long long T_apv_sincePulse = 0;
+    long long T_apv_sincePulseSRSTS = 0; // in timestamps
     long long T_apv_pulse_prev = 0;
     long long nPeriodsAPV = 0;
     // if time between two syncs larger then multiple pulser periods, merging fails due to calculation N periods for APV from pulser time only
@@ -272,20 +353,21 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
 
     string tightText = tight ? "_tight" : "";
     string fixTimeText = fixSRSTime ? "_timefix" : "";
+    string alternativeText = alternativeStart ? "_alternative" : "";
     string dupText = findBestVMM ? "" : "_firstVMM";
 
     ofstream out_APV;
-    out_APV.open(TString("../out/APV_hits_maped_"+run_pair.first+"_"+run_pair.second+tightText+fixTimeText+dupText+numberingText+".txt").Data());
+    out_APV.open(TString("../out/APV_hits_maped_"+run_pair.first+"_"+run_pair.second+tightText+fixTimeText+dupText+alternativeText+numberingText+".txt").Data());
 
     // ofstream out_VMM;
-    // out_VMM.open(TString("../out/VMM_hits_"+run_pair.first+"_"+run_pair.second+"_after"+tightText+fixTimeText+dupText+numberingText+".txt").Data());
+    // out_VMM.open(TString("../out/VMM_hits_"+run_pair.first+"_"+run_pair.second+"_after"+tightText+fixTimeText+dupText+alternativeText+numberingText+".txt").Data());
 
     ofstream out_VMM_hits;
-    out_VMM_hits.open(TString("../out/VMM_hits_UNmaped_"+run_pair.first+"_"+run_pair.second+tightText+fixTimeText+dupText+numberingText+".txt").Data());
+    out_VMM_hits.open(TString("../out/VMM_hits_UNmaped_"+run_pair.first+"_"+run_pair.second+tightText+fixTimeText+dupText+alternativeText+numberingText+".txt").Data());
 
     int numOfMapped = 0;
 
-    auto out = TFile::Open(TString("../out/mapped_"+run_pair.first+"_"+run_pair.second+tightText+fixTimeText+dupText+numberingText+".root"), "recreate");
+    auto out = TFile::Open(TString("../out/mapped_"+run_pair.first+"_"+run_pair.second+tightText+fixTimeText+dupText+alternativeText+numberingText+".root"), "recreate");
 
     static long long eventNumAPV = -1, eventNumVMM = -1;
     static long long deltaT;
@@ -295,7 +377,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
     mappedEventNums->Branch("vmm", &eventNumVMM);
     mappedEventNums->Branch("deltaT", &deltaT);
     TFile* mappedEventBackupFile = nullptr;
-    TString mapBackupFileName = TString("../out/mappedEvents_"+run_pair.first+"_"+run_pair.second+tightText+fixTimeText+dupText+numberingText+"_bak.root");
+    TString mapBackupFileName = TString("../out/mappedEvents_"+run_pair.first+"_"+run_pair.second+tightText+fixTimeText+dupText+alternativeText+numberingText+"_bak.root");
     // map<long long, pair<long long, int>> mappedEventMap = {};
 
     auto stripsVMM = make_shared<TH1F>("stripsVMM", "stripsVMM", 360, 0, 360);
@@ -314,6 +396,41 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
     auto tb_vmm_apv = make_shared<TH1F>("tb_vmm_apv", "#Delta t between events with mapped hits VMM and APV in us", 2000, 0, 100000);
     auto tb_u_vmm_apv = make_shared<TH1F>("tb_u_vmm_apv", "#Delta t between events with unmapped hits VMM and APV in us", 2000, 0, 100000);
     auto tbh_apv = make_shared<TH1F>("tbh_apv", "#Delta t between events with hits APV in us", 2000, 0, 20000);
+    auto tracksPerTime = make_shared<TH1F>("tracksPerTime", "tracksPerTime; APV DAQ time, s", 400, 0, 400);
+    auto vmmHits2DOPerTime = make_shared<TH1F>("vmmHits2DOPerTime", "vmmHits2DOPerTime; APV DAQ time, s", 400, 0, 400);
+    auto vmmChannelMerged = make_shared<TH1F>("vmmChannelMerged", "vmmChannelMerged; channel", 56, 154, 210);
+    auto vmmChannelAll = make_shared<TH1F>("vmmChannelAll", "vmmChannelAll; channel", 56, 154, 210);
+    auto vmmChannelMultiplicityMerged = make_shared<TH1F>("vmmChannelMultiplicityMerged", "vmmChannelMultiplicityMerged; N channels", 64, 0, 64);
+    auto vmmChannelMultiplicityAll = make_shared<TH1F>("vmmChannelMultiplicityAll", "vmmChannelMultiplicityAll; N channels", 64, 0, 64);
+    auto vmmTrigScintAll = make_shared<TH1F>("vmmTrigScintAll", "vmmTrigScintAll; time, s", 400, 0, 400);
+    auto vmmType3All = make_shared<TH1F>("vmmType3All", "vmmType3All; time, s", 400, 0, 400);
+    auto vmmChannelTimeAll = make_shared<TH2F>("vmmChannelTimeAll", "vmmChannelTimeAll; time, s; channel", 400, 0, 400, 56, 154, 210);
+
+    auto hDACTimeDiff = make_shared<TH1F>("hDACTimeDiff", "hDACTimeDiff; #Delta DAC time, #mus", 20000, -10000, 10000);
+    auto hDACTimeDiffPerTime = make_shared<TH2F>("hDACTimeDiffPerTime", "hDACTimeDiffPerTime; time, s; #Delta DAC time, #mus", 4000, 0, 400, 2000, -10000, 10000);
+    auto hnMerged = make_shared<TH1F>("hnMerged", "hnMerged; time, s;", 4000, 0, 400);
+    // dac time difference
+    // N merged per time
+    auto hAPVEstimatedTime = make_shared<TH1F>("hAPVEstimatedTime", "hAPVEstimatedTime; time, s; T_{DAC} - T_{estimated} , #mus", 4000, 0, 400);
+    auto hAPVEstimatedTimeInSpill = make_shared<TH1F>("hAPVEstimatedTimeInSpill", "hAPVEstimatedTimeInSpill; time, s; (T_{pulse}-T_{pulse-1}) - #Sum(T_{estimated}) , #mus", 4000, 0, 400);
+
+    auto hVMMEstimatedTimeBetweenPulsers = make_shared<TH2F>("hVMMEstimatedTimeBetweenPulsers", "hVMMEstimatedTimeBetweenPulsers; time, s; T_{pulse}-T_{pulse-1} , #mus", 4000, 0, 400, 2000, -10000, 10000);
+    
+    std::function<int(int)> thrPerStrip = [](int strip){
+        int thr = 50;
+        switch(strip){
+            case 161:
+            case 194:
+            case 199:
+                thr = 1025; // effectively, disabled
+                break;
+            default:
+                thr = 50;
+                break;
+        }
+        return thr;
+    };
+
 
     // out_VMM.close();
 
@@ -330,7 +447,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
     /* Try to load variables from previous runs */
     if(saveTemporaryParameters)
     {
-        TString tmpFileName = TString("../out/beforeLastPulserParameters_"+run_pair.first+"_"+run_pair.second+tightText+fixTimeText+".root");
+        TString tmpFileName = TString("../out/beforeLastPulserParameters_"+run_pair.first+"_"+run_pair.second+tightText+fixTimeText+alternativeText+".root");
         auto file = TFile::Open(tmpFileName, "read");
         if(file != nullptr)
         {
@@ -352,7 +469,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
             {
                 printf("Found parameters from previous running for event %lld\n", bestAPVn);
                 tree->SetBranchAddress("T_apv", &T_apv);
-                tree->SetBranchAddress("T_apv_sincePulse", &T_apv_sincePulse);
+                tree->SetBranchAddress("T_apv_sincePulseSRSTS", &T_apv_sincePulseSRSTS);
                 tree->SetBranchAddress("T_apv_pulse_prev", &T_apv_pulse_prev);
                 tree->SetBranchAddress("nPeriodsAPV", &nPeriodsAPV);
                 tree->SetBranchAddress("nPeriodsAPV_corrected", &nPeriodsAPV_corrected);
@@ -385,7 +502,6 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
     map<long long, int> pairedVMM = {};
     analysisGeneral::mm2CenterHitParameters* currEvent;
 
-
     int mappedHitsVMM = 0;
     int UNmappedHitsVMM = 0;
 
@@ -405,6 +521,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
     int maxAPVPulserCountDifference = tight ? 0 : 1;
     bool ignoreNextSync = true;
 
+    bool printed = false;
     unsigned long i;
     for (i = startIndexAPV; i < apvan->GetEntries(); i++)
     {
@@ -413,10 +530,13 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
         if (prevSRS == -1)
         {
             startT_apv = T_apv;
+            printf("startT_apv: %lld\n", T_apv);
         }
         else
         {
-            T_apv_sincePulse += apv_time_from_SRS(prevSRS, hit_apv.timeSrs, fixSRSTime);
+            T_apv_sincePulseSRSTS += (hit_apv.timeSrs - prevSRS) + ((prevSRS > hit_apv.timeSrs)?16777216:0);
+            // T_apv_sincePulse += apv_time_from_SRS(prevSRS, hit_apv.timeSrs, fixSRSTime);
+            T_apv_sincePulse = static_cast<long long>(apvTimeTimeSRSTimestamp(T_apv_sincePulseSRSTS, fixSRSTime));
         }
         prevSRS = hit_apv.timeSrs;
 
@@ -429,15 +549,28 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
             }
             else
             {
+                hAPVEstimatedTimeInSpill->Fill((T_apv - startT_apv)*1.0/1E6, round((T_apv - T_apv_pulse_prev) * 1.0 / 1e4)*1e4 - T_apv_sincePulse);
                 nPeriodsAPV += round((T_apv - T_apv_pulse_prev) * 1.0 / 1e4);
                 pulser_T = nPeriodsAPV * 1e4;
             }
             // printf("T_apv: %lld;\tT_apv_prev: %lld;\tdiff: %g (%g)\n", T_apv, T_apv_pulse_prev, (T_apv - T_apv_pulse_prev) * 1.0 / 1e4, round((T_apv - T_apv_pulse_prev) * 1.0 / 1e4));
             // printf("N periods APV: %lld\n", nPeriodsAPV);
+            // if(T_apv_sincePulse > 1e6)
+            //     printf("SRS Timestamps since last pulser: %lld (%%400037 = %lld) = (%lld ms if 25ns, %lld ms if smaller), %lld found -- theoretically, %g ns per srsTimeStamp\n",
+            //            T_apv_sincePulseSRSTS,
+            //            T_apv_sincePulseSRSTS%400037,
+            //            static_cast<long long>(apvTimeTimeSRSTimestamp(T_apv_sincePulseSRSTS, false)),
+            //            static_cast<long long>(apvTimeTimeSRSTimestamp(T_apv_sincePulseSRSTS, true)),
+            //            T_apv_sincePulse,
+            //            1000.0 * T_apv_sincePulse / T_apv_sincePulseSRSTS
+            //         );
+            //     // printf("SRS Timestamps since last pulser: %lld = %lld microseconds (%lld)\n", T_apv_sincePulseSRSTS, static_cast<long long>(apvTimeTimeSRSTimestamp(T_apv_sincePulseSRSTS, fixSRSTime)), T_apv_sincePulse);
             T_apv_pulse_prev = T_apv;
             prev_pulse_SRS = hit_apv.timeSrs;
             T_apv_sincePulse = 0;
+            T_apv_sincePulseSRSTS = 0;
             // std::cout << "Period " << nPeriodsAPV << "--- is sync! N = " << hit_apv.hitsPerLayer.at(0).size() << "\n";
+            // apvTimeTimeSRSTimestamp(int diff, bool fixSRSTime = false)
         }
         nPeriodsAPV_corrected = nPeriodsAPV + T_apv_sincePulse / 10000;
         // if(nPeriodsAPV_corrected != nPeriodsAPV)
@@ -447,9 +580,19 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
             continue;
         else if (i == firstEntry)
             printf("Merging started...\n");
+        else if (i == lastEntry)
+            printf("Finish time: %lld\n", T_apv);
         else if(i > lastEntry)
             break;
 
+        hAPVEstimatedTime->Fill((T_apv - startT_apv)*1.0/1E6, (T_apv - (T_apv_pulse_prev + T_apv_sincePulse)));
+
+        if(!printed)
+        {
+            printed = true;
+            printf("Start time: %lld\n", T_apv);
+        }
+        
         if(!hit_apv.hits.size())
             continue;
         
@@ -487,8 +630,12 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                         apv_hits_vec.push_back(make_pair(strip, pdo));
                 }
 
+                if (apv_hits_vec_l0.size() && apv_hits_vec_l1.size())
+                    tracksPerTime->Fill((T_apv - startT_apv)/1E6);
+                
                 if (!apv_hits_vec.size() || !apv_hits_vec_l0.size() || !apv_hits_vec_l1.size())
                     continue;
+
 
                 map<int, double> means = {{0, weightedMean(apv_hits_vec_l0)}, {1, weightedMean(apv_hits_vec_l1)}};
                 auto tr = getEstimatedTrack(means);
@@ -607,14 +754,14 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                     // std::cout << nPeriods / 200 << " \t " << hits_vmm_event->second.hitsX.size() << "\n";
                     // out_APV << "------- VMM Period " << nPeriods / 200 << "  (" << nPeriods % 200 << ") -------- dT = " << dt_apv_vmm << "\n";
                     // printf("APV %lu, VMM %lld -- %lld\n", i, vectorPositionInTree + j, dt_apv_vmm);
-                    if (abs(dt_apv_vmm) > 1000)
+                    if (abs(dt_apv_vmm) > 200) // 1000
                         continue;
 
                     for (auto it = currEvent->hitsX.begin(); it != currEvent->hitsX.end(); ++it)
                     {
                         strip = it->first * (1 - 8e-3) - 8.46 / 0.25;
                         pdo = it->second;
-                        if (pdo < 50)
+                        if (pdo < thrPerStrip(it->first))
                             continue;
                         vmm_hits_vec.push_back(make_pair(strip, pdo));
                         // out_APV << "\t Strip: " << it->first << "\n";
@@ -765,6 +912,24 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                     eventNumVMM = get<0>(bestHit);
                     deltaT = get<1>(bestHit);
                     mappedEventNums->Fill();
+
+
+                    {
+                        // auto vmmEvent = vmman->GetCentralHitsData(eventNumVMM);
+                        auto vmmEvent = hits_vmm_events_map.at(get<0>(get<2>(bestHit))).at(get<3>(bestHit)).second;
+                        vmmChannelMultiplicityMerged->Fill(vmmEvent.hitsX.size());
+                        auto dacTimeDiff = T_apv - static_cast<long long>(vmmEvent.timeSec*1E6 + vmmEvent.timeMSec);
+                        hDACTimeDiff->Fill(dacTimeDiff);
+                        hDACTimeDiffPerTime->Fill((T_apv-startT_apv)*1.0/1E6, dacTimeDiff);
+                        hnMerged->Fill((T_apv-startT_apv)*1.0/1E6);
+                        for (auto &h: vmmEvent.hitsX)
+                        {
+                            pdo = h.second;
+                            if (pdo < thrPerStrip(h.first)) continue;
+                            vmmChannelMerged->Fill(h.first);
+                        }
+                    }
+
                     // clear memory -- remove unused vectors with VMM events
                     freeMemory(hits_vmm_events_map, get<0>(beforeLastPulserParameters));
                     if(!(numOfMapped %1000))
@@ -800,6 +965,53 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
     out_APV.close();
     out_VMM_hits.close();
 
+    long long prevPulse = -1;
+    for (i = firstSelectedEntries.first; i < vmman->GetEntries(); i++){
+        auto hit_vmm = vmman->GetCentralHitsData(i);
+        auto time = hit_vmm.timeSec*1E6 + hit_vmm.timeMSec;
+        vmmChannelMultiplicityAll->Fill(hit_vmm.hitsX.size());
+        if(time < startT_apv)
+            continue;
+        else if (time > T_apv)
+            break;
+        if(!hit_vmm.hitsX.size())
+            continue;
+        auto timeToAPV = (time - startT_apv)/1E6;
+        bool haveMMSignals = false;
+        for (auto &h: hit_vmm.hitsX){
+            if (h.second < thrPerStrip(h.first)) continue;
+            haveMMSignals = true;
+            vmmChannelAll->Fill(h.first);
+            vmmChannelTimeAll->Fill(timeToAPV, h.first);
+        }
+        if(hit_vmm.sync){
+            if(prevPulse >= 0)
+                hVMMEstimatedTimeBetweenPulsers->Fill(timeToAPV, time - prevPulse);
+            prevPulse = time;
+        }
+        if(!haveMMSignals)
+            continue;
+        vmmHits2DOPerTime->Fill(timeToAPV);
+        // hit_vmm.signal = false;
+        if(hit_vmm.sync || hit_vmm.trigger){
+            vmmTrigScintAll->Fill(timeToAPV);
+        } else {
+            vmmType3All->Fill(timeToAPV);
+        }
+
+        // vmm_hits_vec.clear();
+        // for (auto it = hit_vmm.hitsX.begin(); it != hit_vmm.hitsX.end(); ++it)
+        // {
+        //     strip = it->first * (1 - 8e-3) - 8.46 / 0.25;
+        //     pdo = it->second;
+        //     if (pdo < 50)
+        //         continue;
+        //     vmm_hits_vec.push_back(make_pair(strip, pdo));
+        // }
+        // if(!
+        
+    }
+
     out->Write();
     out->Close();
     delete apvan;
@@ -807,13 +1019,13 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
 
     if(saveTemporaryParameters)
     {
-        TString tmpFileName = TString("../out/beforeLastPulserParameters_out_"+run_pair.first+"_"+run_pair.second+tightText+fixTimeText+dupText+numberingText+".root");
+        TString tmpFileName = TString("../out/beforeLastPulserParameters_out_"+run_pair.first+"_"+run_pair.second+tightText+fixTimeText+dupText+alternativeText+numberingText+".root");
         auto file = TFile::Open(tmpFileName, "recreate");
         auto tree = new TTree("beforeLastPulserParameters", "");
         tree->SetDirectory(file);
         tree->Branch("apvN", &i);
         tree->Branch("T_apv", &T_apv);
-        tree->Branch("T_apv_sincePulse", &T_apv_sincePulse);
+        tree->Branch("T_apv_sincePulseSRSTS", &T_apv_sincePulseSRSTS);
         tree->Branch("T_apv_pulse_prev", &T_apv_pulse_prev);
         tree->Branch("nPeriodsAPV", &nPeriodsAPV);
         tree->Branch("nPeriodsAPV_corrected", &nPeriodsAPV_corrected);
@@ -841,6 +1053,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
         tree->Write();
         file->Close();
     }
+
 }
 
 int main(int argc, char** argv)
