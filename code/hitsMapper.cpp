@@ -254,10 +254,10 @@ map<pair<string, string>, pair<int, int>> firstPulserMap = {
     {{"run_0831", "run422"}, {151740, 7675}}, // First APV vs VMM dt = 32988 or 3 pulses
     {{"run_0830", "run421"}, {239786, 7633}}, // First APV vs VMM dt = 17748110 or 1774 pulses
     {{"run_0828", "run420"}, {138863, 3669}}, // First APV vs VMM dt = 32934 or 3 pulses
-    {{"run_0827", "run419"}, {254990, 7638}}, // First APV vs VMM dt = 18284390 or 1828 pulses
+    {{"run_0827", "run419"}, {254990, 7638}}, // First APV vs VMM dt = 18284390 or 1828 pulses -- Strange file (in firstPulserMapAlternative)
     {{"run_0826", "run418"}, {80142, 3928}}, // First APV vs VMM dt = 32524 or 3 pulses
     // {{"run_0825", "run417"} //No vmm pulses
-    {{"run_0824", "run416"}, {166310, 3429}}, // First APV vs VMM dt = 1477467 or 147 pulses
+    {{"run_0824", "run416"}, {166310, 3429}}, // First APV vs VMM dt = 1477467 or 147 pulses -- Strange file (in firstPulserMapAlternative)
     {{"run_0821", "run412"}, {245637, 7662}}, // First APV vs VMM dt = 23988401 or 2398 pulses
     {{"run_0818", "run411"}, {141763, 3709}}, // First APV vs VMM dt = 26874351 or 2687 pulses
     // {{"run_0817", "run410"}, {53049, 126}}, // First APV vs VMM dt = 33004 or 3 pulses -- during acces
