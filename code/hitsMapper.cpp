@@ -8,6 +8,7 @@
 #include <tuple>
 #include <map>
 #include <set>
+#include <optional>
 
 using std::cout, std::endl;
 using std::ifstream, std::ofstream;
@@ -17,6 +18,20 @@ using std::pair, std::make_pair;
 using std::tuple, std::get;
 using std::map;
 using std::set;
+using std::optional, std::nullopt;
+
+optional<int> calculateVMMNPulsers(int bcidDiff, int maxDiff = 2, int maxNPulsers = 9)
+{
+    bcidDiff += (bcidDiff > 0) ? 0 : 4096;
+    int predicted;
+    for(auto i = 1; i <= maxNPulsers; i++)
+    {
+      predicted = (2000 * i) % 4096;
+      if(abs(predicted - bcidDiff) <= maxDiff)
+        return i;
+    }
+    return nullopt;
+}
 
 // IMPORTANT change: fixSRSTime
 // return: time, us
@@ -308,7 +323,7 @@ constexpr bool saveBackup = false;
 constexpr bool saveTemporaryParameters = true;
 
 // AlternativeStart -- first VMM selected as first good VMM pulser in case the difference between first good APV and VMM is about 33ms
-void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n = 0, string runVMM="0832", string runAPV = "423", bool alternativeStart = false)
+void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n = 0, string runVMM="0832", string runAPV = "423", bool alternativeStart = false, int mergeTimeWindow = 1000)
 {
     pair<string, string> run_pair = {Form("run_%s", runVMM.c_str()), Form("run%s", runAPV.c_str())};
     if(!firstPulserMap.count(run_pair))
@@ -684,31 +699,25 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                             diff = (currEvent->bcid - prevSyncBcid > 0) ? currEvent->bcid - prevSyncBcid : currEvent->bcid + 4096 - prevSyncBcid;
                             diffDiff = (currEvent->bcid - prevPrevSyncBcid > 0) ? currEvent->bcid - prevPrevSyncBcid: currEvent->bcid + 4096 - prevPrevSyncBcid;
 
-                            if (!(diff >= 2000 - 5 && diff <= 2000 + 5) && !(diff >= 4000 - 5 && diff <= 4000 + 5))
-                            {
-                                // if (diff == 1904)
-                                // {
-                                //     diff = 6000;
-                                // }
-                                // else if (diff == 3904)
-                                // {
-                                //     diff = 8000;
-                                // }
-                                // else
-                                if (!(diffDiff >= 2000 - 5 && diffDiff <= 2000 + 5) && !(diffDiff >= 4000 - 5 && diffDiff <= 4000 + 5))
-                                {
-                                    bad++;
-                                    prevPrevSyncBcid = prevSyncBcid;
-                                    prevSyncBcid = currEvent->bcid;
-                                    continue;
-                                }
-                                else
-                                {
-                                    diff = diffDiff;
-                                }
-                            }
+                            auto nPeriodsAdd = calculateVMMNPulsers(diff, 5, 9);
 
-                            nPeriods += round(diff * 1.0 / 2000.0);
+                            if(!nPeriodsAdd)
+                            {
+                              // auto nPeriodsAdd2 = calculateVMMNPulsers(diffDiff, 5, 9);
+                              // if (!nPeriodsAdd2)
+                              // {
+                              //   bad++;
+                              //   prevPrevSyncBcid = prevSyncBcid;
+                              //   prevSyncBcid = currEvent->bcid;
+                              //   continue;
+                              // }
+                              // else
+                              // {
+                              //   nPeriodsAdd = nPeriodsAdd2;
+                              // }
+                                continue;
+                            }
+                            nPeriods += nPeriodsAdd.value();
                         }
                         prevPrevSyncBcid = prevSyncBcid;
                         prevSyncBcid = currEvent->bcid;
@@ -754,7 +763,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                     // std::cout << nPeriods / 200 << " \t " << hits_vmm_event->second.hitsX.size() << "\n";
                     // out_APV << "------- VMM Period " << nPeriods / 200 << "  (" << nPeriods % 200 << ") -------- dT = " << dt_apv_vmm << "\n";
                     // printf("APV %lu, VMM %lld -- %lld\n", i, vectorPositionInTree + j, dt_apv_vmm);
-                    if (abs(dt_apv_vmm) > 200) // 1000
+                    if (abs(dt_apv_vmm) > mergeTimeWindow)
                         continue;
 
                     for (auto it = currEvent->hitsX.begin(); it != currEvent->hitsX.end(); ++it)
