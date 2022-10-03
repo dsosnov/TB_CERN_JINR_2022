@@ -336,10 +336,10 @@ analysisGeneral::mm2CenterHitParameters evBuilder::GetCentralHitsData(unsigned l
 
         if(ffchD == mmDoubleReadout) // All MM channels
         { 
-          if (fabs(trigTime - fft) < 500)
-          {
+          // if (fabs(trigTime - fft) < 500)
+          // {
             MmCluster.push_back({ffchM * 1.0, ffpdo * 1.0, fft});
-          }
+          // }
         }
         else if(ffchD == 0 && ffchM == 4){ // master clock
           if(ffpdo < 250) continue;
@@ -372,6 +372,147 @@ analysisGeneral::mm2CenterHitParameters evBuilder::GetCentralHitsData(unsigned l
 
     return hit;
 }
+// analysisGeneral::mm2CenterHitParameters evBuilder::GetCentralHitsData(unsigned long event){
+//   // printf("evBuilder::GetCentralHitsData(%lu)\n", event);
+
+//   analysisGeneral::mm2CenterHitParameters hit;
+//     hit.signal = false;
+//     hit.sync = false;
+//     hit.trigger = false;
+//     // hit.approx = false;
+//     // hit.signal = meanCh != 0;
+//     // hit.sync = isSync;
+//     // hit.trigger = isTrigger;
+//     // hit.stripX = meanCh;
+//     // hit.pdo = syncPDO;
+//     // hit.bcid = syncBcid;
+//     // hit.pdoRelative = maxPdo / 1024.0;
+//     // hit.nHitsToPrev = hitsToPrev;
+//     // hit.time = trigTime - meanT;
+
+
+//   // if (fChain == 0)
+//   //   return outputData;
+
+//   // unsigned int pdoThr = 100;
+//   // Long64_t nentries = fChain->GetEntries();
+//   // double lastSyncTime = -1;
+//   // unsigned long long previousSync = 0;
+
+//     Long64_t ientry = LoadTree(event);
+//     if (ientry < 0)
+//       return hit;
+//     fChain->GetEntry(event);
+
+//     hit.timeSec = daq_timestamp_s->at(0);
+//     hit.timeMSec = daq_timestamp_ns->at(0) / 1000;
+
+//     bool isTrigger = false;
+//     bool isSync = false;
+//     double syncTime = 0;
+//     double trigTime = 0;
+//     long prevbcid63 = -1;
+//     int syncBcid = 0;
+//     int syncPDO = 0;
+//     for (int j = 0; j < channel->at(0).size(); j++)
+//     {
+//       int fch = channel->at(0).at(j);
+//       int fchD = getMappedDetector(fch);
+//       int fchM = getMappedChannel(fch);
+//       // printf("VERSO: ch %d -> %d %d\n", fch, fchD, fchM);
+      
+//       int fpdoUC = pdo->at(0).at(j); // Uncorrected PDO, used at time calibration
+//       int fpdo = correctPDO(fch, fpdoUC);
+//       int ftdo = tdo->at(0).at(j);
+//       int fbcid = grayDecoded->at(0).at(j);
+
+//       // isTrigger = isTrigger || (ffchD == 0 && ffchM == 3);
+//       if(fchD == 0 && fchM == 3){
+//         isTrigger = true;
+//         trigTime = getTime(fch, fbcid, ftdo, fpdoUC);
+//       }
+//       else if(fchD == 0 && fchM == 4){
+//         if(fpdo > 650){
+//           if(prevbcid63 >= 0){
+//             auto bcidSincePrevious63 = (fbcid > prevbcid63) ? fbcid - prevbcid63 : fbcid - prevbcid63 + 4096;
+//             unsigned int maxDiffBCID = 5; // bcid
+//             // Remove any synchrosigtnal not with the 2000 and 4000 bcid difference with previous
+//             // if((bcidSincePrevious63 >= 2000 - maxDiffBCID && bcidSincePrevious63 <= 2000 + maxDiffBCID) ||
+//             //    (bcidSincePrevious63 >= 4000 - maxDiffBCID && bcidSincePrevious63 <= 4000 + maxDiffBCID)){
+//             // }
+//           }
+//           isSync = true;
+//           // printf("event %lu -- synchrosignal at %d (pdo %d)\n", event, j, fpdo);
+//           syncTime = getTime(fch, fbcid, ftdo, fpdoUC);
+//           prevbcid63 = fbcid;
+//           syncBcid = fbcid;
+//           syncPDO = fpdo;
+//         }
+//       }
+//     }
+//     if(!isTrigger && !isSync){
+//       return hit;
+//     }
+//     if(!isTrigger && isSync)
+//       trigTime = syncTime;
+//     if(!isSync && isTrigger)
+//       syncTime = trigTime;
+
+//     MmCluster.clear();
+
+//     for (int k = 0; k < channel->at(0).size(); k++)
+//     {
+//       int ffch = channel->at(0).at(k);
+//       int ffchD = getMappedDetector(ffch);
+//       int ffchM = getMappedChannel(ffch);
+                      
+//       int ffpdoUC = pdo->at(0).at(k); // Uncorrected PDO, used at time calibration
+//       int ffpdo = correctPDO(ffch, ffpdoUC);
+//       int fftdo = tdo->at(0).at(k);
+//       int ffbcid = grayDecoded->at(0).at(k);
+//       // double fft = getTimeByHand(ffbcid, fftdo, 110, 160); //'hand' limits
+//       double fft = getTime(ffch, ffbcid, fftdo, ffpdoUC); // 'auto' limits
+
+//       // if(ffpdo < pdoThr) continue;
+
+//       if(ffchD == mmDoubleReadout) // All MM channels
+//       { 
+//         // if (fabs(trigTime - fft) < 500)
+//         // {
+//         MmCluster.push_back({ffchM * 1.0, ffpdo * 1.0, fft});
+//         // }
+//       }
+//       else if(ffchD == 0 && ffchM == 4){ // master clock
+//         if(ffpdo < 250)
+//           continue;
+//       }
+//     }
+
+//     double minT_straw_mm = 600;
+//     auto [meanT, meanCh, maxPdo] = getClusterParameters(trigTime, minT_straw_mm, 1);
+
+//     hit.approx = false;
+//     hit.signal = meanCh != 0;
+//     hit.sync = isSync;
+//     hit.trigger = isTrigger;
+//     hit.stripX = meanCh;
+//     hit.pdo = syncPDO;
+//     hit.bcid = syncBcid;
+//     hit.pdoRelative = maxPdo / 1024.0;
+//     hit.nHitsToPrev = 0;
+//     hit.time = trigTime - meanT;
+
+//     if(meanCh == 0 && !isSync)
+//       return hit;
+
+//     if(MmCluster.size()){
+//       for(auto h: MmCluster){
+//         hit.hitsX.emplace(h.channel, h.pdo);
+//       }
+//     }
+
+//     return hit;
+// }
 map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentralHits(unsigned long long fromSec, unsigned long long toSec, bool saveOnly){
   printf("evBuilder::GetCentralHits(%llu, %llu)\n", fromSec, toSec);
 
