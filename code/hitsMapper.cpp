@@ -152,10 +152,10 @@ long long loadNextVMM(long long firstElement, map<long long, vector<pair<unsigne
 long long loadNextVMM(long long firstElement,
                       map<long long, vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>>> &hits_vmm_events_map,
                       evBuilder* vmman,
-                 long long nElements = 100000){
-    // printf("loadNextVMM(%lld, %p, %p, %p, %lld)\n", firstElement, &hits_vmm_events_map, hits_vmm_t, hits_vmm_event, nElements);
+                      long long nElements = 100000){
     if(hits_vmm_events_map.count(firstElement))
         return hits_vmm_events_map.at(firstElement).size();
+    printf("loadNextVMM(%lld, %p, %lld)\n", firstElement, &hits_vmm_events_map, nElements);
   
     vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>> elementVector;
     auto hit_vmm = vmman->GetCentralHitsData(firstElement);
@@ -321,6 +321,7 @@ constexpr bool findBestVMM = true;
 constexpr bool printMerged = false;
 constexpr bool saveBackup = false;
 constexpr bool saveTemporaryParameters = true;
+constexpr bool reloopVMMFile = false;
 
 // AlternativeStart -- first VMM selected as first good VMM pulser in case the difference between first good APV and VMM is about 33ms
 void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n = 0, string runVMM="0832", string runAPV = "423", bool alternativeStart = false, int mergeTimeWindow = 1000)
@@ -485,6 +486,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                 printf("Found parameters from previous running for event %lld\n", bestAPVn);
                 tree->SetBranchAddress("T_apv", &T_apv);
                 tree->SetBranchAddress("T_apv_sincePulseSRSTS", &T_apv_sincePulseSRSTS);
+                tree->SetBranchAddress("T_apv_sincePulse", &T_apv_sincePulse);
                 tree->SetBranchAddress("T_apv_pulse_prev", &T_apv_pulse_prev);
                 tree->SetBranchAddress("nPeriodsAPV", &nPeriodsAPV);
                 tree->SetBranchAddress("nPeriodsAPV_corrected", &nPeriodsAPV_corrected);
@@ -974,51 +976,55 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
     out_APV.close();
     out_VMM_hits.close();
 
-    long long prevPulse = -1;
-    for (i = firstSelectedEntries.first; i < vmman->GetEntries(); i++){
-        auto hit_vmm = vmman->GetCentralHitsData(i);
-        auto time = hit_vmm.timeSec*1E6 + hit_vmm.timeMSec;
-        vmmChannelMultiplicityAll->Fill(hit_vmm.hitsX.size());
-        if(time < startT_apv)
-            continue;
-        else if (time > T_apv)
-            break;
-        if(!hit_vmm.hitsX.size())
-            continue;
-        auto timeToAPV = (time - startT_apv)/1E6;
-        bool haveMMSignals = false;
-        for (auto &h: hit_vmm.hitsX){
-            if (h.second < thrPerStrip(h.first)) continue;
-            haveMMSignals = true;
-            vmmChannelAll->Fill(h.first);
-            vmmChannelTimeAll->Fill(timeToAPV, h.first);
-        }
-        if(hit_vmm.sync){
-            if(prevPulse >= 0)
-                hVMMEstimatedTimeBetweenPulsers->Fill(timeToAPV, time - prevPulse);
-            prevPulse = time;
-        }
-        if(!haveMMSignals)
-            continue;
-        vmmHits2DOPerTime->Fill(timeToAPV);
-        // hit_vmm.signal = false;
-        if(hit_vmm.sync || hit_vmm.trigger){
-            vmmTrigScintAll->Fill(timeToAPV);
-        } else {
-            vmmType3All->Fill(timeToAPV);
-        }
+    if(reloopVMMFile)
+    {
+        long long prevPulse = -1;
+        for (i = firstSelectedEntries.first; i < vmman->GetEntries(); i++)
+        {
+            auto hit_vmm = vmman->GetCentralHitsData(i);
+            auto time = hit_vmm.timeSec*1E6 + hit_vmm.timeMSec;
+            vmmChannelMultiplicityAll->Fill(hit_vmm.hitsX.size());
+            if(time < startT_apv)
+                continue;
+            else if (time > T_apv)
+                break;
+            if(!hit_vmm.hitsX.size())
+                continue;
+            auto timeToAPV = (time - startT_apv)/1E6;
+            bool haveMMSignals = false;
+            for (auto &h: hit_vmm.hitsX){
+                if (h.second < thrPerStrip(h.first)) continue;
+                haveMMSignals = true;
+                vmmChannelAll->Fill(h.first);
+                vmmChannelTimeAll->Fill(timeToAPV, h.first);
+            }
+            if(hit_vmm.sync){
+                if(prevPulse >= 0)
+                    hVMMEstimatedTimeBetweenPulsers->Fill(timeToAPV, time - prevPulse);
+                prevPulse = time;
+            }
+            if(!haveMMSignals)
+                continue;
+            vmmHits2DOPerTime->Fill(timeToAPV);
+            // hit_vmm.signal = false;
+            if(hit_vmm.sync || hit_vmm.trigger){
+                vmmTrigScintAll->Fill(timeToAPV);
+            } else {
+                vmmType3All->Fill(timeToAPV);
+            }
 
-        // vmm_hits_vec.clear();
-        // for (auto it = hit_vmm.hitsX.begin(); it != hit_vmm.hitsX.end(); ++it)
-        // {
-        //     strip = it->first * (1 - 8e-3) - 8.46 / 0.25;
-        //     pdo = it->second;
-        //     if (pdo < 50)
-        //         continue;
-        //     vmm_hits_vec.push_back(make_pair(strip, pdo));
-        // }
-        // if(!
+            // vmm_hits_vec.clear();
+            // for (auto it = hit_vmm.hitsX.begin(); it != hit_vmm.hitsX.end(); ++it)
+            // {
+            //     strip = it->first * (1 - 8e-3) - 8.46 / 0.25;
+            //     pdo = it->second;
+            //     if (pdo < 50)
+            //         continue;
+            //     vmm_hits_vec.push_back(make_pair(strip, pdo));
+            // }
+            // if(!
         
+        }
     }
 
     out->Write();
@@ -1035,6 +1041,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
         tree->Branch("apvN", &i);
         tree->Branch("T_apv", &T_apv);
         tree->Branch("T_apv_sincePulseSRSTS", &T_apv_sincePulseSRSTS);
+        tree->Branch("T_apv_sincePulse", &T_apv_sincePulse);
         tree->Branch("T_apv_pulse_prev", &T_apv_pulse_prev);
         tree->Branch("nPeriodsAPV", &nPeriodsAPV);
         tree->Branch("nPeriodsAPV_corrected", &nPeriodsAPV_corrected);
