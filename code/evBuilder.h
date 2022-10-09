@@ -72,7 +72,7 @@ public :
 
   virtual vector<hitParam> getHits(unsigned long) override;
 
-  unsigned int mmDoubleReadout = 4; // 2  
+  unsigned int mmDoubleReadout = 2; // 4  
 };
 
 evBuilder::evBuilder(TString filename, TString runType_, TString mapFile_) : vmm(filename, runType_, mapFile_)
