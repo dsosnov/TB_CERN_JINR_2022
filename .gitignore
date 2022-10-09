@@ -7,5 +7,14 @@
 /data-apv/
 /out/
 
+/build/
+
 *.txt
 *~
+*.root
+*.pdf
+*.png
+*.log
+
+*.pcm
+link.C
