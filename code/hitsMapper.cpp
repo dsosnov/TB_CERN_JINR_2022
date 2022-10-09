@@ -375,13 +375,15 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
     string dupText = findBestVMM ? "" : "_firstVMM";
 
     ofstream out_APV;
-    out_APV.open(TString("../out/APV_hits_maped_"+run_pair.first+"_"+run_pair.second+tightText+fixTimeText+dupText+alternativeText+numberingText+".txt").Data());
+    if(PRINT_TO_FILE)
+        out_APV.open(TString("../out/APV_hits_maped_"+run_pair.first+"_"+run_pair.second+tightText+fixTimeText+dupText+alternativeText+numberingText+".txt").Data());
 
     // ofstream out_VMM;
     // out_VMM.open(TString("../out/VMM_hits_"+run_pair.first+"_"+run_pair.second+"_after"+tightText+fixTimeText+dupText+alternativeText+numberingText+".txt").Data());
 
     ofstream out_VMM_hits;
-    out_VMM_hits.open(TString("../out/VMM_hits_UNmaped_"+run_pair.first+"_"+run_pair.second+tightText+fixTimeText+dupText+alternativeText+numberingText+".txt").Data());
+    if(PRINT_TO_FILE)
+        out_VMM_hits.open(TString("../out/VMM_hits_UNmaped_"+run_pair.first+"_"+run_pair.second+tightText+fixTimeText+dupText+alternativeText+numberingText+".txt").Data());
 
     int numOfMapped = 0;
 
