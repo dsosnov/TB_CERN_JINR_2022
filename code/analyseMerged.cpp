@@ -4,13 +4,17 @@
 
 #include <optional>
 #include <utility>
+#include <algorithm>
+
+
 using std::optional, std::nullopt;
 using std::pair, std::make_pair;
 
 constexpr unsigned int layerDoubleReadout = 2; // 0
 
-optional<double> getMeanPosition(map<int, int> hitsPerLayer, int layer, bool vmmHits = false){
+optional<pair<double, double>> getMeanPosition(map<int, int> hitsPerLayer, int layer, bool vmmHits = false){
   long long sum = 0, sumWeights = 0, nHits = 0;
+  optional<double> min = nullopt, max = nullopt;
   for(auto &h: hitsPerLayer){
     long long strip = h.first;
     long long pdo = h.second;
@@ -31,51 +35,22 @@ optional<double> getMeanPosition(map<int, int> hitsPerLayer, int layer, bool vmm
         strip = h.first;
         break;
     }
+    if(!min || min.value() < strip) min = {strip};
+    if(!max || max.value() > strip) max = {strip};
+    if(layer == 0)
+      printf("Strip in layer 0: %lld\n", strip);
     sum += strip * pdo;
     sumWeights += pdo;
     nHits++;
   }
-  optional<double> center = nullopt;
-  if(nHits)
-    center.emplace(static_cast<double>(sum) / static_cast<double>(sumWeights));
+  optional<pair<double, double>> center = nullopt;
+  if(nHits){
+    double centerV = static_cast<double>(sum) / static_cast<double>(sumWeights);
+    center.emplace(make_pair(centerV,
+                             std::max(fabs(centerV-min.value()), fabs(centerV-max.value()))));
+  }
   return center;
 }
-// optional<pair<double, double>> getMeanPositionW(map<int, int> hitsPerLayer, int layer, bool vmmHits = false){
-//   long long sum = 0, sumWeights = 0, nHits = 0;
-//   optional<double> min = nullopt, max = nullopt;
-//   for(auto &h: hitsPerLayer){
-//     long long strip = h.first;
-//     long long pdo = h.second;
-//     if(!vmmHits && (h.first <= 118 || h.first >= 172))
-//       continue; // TODO check why
-//     // shifts from Stefano
-//     switch(layer){
-//       case 0:
-//         strip = h.first;
-//         break;
-//       case 1:
-//         strip = h.first * (1 - 2.29e-3) - 2.412 / 0.25;
-//         break;        
-//       case 2:
-//         strip = h.first * (1 - 8e-3) - 8.46 / 0.25;
-//         break;
-//       default:
-//         strip = h.first;
-//         break;
-//     }
-//     if(!min || min.value < strip) min = {strip};
-//     if(!max || max.value > strip) max = {strip};
-//     sum += strip * pdo;
-//     sumWeights += pdo;
-//     nHits++;
-//   }
-//   optional<pair<double, double>> center = nullopt;
-//   if(nHits){
-//     double centerV = static_cast<double>(sum) / static_cast<double>(sumWeights);
-//     center.emplace(make_pair(centerV, max(fabs(centerV-min.value()), fabs(centerV-max.value()))));
-//   }
-//   return center;
-// }
 
 /*
  * positions:
@@ -99,61 +74,43 @@ int getLayerPosition(int layer){
   return y;
 }
 
-pair<double, double> getEstimatedTrack(map<int, double> positions){
+pair<double, double> getEstimatedTrack(map<int, pair<double, double>> positions){
   int n = 0;
-  double sumXY = 0, sumX = 0, sumY = 0, sumX2 = 0, sumY2 = 0;
-  double y; double x; // x: horizontal, y - vertical coordinate
+  double sumWXY = 0, sumWX = 0, sumWY = 0, sumWX2 = 0, sumY2 = 0, sumW = 0;
+  double y, x, w, yE; // x: horizontal, y - vertical coordinate
   for(auto &pos: positions){
-    y = getLayerPosition(pos.first);
-    x = pos.second;
-    sumXY += x * y;
-    sumX += x;
-    sumY += y;
-    sumX2 += x * x;
+    x = getLayerPosition(pos.first);
+    y = pos.second.first;
+    yE = pos.second.second;
+    w = 1.0 / yE;
+    sumW += w;
+    sumWXY += w * x * y;
+    sumWX += w * x;
+    sumWY += w * y;
+    sumWX2 += w * x * x;
     // sumY2 += y * y;
     n++;
   }
-  double a0 = (n * sumXY - sumX * sumY)/(n * sumX2 - sumX * sumX);
-  double b0 = (sumY - a0*sumX)/n;
-  double b1 = (sumX2 * sumY - sumXY * sumX) / (n * sumX2 - sumX * sumX);
-  double a1 = (sumY - n*b1) / sumX;
+  double d = sumW * sumWX2 - sumWX * sumWX;
+  double a0 = (sumW*sumWXY - sumWX*sumWY) / d;
+  double b0 = (sumWX2 * sumWY - sumWX*sumWXY)/d;
+  double sigmaa = sqrt(sumW/d);
+  double sigmab = sqrt(sumWX2/d);
   // printf("%d layers -- a0: %g, b0: %g; a1: %g, b1: %g;\n", n, a0, b0, a1, b1);
+  for(auto &pos: positions){
+    x = getLayerPosition(pos.first);
+    y = pos.second.first;
+    yE = pos.second.second;
+    printf("X = %g; y = %g; y_calc = %g\t\tyE = %g\n", x, y, a0 * x + b0, yE);
+  }
   return {a0, b0};
 }
 
-// pair<double, double> getEstimatedTrackRev(map<int, pair<double, double>> positions){
-//   int n = 0;
-//   double sumXY = 0, sumX = 0, sumY = 0, sumX2 = 0, sumY2 = 0, sumW = 0;
-//   double y; double x, w, yE; // x: horizontal, y - vertical coordinate
-//   for(auto &pos: positions){
-//     x = getLayerPosition(pos.first);
-//     y = pos.second.first;
-//     yE = pos.second.second;
-//     w = 1.0 / yE;
-//     sumW += w;
-//     sumXY += w * x * y;
-//     sumX += w * x;
-//     sumY += w * y;
-//     sumX2 += w * x * x;
-//     // sumY2 += y * y;
-//     n++;
-//   }
-//   double a0 = (sumX2 * sumY - sumX*sumXY)/(sumW * sumX2 - sumX*sumX);
-//   double b0 = (sumW*sumXY - sumX*sumY) / (sumW * sumX2 - sumX*sumX);
-//   // printf("%d layers -- a0: %g, b0: %g; a1: %g, b1: %g;\n", n, a0, b0, a1, b1);
-//   return {a0, b0};
-// }
-
 double estimatePositionInLayer(pair<double, double> trackAB, int layer){
-  double y = getLayerPosition(layer);
-  double x = (y - trackAB.second) / trackAB.first;
-  return x;
+  double x = getLayerPosition(layer);
+  double y = trackAB.first * x + trackAB.second;
+  return y;
 }
-// double estimatePositionInLayerRev(pair<double, double> trackAB, int layer){
-//   double x = getLayerPosition(layer);
-//   double y = trackAB.first * x + trackAB.second;
-//   return y;
-// }
 
 TH2F* renormToUnityByY(TH2F* histIn){
   TString newName = TString(histIn->GetName()) + TString("_normY");
@@ -193,6 +150,7 @@ double stripToCoord(double strip){
   return strip * 0.25;
 }
 
+bool drLayerFromVMM = true;
 void analyseMerged(string runVMM = "0832", string runAPV = "423", bool tight = false, bool timefix = true, string partialfileEnd = ""){
   string tightText = tight ? "_tight" : "";
   string fixTimeText = timefix ? "_timefix" : "";
@@ -239,7 +197,7 @@ void analyseMerged(string runVMM = "0832", string runAPV = "423", bool tight = f
   for(auto event = 0; event < nEvents; event++){
     auto dataAPV = apvan->GetCentralHits2ROnlyData(event);
     auto dataVMM = vmman->getHits(event);
-    map<int, double> positions;
+    map<int, pair<double,double>> positions;
     if(!getMeanPosition(dataAPV.hitsPerLayer.at(2), 2))
       continue;
     for(auto i = 0; i < 3; i++){
@@ -247,7 +205,7 @@ void analyseMerged(string runVMM = "0832", string runAPV = "423", bool tight = f
       auto meanPos = getMeanPosition(layerData, i);
       if(!meanPos)
         continue;
-      if(i < 2)
+      if(i < 2 || !drLayerFromVMM)
         positions.emplace(i, meanPos.value());
       // printf("Event %d, position for layer %d: %g\n", event, i, meanPos.value());
       TH2F* hist = nullptr;
@@ -278,23 +236,25 @@ void analyseMerged(string runVMM = "0832", string runAPV = "423", bool tight = f
     if(positions.size() < 2)
       continue;
     // printf("Event %d\t", event);
-    
-    // // Adding MM layer from VMM data
-    // map<int, int> hitsMMVMM;
-    // for(auto h: dataVMM){
-    //   if(h.detector != 4) continue;
-    //   // printf("MM VMM strip %d\n", h.strip);
-    //   hitsMMVMM.emplace(h.strip, h.pdo);
-    // }
-    // // printf("Number of MM VMM strips %lu\n", hitsMMVMM.size());
-    // auto meanPosMMVMM = getMeanPosition(hitsMMVMM, 2, true);
-    // if(!meanPosMMVMM)
-    //   continue;
-    // positions.emplace(2, meanPosMMVMM.value());
+
+    if(drLayerFromVMM){
+      // Adding MM layer from VMM data
+      map<int, int> hitsMMVMM;
+      for(auto h: dataVMM){
+        if(h.detector != 4) continue;
+        // printf("MM VMM strip %d\n", h.strip);
+        hitsMMVMM.emplace(h.strip, h.pdo);
+      }
+      // printf("Number of MM VMM strips %lu\n", hitsMMVMM.size());
+      auto meanPosMMVMM = getMeanPosition(hitsMMVMM, 2, true);
+      if(!meanPosMMVMM)
+        continue;
+      positions.emplace(2, meanPosMMVMM.value());
+    }
 
     auto trackParam = getEstimatedTrack(positions);
     auto estimatedCoord = estimatePositionInLayer(trackParam, 3);
-    // printf("Event %d -- estimated: %g\n", event, estimatedCoord);
+    printf("Event %d -- estimated: %g\n", event, estimatedCoord);
     for(auto h: dataVMM){
       if(h.detector != 1)
         continue;
