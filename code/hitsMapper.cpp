@@ -429,10 +429,13 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
     auto hDACTimeDiff = make_shared<TH1F>("hDACTimeDiff", "hDACTimeDiff; #Delta DAC time, #mus", 20000, -10000, 10000);
     auto hDACTimeDiffPerTime = make_shared<TH2F>("hDACTimeDiffPerTime", "hDACTimeDiffPerTime; time, s; #Delta DAC time, #mus", 4000, 0, 400, 2000, -10000, 10000);
     auto hnMerged = make_shared<TH1F>("hnMerged", "hnMerged; time, s;", 4000, 0, 400);
+    auto hTimeDiffPerTime = make_shared<TH2F>("hTimeDiffPerTime", "hTimeDiffPerTime; time, s; #Delta T, #mus", 1000, 0, 1000, 2000, -1000, 1000);
+    auto hTimeDiff2D = make_shared<TH2F>("hTimeDiff2D", "hTimeDiff2D; #Delta T (estimated), #mus; #Delta T (DAC), #mus", 2000, -1000, 1000, 2000, -1000, 1000);
     // dac time difference
     // N merged per time
     auto hAPVEstimatedTime = make_shared<TH1F>("hAPVEstimatedTime", "hAPVEstimatedTime; time, s; T_{DAC} - T_{estimated} , #mus", 4000, 0, 400);
     auto hAPVEstimatedTimeInSpill = make_shared<TH1F>("hAPVEstimatedTimeInSpill", "hAPVEstimatedTimeInSpill; time, s; (T_{pulse}-T_{pulse-1}) - #Sum(T_{estimated}) , #mus", 4000, 0, 400);
+    auto hbcidDiffIgnored = make_shared<TH1F>("hbcidDiffIgnored", "hbcidDiffIgnored; BCID diff", 4096, 0, 4096);
 
     auto hVMMEstimatedTimeBetweenPulsers = make_shared<TH2F>("hVMMEstimatedTimeBetweenPulsers", "hVMMEstimatedTimeBetweenPulsers; time, s; T_{pulse}-T_{pulse-1} , #mus", 4000, 0, 400, 2000, -10000, 10000);
     
@@ -936,6 +939,8 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                         auto dacTimeDiff = T_apv - static_cast<long long>(vmmEvent.timeSec*1E6 + vmmEvent.timeMSec);
                         hDACTimeDiff->Fill(dacTimeDiff);
                         hDACTimeDiffPerTime->Fill((T_apv-startT_apv)*1.0/1E6, dacTimeDiff);
+                        hTimeDiffPerTime->Fill((T_apv-startT_apv)*1.0/1E6,deltaT);
+                        hTimeDiff2D->Fill(deltaT,dacTimeDiff);
                         hnMerged->Fill((T_apv-startT_apv)*1.0/1E6);
                         for (auto &h: vmmEvent.hitsX)
                         {
@@ -1030,6 +1035,8 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
         
         }
     }
+
+    hTimeDiff2D->Scale(1.0 / mappedEventNums->GetEntries());
 
     out->Write();
     out->Close();
