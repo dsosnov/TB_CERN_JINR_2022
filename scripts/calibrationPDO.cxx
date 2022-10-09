@@ -4,12 +4,12 @@ int calibrationPDO(){
   string outdir = "../out";
 
   // string comment = "t@t_g1_p25_s100_sci0&60";
-  // string callibpath = "../data-calibration/t@t_g1_p25_s100_sci0&60";
+  // string callibpath = "../data/calibration/t@t_g1_p25_s100_sci0&60";
   // vector<string> calibrationPDO = {"run_0243.root", "run_0244.root", "run_0245.root", "run_0246.root", "run_0247.root"};
   // auto thr=40;
 
   string comment = "t@t_g3_p25_s100_sci0&60";
-  string callibpath = "../data-calibration/t@t_g3_p25_s100_sci0&60";
+  string callibpath = "../data/calibration/t@t_g3_p25_s100_sci0&60";
   vector<string> calibrationPDO = {"run_0248.root", "run_0249.root", "run_0250.root", "run_0251.root", "run_0252.root"};
   auto thr=120;
 
