@@ -10,7 +10,7 @@
 
 class calibration {
 public :
-   TString folder = "../data-calibration/";
+   TString folder = "../data/calibration/";
    TString file = "run_0017";
    TString ending = ".root";
 

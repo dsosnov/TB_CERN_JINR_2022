@@ -1,15 +1,8 @@
 /.vscode/
-
-/_for_andrei/
-
 /data/
-/data-calibration/
-/data-apv/
+/build/
 /out/
 
-/build/
-
-*.txt
 *~
 *.root
 *.pdf

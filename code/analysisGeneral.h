@@ -14,7 +14,7 @@ using std::map;
 
 class analysisGeneral {
 public :
-   TString folder = "../data/";
+   TString folder = "../data/vmm/";
    TString file = "run_0057";
    TString ending = ".root";
 

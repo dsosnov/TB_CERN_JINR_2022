@@ -166,7 +166,7 @@ vmm::~vmm()
 
 void vmm::addLimits(int minLimit, TString filename, bool verbose){
    vector<array<int, 2>> limitsCurrent;
-   ifstream myfile(Form("../out/%s", filename.Data()));
+   ifstream myfile(Form("../configs/%s", filename.Data()));
    int bin1 = 0;
    int bin2 = 0;
    int i = 0;
@@ -217,7 +217,7 @@ double vmm::getTimeByHand(int bcid, int tdo, int lowLimit, int upLimit){
 }
 
 void vmm::addPDOCorrection(TString filename, bool verbose){
-   ifstream myfile(Form("../out/%s", filename.Data()));
+   ifstream myfile(Form("../configs/%s", filename.Data()));
    float p0, p1;
    int i = 0;
    unsigned int sizeBefore = pdoCorrection.size();
@@ -240,7 +240,7 @@ int vmm::correctPDO(int channel, int pdoIn){
 }
 
 void vmm::addMap(TString filename, bool verbose){
-   ifstream infile(Form("../out/%s", filename.Data()));
+   ifstream infile(Form("../configs/%s", filename.Data()));
    std::string line;
    int ch, d, dch;
    while (std::getline(infile, line))

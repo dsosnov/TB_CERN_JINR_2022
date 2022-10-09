@@ -204,7 +204,7 @@ apv::apv(TString filename) : fChainPedestal(nullptr),
                              clusterTree(nullptr)
 {
   file = filename;
-  folder = "../data-apv/";
+  folder = "../data/apv/";
   fChain = GetTree(filename, "apv_raw");
   fChainPedestal = GetTree(filename, "apv_raw_ped");
   Init();
@@ -220,7 +220,7 @@ apv::apv(vector<TString> filenames): fChainPedestal(nullptr),
                                      clusterTree(nullptr)
 {
   file = filenames.at(0);
-  folder = "../data-apv/";
+  folder = "../data/apv/";
   fChain = GetTree(filenames.at(0), "apv_raw");
   fChainPedestal = GetTree(filenames.at(0), "apv_raw_ped");
   for(auto i = 1; i < filenames.size(); i++)
@@ -238,7 +238,7 @@ apv::apv(TChain *tree, TChain *treePed) : analysisGeneral(tree), fChainPedestal(
                                         ped_meanPed(nullptr), ped_stdevPed(nullptr), ped_sigmaPed(nullptr),
                                         clusterTree(nullptr)
 {
-  folder = "../data-apv/";
+  folder = "../data/apv/";
   fChain = (tree == nullptr) ? GetTree("", "apv_raw") : tree;
   fChainPedestal = (treePed == nullptr) ? GetTree("", "apv_raw_ped") : treePed;
   Init();
