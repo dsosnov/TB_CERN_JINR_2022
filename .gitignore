@@ -1,12 +1,5 @@
 /.vscode/
-
-/_for_andrei/
-
 /data/
-/data-calibration/
-/data-apv/
-/out/
-
 /build/
 
 *.txt
