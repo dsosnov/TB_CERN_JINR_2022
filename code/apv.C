@@ -1,3 +1,4 @@
+#ifndef apv_cxx
 #define apv_cxx
 #include "apv.h"
 #include <TH2.h>
@@ -5,47 +6,47 @@
 #include <TF1.h>
 #include <limits>
 
-map<unsigned long, apv::doubleReadoutHits> apv::GetCentralHits2ROnly(unsigned long long fromSec, unsigned long long toSec){
-  printf("apv::GetCentralHits2ROnly(%llu, %llu)\n", fromSec, toSec);
-
-  map<unsigned long, apv::doubleReadoutHits> outputData = {};
-  vector<apvHit> hitsL2;
-  vector<apvHit> hitsSync;
-
-  if(!isChain())
-    return outputData;
-  Long64_t nentries = fChain->GetEntries();
-
-  unsigned long long previousSyncTimestamp = 0;
-  unsigned long long hitsToPrev = 0;
-  set<unsigned int> channelsAPV2 = {};
-  unsigned long long previousSync = 0;
-  
-  for (auto event = 0; event < nentries; event++){
+apv::doubleReadoutHits apv::GetCentralHits2ROnlyData(unsigned long long event){
     Long64_t ientry = LoadTree(event);
-    if (ientry < 0) break;
-    GetEntry(event);
-    // printf("Entry: %d: error - %d\n", event, error);
-    if(error)
-      continue;
-      
-    if(fromSec > 0 && daqTimeSec < fromSec)
-      continue;
-    if(toSec > 0 && toSec >= fromSec && daqTimeSec > toSec)
-      break;
 
-    /* Checking if there is any mapped channels */
+    set<unsigned int> channelsAPVPulser = {};
+
+    doubleReadoutHits hit;
+    hit.sync = false;
+    hit.timeSec = 0;
+    hit.timeMSec = 0;
+    hit.timeSrs = 0;
+    hit.hits = {};
+    hit.hitsSync = {};
+    hit.hitsPerLayer = {};
+    
+    if (ientry < 0)
+      return hit;
+    GetEntry(event);
+    if(error)
+      return hit;
+    
+  /* Checking if there is any mapped channels */
     bool notErr = false;
     for (auto &r: *mmReadout)
       notErr = notErr || (r != 'E');
-    if(!syncSignal && !notErr) continue;
+    if(!syncSignal && !notErr)
+      return {};
+
+    hit.timeSec = static_cast<unsigned int>(daqTimeSec);
+    hit.timeMSec = static_cast<unsigned int>(daqTimeMicroSec);
+    hit.timeSrs = srsTimeStamp;
     
     unsigned long long currentTimestamp = daqTimeSec * 1E6 + daqTimeMicroSec;
 
-    hits.clear();
-    hitsL2.clear();
-    hitsSync.clear();
-    channelsAPV2.clear();
+    hit.hits.clear();
+    hit.hits.clear();
+    hit.hitsSync.clear();
+    channelsAPVPulser.clear();
+    hit.hitsPerLayer.clear();
+    for(auto i = 0; i < nAPVLayers; i++){
+      hit.hitsPerLayer.emplace(i, map<int, int>());
+    }
     for (int j = 0; j < max_q->size(); j++){
       // printf("Record inside entry: %d\n", j);
       auto maxQ = max_q->at(j);
@@ -53,9 +54,9 @@ map<unsigned long, apv::doubleReadoutHits> apv::GetCentralHits2ROnly(unsigned lo
       if (syncSignal){
         auto chip = srsChip->at(j);
         auto chan = srsChan->at(j);
-        if(chip == 2){
-          channelsAPV2.emplace(chan);
-          hitsSync.push_back({5, static_cast<int>(chan), maxQ, maxTime, raw_q->at(j)});
+        if(chip == pulserAPV){
+          channelsAPVPulser.emplace(chan);
+          hit.hitsSync.push_back({5, static_cast<int>(chan), maxQ, maxTime, raw_q->at(j)});
         }
       }
       auto readout = mmReadout->at(j);
@@ -63,26 +64,60 @@ map<unsigned long, apv::doubleReadoutHits> apv::GetCentralHits2ROnly(unsigned lo
         continue;
       auto layer = mmLayer->at(j);
       auto strip = mmStrip->at(j);
-      
 
       hits.push_back({layer, strip, maxQ, maxTime, raw_q->at(j)});      
-      if(layer == 2 && strip > 153 && strip < 210)
-        hitsL2.push_back({layer, strip, maxQ, maxTime, raw_q->at(j)});      
+      if(layer == layerDoubleReadout && strip > 153 && strip < 210)
+        hit.hits.push_back({layer, strip, maxQ, maxTime, raw_q->at(j)});
+      hit.hitsPerLayer.at(layer).emplace(strip, maxQ);
     }
 
-    hitsToPrev++;
-    bool isSyncSignal = channelsAPV2.size() >= 125;
-    if(!isSyncSignal && (hitsL2.size() == 0))
+    hit.sync = channelsAPVPulser.size() >= 127;
+    if(!hit.sync && (hit.hits.size() == 0))
+      return hit;
+    return hit;
+}
+map<unsigned long, apv::doubleReadoutHits> apv::GetCentralHits2ROnly(unsigned long long fromSec, unsigned long long toSec, bool saveOnly){
+  printf("apv::GetCentralHits2ROnly(%llu, %llu)\n", fromSec, toSec);
+
+  auto out = new TFile("../out/out_apv_" + file + "_centralHits" + ending, "RECREATE");
+  auto outTree = new TTree("apv_event", "apv_event");
+  outTree->AutoSave("10000");
+  pair<unsigned long, apv::doubleReadoutHits> eventData;
+  outTree->Branch("event", &eventData);
+
+  map<unsigned long, apv::doubleReadoutHits> outputData = {};
+  vector<apvHit> hitsDR;
+  vector<apvHit> hitsSync;
+
+  if(!isChain())
+    return outputData;
+  Long64_t nentries = fChain->GetEntries();
+
+  set<unsigned int> channelsAPVPulser = {};
+  map<int, map<int, int>> hitsPerLayer;
+  
+  for (auto event = 0; event < nentries; event++){
+    auto hit = GetCentralHits2ROnlyData(event);
+      
+    if(fromSec > 0 && hit.timeSec < fromSec)
       continue;
-    apv::doubleReadoutHits drh = {isSyncSignal,
-      static_cast<unsigned int>(daqTimeSec), static_cast<unsigned int>(daqTimeMicroSec),
-      hitsL2, hitsSync};
-    outputData.emplace(event, drh);
+    if(toSec > 0 && toSec >= fromSec && hit.timeSec > toSec)
+      break;
+
+    if(!hit.sync && (hit.hits.size() == 0))
+      continue;
+
+    if(!saveOnly)
+      outputData.emplace(event, hit);
+    eventData = make_pair(event, hit);
+    outTree->Fill();
   }
+  outTree->Write();
+  out->Close();
   return outputData;
 }
 
-map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(unsigned long long fromSec, unsigned long long toSec){
+map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(unsigned long long fromSec, unsigned long long toSec, bool saveOnly){
   printf("apv::GetCentralHits(%llu, %llu)\n", fromSec, toSec);
 
   map<unsigned long, analysisGeneral::mm2CenterHitParameters> outputData = {};
@@ -91,10 +126,11 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
     return outputData;
   Long64_t nentries = fChain->GetEntries();
 
-  unsigned long long previousSyncTimestamp = 0;
+  long long previousSyncTimestamp = -1;
   unsigned long long hitsToPrev = 0;
-  set<unsigned int> channelsAPV2 = {};
+  set<unsigned int> channelsAPVPulser = {};
   unsigned long long previousSync = 0;
+  map<int, map<int, int>> hitsPerLayer;
   
   for (auto event = 0; event < nentries; event++){
     Long64_t ientry = LoadTree(event);
@@ -118,13 +154,16 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
     unsigned long long currentTimestamp = daqTimeSec * 1E6 + daqTimeMicroSec;
 
     hits.clear();
-    channelsAPV2.clear();
+    channelsAPVPulser.clear();
+    hitsPerLayer.clear();
+    for(auto i = 0; i < nAPVLayers; i++)
+      hitsPerLayer.emplace(i, map<int, int>());
     for (int j = 0; j < max_q->size(); j++){
       // printf("Record inside entry: %d\n", j);
       if (syncSignal){
         auto chip = srsChip->at(j);
         auto chan = srsChan->at(j);
-        if(chip == 2) channelsAPV2.emplace(chan);
+        if(chip == pulserAPV) channelsAPVPulser.emplace(chan);
       }
       auto readout = mmReadout->at(j);
       if(readout == 'E') //non-mapped channel
@@ -135,7 +174,8 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
       
       auto maxTime = t_max_q->at(j);
       
-      hits.push_back({layer, strip, maxQ, maxTime, raw_q->at(j)});      
+      hits.push_back({layer, strip, maxQ, maxTime, raw_q->at(j)});
+      hitsPerLayer.at(layer).emplace(strip, maxQ);
     }
 
     /* Constructing clusters */
@@ -154,7 +194,7 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
     }
 
     hitsToPrev++;
-    bool isSyncSignal = channelsAPV2.size() >= 125;
+    bool isSyncSignal = channelsAPVPulser.size() >= 127;
     if(!isSyncSignal && !trackIn2Center)
       continue;
 
@@ -162,6 +202,7 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
     hit.timeSec = daqTimeSec;
     hit.timeMSec = daqTimeMicroSec;
     hit.nHitsToPrev = hitsToPrev;
+    hit.srsT = srsTimeStamp;
     
     hit.timeSinceSync = (previousSyncTimestamp < 0) ? -1.0 : static_cast<double>(currentTimestamp - previousSyncTimestamp);
 
@@ -203,6 +244,8 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(
 
     hit.previousSync = previousSync;
 
+    hit.hitsPerLayer = hitsPerLayer;
+
     outputData.emplace(event, hit);
     if(isSyncSignal){
       previousSyncTimestamp = currentTimestamp;
@@ -224,7 +267,7 @@ void apv::Loop(unsigned long n)
   TFile *out = new TFile("../out/out_apv_" + file + ending, "RECREATE"); // PATH where to save out_*.root file
 
   vector<TDirectory*> dirs;
-  for(auto i = 0; i < nAPVs; i++){
+  for(auto i = 0; i < nAPVLayers; i++){
     dirs.push_back(out->mkdir(Form("Layer %d", i)));
   }
 
@@ -234,14 +277,11 @@ void apv::Loop(unsigned long n)
   auto hdaqTimeMSec = make_shared<TH1F>("daqTimeMSec", Form("Run %s: daqTimeMSec", file.Data()), 1000, 0, 1000E3);
   auto hsrsTrigger = make_shared<TH1F>("srsTrigger", Form("Run %s: srsTrigger", file.Data()), 500, srsTrigger, srsTrigger + 5000);
 
-  auto hdaqTimeDifference = make_shared<TH1F>("hdaqTimeDifference", Form("Run %s: hdaqTimeDifference; #Delta T_{trig}, #mus", file.Data()), 1100, 0, 11000);
-  auto hdaqTimeDifferenceSync = make_shared<TH1F>("hdaqTimeDifferenceSync", Form("Run %s: hdaqTimeDifferenceSync; #Delta T_{Sync}, #mus", file.Data()), 1100, 0, 11000);
+  auto hdaqTimeDifference = make_shared<TH1F>("hdaqTimeDifference", Form("Run %s: hdaqTimeDifference; #Delta T_{trig}, #mus", file.Data()), 10000, 0, 100000);
+  auto hdaqTimeDifferenceSync = make_shared<TH1F>("hdaqTimeDifferenceSync", Form("Run %s: hdaqTimeDifferenceSync; #Delta T_{Sync}, #mus", file.Data()), 10000, 0, 100000);
   auto hdaqTimeDifferenceVSMultiplicity2 = make_shared<TH2F>("hdaqTimeDifferenceVSMultiplicity2", Form("Run %s: hdaqTimeDifferenceVSMultiplicity2; #Delta T_{trig}, #mus; N hits", file.Data()), 120, 0, 12000, 129, 0, 129);  
   auto hdaqTimeDifferenceVSTime = make_shared<TH2F>("hdaqTimeDifferenceVSTime", Form("Run %s: hdaqTimeDifferenceVSTime; time, s; #Delta T_{trig}, #mus", file.Data()), 600, 0, 600, 120, 0, 12000);
   auto hNPeriodsBenweenSync = make_shared<TH1F>("hNPeriodsBenweenSync", Form("Run %s: hNPeriodsBenweenSync; N sync periods", file.Data()), 12+500, -1, 11+500);
-  auto hdaqTimeDifferencePrevNext = make_shared<TH2F>("hdaqTimeDifferencePrevNext", Form("Run %s: hdaqTimeDifferencePrevNext; #Delta T_{trig} (previous), #mus; #Delta T_{trig} (next), #mus", file.Data()), 1100, 0, 11000, 1100, 0, 11000);
-  
-  auto hdaqTimeDifferenceVSMultiplicityAny = make_shared<TH2F>("hdaqTimeDifferenceVSMultiplicityAny", Form("Run %s: hdaqTimeDifferenceVSMultiplicityAny; #Delta T_{trig}, #mus; N hits", file.Data()), 120, 0, 12000, 360*4-122+1, 0, 360*4-122+1);
   
   auto hClusterShiftBetweenLayers01 = make_shared<TH1F>("hClusterShiftBetweenLayers01", Form("Run %s: hClusterShiftBetweenLayers01", file.Data()), 200, -100, 100);
   auto hClusterShiftBetweenLayers02 = make_shared<TH1F>("hClusterShiftBetweenLayers02", Form("Run %s: hClusterShiftBetweenLayers02", file.Data()), 200, -100, 100);
@@ -249,7 +289,7 @@ void apv::Loop(unsigned long n)
   
   vector<shared_ptr<TH1F>> hMaxQ, hMaxQTime, hProfile /*, hTriggerShiftByMaxQ*/;
   vector<shared_ptr<TH2F>> hPositionVSMaxQ, hPositionVSMaxQTime /*, hTriggerShiftByMaxQ*/;
-  for(auto i = 0; i < nAPVs; i++){
+  for(auto i = 0; i < nAPVLayers; i++){
     dirs.at(i)->cd();
     hMaxQ.push_back(make_shared<TH1F>(Form("l%d_maxQ", i), Form("Run %s: l%d_maxQ", file.Data(), i), 2500, 0, 2500));
     hMaxQTime.push_back(make_shared<TH1F>(Form("l%d_maxQTime", i), Form("Run %s: l%d_maxQTime", file.Data(), i), 30, 0, 30*25));
@@ -263,7 +303,7 @@ void apv::Loop(unsigned long n)
 
   vector<shared_ptr<TH1F>> hClusterMaxQ, hClusterQ, hClusterPosition, hClusterSize;
   vector<shared_ptr<TH2F>> hClusterPositionVSSize, hClusterPositionVSMaxQ, hClusterPositionVSQ;
-  for(auto i = 0; i < nAPVs; i++){
+  for(auto i = 0; i < nAPVLayers; i++){
     dirs.at(i)->cd();
     hClusterPosition.push_back(make_shared<TH1F>(Form("l%d_clusterPosition", i), Form("Run %s: l%d_clusterPosition", file.Data(), i), 361, 0, 361));
     hClusterMaxQ.push_back(make_shared<TH1F>(Form("l%d_hClusterMaxQ", i), Form("Run %s: l%d_hClusterMaxQ", file.Data(), i), 4096, 0, 4096));
@@ -283,7 +323,7 @@ void apv::Loop(unsigned long n)
   // auto hClusterPositionVSSizeAll = make_shared<TH2F>(Form("hClusterPositionVSSize"), Form("Run %s: hClusterPositionVSSize", file.Data()), 361, 0, 361, 40, 0, 40);
 
   vector<shared_ptr<TH1F>> hPedMeanVal, hPedStdevVal, hPedSigmaVal, hPed;
-  for(auto i = 0; i < nAPVs; i++){
+  for(auto i = 0; i < nAPVLayers; i++){
     dirs.at(i)->cd();
     hPedMeanVal.push_back(make_shared<TH1F>(Form("l%d_hPedMeanVal", i), Form("Run %s: l%d_hPedMeanVal", file.Data(), i), 361, 0, 361));
     hPedStdevVal.push_back(make_shared<TH1F>(Form("l%d_hPedStdevVal", i), Form("Run %s: l%d_hPedStdevVal", file.Data(), i), 361, 0, 361));
@@ -300,18 +340,7 @@ void apv::Loop(unsigned long n)
     out->cd();
   }
 
-  auto hapv102Multiplicity = make_shared<TH1F>("hapv102Multiplicity", Form("Run %s: hapv102Multiplicity", file.Data()), 129, 0, 129);
-
-  auto hDaqTimeDifferenceComparison = make_shared<TH2F>("hDaqTimeDifferenceComparison", Form("Run %s: hDaqTimeDifferenceComparison; #Delta T_{DAQ}, #mus; #Delta T_{DAQ} - #Delta T_{srsTimeStamp}, #mus", file.Data()),
-                                                        6E3, 0, 6E6, 1E3+400, -400, 1E3);
-  auto hDaqTimeDifferenceComparisonPT = make_shared<TH2F>("hDaqTimeDifferenceComparisonPT", Form("Run %s: hDaqTimeDifferenceComparisonPT; #Delta T_{DAQ}, #mus; #Delta T_{DAQ} - #Delta T_{srsTimeStamp}, #mus", file.Data()),
-                                                        6E3, 0, 6E6, 1E3+400, -400, 1E3);
-  auto hDaqTimeDifferenceComparisonPTFull = make_shared<TH2F>("hDaqTimeDifferenceComparisonPTFull", Form("Run %s: hDaqTimeDifferenceComparisonPTFull; #Delta T_{DAQ}, #mus; #Delta T_{DAQ} - #Delta T_{srsTimeStamp}, #mus", file.Data()),
-                                                        60E2, 0, 600E6, 6E3+400, -400, 6E3);
-                                                        // 40E2, 0, 40E6, 6E3+400, -400, 6E3);
-
-  auto hsrsTimestampPulserDifference = make_shared<TH1F>("hsrsTimestampPulserDifference", Form("Run %s: hsrsTimestampPulserDifference; #Delta srsTimeStamp", file.Data()), 16777217, 0, 16777217);
-
+  auto hapvPulserMultiplicity = make_shared<TH1F>("hapvPulserMultiplicity", Form("Run %s: hapvPulserMultiplicity", file.Data()), 129, 0, 129);
 
   unsigned long nEventsWHitsTwoLayers = 0, nEventsWHitsThreeLayers = 0;
   /* Cluster histograms */
@@ -327,27 +356,9 @@ void apv::Loop(unsigned long n)
 
     unsigned long long previousTimestamp = 0;
     unsigned long long previousTimestampSync = 0;
-    unsigned long long previousTimeDiff = 0;
-    set<unsigned int> channelsAPV2 = {};
-    set<pair<unsigned int, unsigned int>> channelsAPVAny = {};
+    set<unsigned int> channelsAPVPulser = {};
     unsigned long long firstEventTime = daqTimeSec * 1E6 + daqTimeMicroSec;
-    long long firstEventTimeS = daqTimeSec;
-    long long firstEventTimeMicroS = daqTimeMicroSec;
-    long long firstPulserTime = -1;
-    long long lastPulserTime = -1;
-    printf("firstEventTime: %llu\n", firstEventTime);
-
-    long long maxSrsTime = 16777215; // 24 bits -> 2**24 - 1
-    long long srsMeanTime = 400037; // 400038
-    long long srsPreviousSignalCounter = -1;
-    long long srsTimesPulserCounter = 0;
-    long long srsTimesFirstPulserCounter = -1;
-    long long srsTimesPreviousPulserCounter = -1;
-    long long srsTimesLastPulserCounter = -1;
-
-    long long pulserSignals = 0;
-
-    bool previousTriggerIsPulser = false;
+  
     // nentries = 2000;
     for (auto event = 0; event < nentries; event++){
       // for(auto event = 80330; event <  nentries; event++){
@@ -358,12 +369,6 @@ void apv::Loop(unsigned long n)
       if(error)
         continue;
 
-      if(srsPreviousSignalCounter < 0){
-        srsPreviousSignalCounter = srsTimeStamp;
-      }
-      srsTimesPulserCounter += static_cast<long long>(srsTimeStamp) - srsPreviousSignalCounter + ((srsTimeStamp < srsPreviousSignalCounter) ? maxSrsTime + 1 : 0);
-      printf("srsTimesPulserCounter difference: %lld = %lld -> %lld ==> %lld\n", srsTimeStamp - srsPreviousSignalCounter + ((srsTimeStamp < srsPreviousSignalCounter) ? maxSrsTime + 1 : 0), srsPreviousSignalCounter, srsTimeStamp, srsTimesPulserCounter);
-      
       // /* Checking if there is any mapped channels */
       // bool notErr = false;
       // for (auto &r: *mmReadout)
@@ -376,7 +381,7 @@ void apv::Loop(unsigned long n)
       hdaqTimeMSec->Fill(daqTimeMicroSec);
       hsrsTrigger->Fill(srsTrigger);
 
-      unsigned long long currentTimestamp = (daqTimeSec - firstEventTimeS) * 1E6 + (daqTimeMicroSec - firstEventTimeMicroS);
+      unsigned long long currentTimestamp = daqTimeSec * 1E6 + daqTimeMicroSec;
 
       printf("Event parameters: evt %lld, time: %d & %d, timestamp: %d, trigger: %d;", evt, daqTimeSec, daqTimeMicroSec, srsTimeStamp, srsTrigger);
       // printf(" Unique timestamp: %llu;", unique_srs_time_stamp(daqTimeSec, daqTimeMicroSec, srsTimeStamp));
@@ -385,13 +390,12 @@ void apv::Loop(unsigned long n)
       // printf("  Channels (%lu):", max_q->size());
       /* Per-channel */
       hits.clear();
-      channelsAPV2.clear();
-      channelsAPVAny.clear();
+      channelsAPVPulser.clear();
       for (int j = 0; j < max_q->size(); j++){
         // printf("Record inside entry: %d\n", j);
         auto chip = srsChip->at(j);
         auto chan = srsChan->at(j);
-        if(chip == 2) channelsAPV2.emplace(chan);
+        if(chip == pulserAPV) channelsAPVPulser.emplace(chan);
 
         auto readout = mmReadout->at(j);
         if(readout == 'E') //non-mapped channel
@@ -401,8 +405,6 @@ void apv::Loop(unsigned long n)
         hProfile.at(layer)->Fill(strip);
         auto maxQ = max_q->at(j);
         hMaxQ.at(layer)->Fill(maxQ);
-        if(layer < 4)
-          channelsAPVAny.emplace(make_pair(layer, strip));
       
         // printf(" %d-%d (%d)", layer, strip, maxQ);
 
@@ -430,7 +432,7 @@ void apv::Loop(unsigned long n)
         // // hmaxQTimeFullHistory.at(layer)->Fill(maxADCBin*25);
       }
       // printf("\n");
-      hapv102Multiplicity->Fill(channelsAPV2.size());
+      hapvPulserMultiplicity->Fill(channelsAPVPulser.size());
 
       /* Constructing clusters */
       constructClusters();
@@ -501,14 +503,7 @@ void apv::Loop(unsigned long n)
       // printf("::N events with hits in three layers: %lu (of %lld events -> %.2f)\n", nEventsWHitsThreeLayers, event+1, static_cast<double>(nEventsWHitsThreeLayers) / static_cast<double>(event+1));  
     
       // clusterTree->Fill();
-      if(channelsAPV2.size() >= 125){
-        printf("Time for pulser %lld: %lld - %lld\n", pulserSignals++, daqTimeSec, daqTimeMicroSec);
-        if(firstPulserTime < 0)
-          firstPulserTime = currentTimestamp;
-        lastPulserTime = currentTimestamp;
-        if(srsTimesFirstPulserCounter < 0)
-          srsTimesFirstPulserCounter = srsTimesPulserCounter;
-        srsTimesLastPulserCounter = srsTimesPulserCounter;
+      if(channelsAPVPulser.size() >= 127){
         if(previousTimestampSync > 0){
           auto timestampSyncDiff = currentTimestamp - previousTimestampSync;
           hdaqTimeDifferenceSync->Fill(timestampSyncDiff);
@@ -523,43 +518,17 @@ void apv::Loop(unsigned long n)
           } else
             hNPeriodsBenweenSync->Fill(nSignalsBetween);
           
-        } else {
-          printf("! Time for first pulser: %lld - %lld\n", daqTimeSec, daqTimeMicroSec);
         }
         previousTimestampSync = currentTimestamp;
-        if(srsTimesPreviousPulserCounter >= 0){
-          long long differenceSinceFirstPulser = srsTimesPulserCounter - srsTimesFirstPulserCounter;
-          long long nPulsers = differenceSinceFirstPulser / srsMeanTime;
-          hDaqTimeDifferenceComparison->Fill(static_cast<double>(currentTimestamp - firstPulserTime), static_cast<double>(currentTimestamp - firstPulserTime) - differenceSinceFirstPulser * 25.0 / 1E3);
-          hDaqTimeDifferenceComparisonPT->Fill(static_cast<double>(currentTimestamp - firstPulserTime), static_cast<double>(currentTimestamp - firstPulserTime) - nPulsers * 10E3);
-          hDaqTimeDifferenceComparisonPTFull->Fill(static_cast<double>(currentTimestamp - firstPulserTime), static_cast<double>(currentTimestamp - firstPulserTime) - nPulsers * 10E3);
-          printf("hDaqTimeDifferenceComparison: %f, %f\n", static_cast<double>(currentTimestamp - firstPulserTime), static_cast<double>(currentTimestamp - firstPulserTime) - differenceSinceFirstPulser * 25.0 / 1E3);
-          printf("Difference since previous pulser: %lld (%lld - %lld)\n", srsTimesPulserCounter - srsTimesPreviousPulserCounter, srsTimesPulserCounter, srsTimesPreviousPulserCounter);
-          printf("Difference since first pulser: %lld (%lld - %lld)\n", differenceSinceFirstPulser, srsTimesPulserCounter, srsTimesFirstPulserCounter);
-          if(previousTriggerIsPulser){            
-            hsrsTimestampPulserDifference->Fill(srsTimesPulserCounter - srsTimesPreviousPulserCounter);
-          }
-        }
-        srsTimesPreviousPulserCounter = srsTimesPulserCounter;
       }
       if(previousTimestamp > 0){
-        auto timediff = currentTimestamp - previousTimestamp;
-        hdaqTimeDifference->Fill(timediff);
-        hdaqTimeDifferenceVSMultiplicity2->Fill(timediff, channelsAPV2.size());
-        hdaqTimeDifferenceVSTime->Fill(static_cast<double>(currentTimestamp) / 1E6, timediff);
-        hdaqTimeDifferencePrevNext->Fill(previousTimeDiff, timediff);
-        previousTimeDiff = timediff;
-        hdaqTimeDifferenceVSMultiplicityAny->Fill(timediff, channelsAPVAny.size());
+        hdaqTimeDifference->Fill(currentTimestamp - previousTimestamp);
+        hdaqTimeDifferenceVSMultiplicity2->Fill(currentTimestamp - previousTimestamp, channelsAPVPulser.size());
+        hdaqTimeDifferenceVSTime->Fill(static_cast<double>(currentTimestamp - firstEventTime) / 1E6, currentTimestamp - previousTimestamp);
       }
       previousTimestamp = currentTimestamp;
-      srsPreviousSignalCounter = srsTimeStamp;
-      previousTriggerIsPulser = channelsAPV2.size() >= 125;
     }
-
-    printf("Time difference between first and last pulsers: %f ms\n", static_cast<double>(lastPulserTime - firstPulserTime) / 1E3);
-    printf("Time difference between first and last pulsers (by srsTimeStamp): %f ms\n", static_cast<double>(srsTimesLastPulserCounter - srsTimesFirstPulserCounter) * 25.0 / 1E6);
-    printf("Time difference between first and last pulsers (by pulser theorethcally time from srsTimeStamp): %f ms\n", static_cast<double>((srsTimesLastPulserCounter - srsTimesFirstPulserCounter) / srsMeanTime) * 10);
-    
+  
     printf("N events with hits in two   layers to region double-readed wyth mu2E: %lu (of %lld events -> %.2f)\n", nEventsWHitsTwoLayers, nentries, static_cast<double>(nEventsWHitsTwoLayers) / static_cast<double>(nentries));
     printf("N events with hits in three layers to region double-readed wyth mu2E: %lu (of %lld events -> %.2f)\n", nEventsWHitsThreeLayers, nentries, static_cast<double>(nEventsWHitsThreeLayers) / static_cast<double>(nentries));
   }
@@ -593,3 +562,4 @@ void apv::Loop(unsigned long n)
   // out->Print();
   out->Close();
 }
+#endif

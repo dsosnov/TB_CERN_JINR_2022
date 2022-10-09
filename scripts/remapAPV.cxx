@@ -112,7 +112,7 @@ void getMap(string mapfile = "micromegas-map-l2-center-new.txt"){
 //   return outpos;
 // }
 
-int remapAPV(string filenameIn = "../data-apv/run103.root"){
+int remapAPV(string filenameIn = "../data/apv/run103.root"){
   getMap();
   string filenameOut = "_test_out.root"; //string() + "_remapped" + filenameIn;
 

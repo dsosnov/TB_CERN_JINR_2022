@@ -6,6 +6,29 @@
 #include <TROOT.h>
 #include <TChain.h>
 #include <TFile.h>
+#include <TH1.h>
+#include <TH1D.h>
+#include <TH2D.h>
+
+#include <iostream>
+
+#include <vector> 
+#include <map>
+#include <utility>
+#include <string>
+#include <memory>
+#include <set>
+
+#include <algorithm> // max_element, sort
+
+using std::vector;
+using std::map;
+using std::string;
+using std::shared_ptr, std::make_shared;
+using std::pair, std::make_pair;
+using std::tuple, std::get;
+using std::set;
+using std::array;
 
 // Header file for the classes stored in the TTree if any.
 //#include "c++/v1/vector"
@@ -14,11 +37,12 @@ class evBuilder : public vmm {
 public :
    evBuilder(TString, TString runType_ = "g1_p25_s100-0&60", TString mapFile_ = "map-20220523.txt");
    evBuilder(vector<TString> filenames, TString runType_ = "g1_p25_s100-0&60", TString mapFile_ = "map-20220523.txt");
-   evBuilder(TChain *tree = nullptr);
+   evBuilder(TChain *tree = nullptr, TString runType_ = "g1_p25_s100-0&60", TString mapFile_ = "map-20220523.txt");
    virtual ~evBuilder();
    // virtual void     Init() override;
    virtual void     Loop(unsigned long n = 0) override;
-   virtual map<unsigned long, mm2CenterHitParameters> GetCentralHits(unsigned long long fromSec = 0, unsigned long long toSec = 0) override;
+   virtual map<unsigned long, mm2CenterHitParameters> GetCentralHits(unsigned long long fromSec = 0, unsigned long long toSec = 0, bool saveOnly = false) override;
+   virtual mm2CenterHitParameters GetCentralHitsData(unsigned long event) override;
 
    map<pair<int, int>, float> strawCenterMM = {
      {{1,24}, 156}, // 213 - 21 - 24/1.0 - 12
@@ -45,6 +69,10 @@ public :
    vector<mmHit> MmCluster;
    tuple<double, double, double> getClusterParameters(double t_srtraw, double minT_straw_mm, int workType = 0);
   long long findFirstGoodPulser(unsigned long long fromSec = 0, unsigned long long toSec = 0);
+
+  virtual vector<hitParam> getHits(unsigned long) override;
+
+  unsigned int mmDoubleReadout = 4; // 2  
 };
 
 evBuilder::evBuilder(TString filename, TString runType_, TString mapFile_) : vmm(filename, runType_, mapFile_)
@@ -54,7 +82,7 @@ evBuilder::evBuilder(vector<TString> filenames, TString runType_, TString mapFil
 {
 }
 
-evBuilder::evBuilder(TChain *tree) : vmm(tree)
+evBuilder::evBuilder(TChain *tree, TString runType_, TString mapFile_) : vmm(tree, runType_, mapFile_)
 {
 }
 
@@ -67,8 +95,9 @@ evBuilder::~evBuilder()
 void evBuilder::Loop(unsigned long n) {};
 void evBuilder::threePlotDrawF(TH1D *h1, TH1D *h2, TH1D *h3, TString fileEnding) {};
 map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentralHits(unsigned long long fromSec,
-                                                                                      unsigned long long toSec) {
+                                                                                      unsigned long long toSec,
+                                                                                      bool saveOnly) {
   return {};
 };
-long long evBuilder::findFirstGoodPulser(unsigned long long fromSec = 0, unsigned long long toSec = 0){return -1;}
+long long evBuilder::findFirstGoodPulser(unsigned long long fromSec, unsigned long long toSec){return -1;}
 #endif // #ifdef evBuilder_cxx

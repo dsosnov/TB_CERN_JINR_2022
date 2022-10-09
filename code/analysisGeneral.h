@@ -14,7 +14,7 @@ using std::map;
 
 class analysisGeneral {
 public :
-   TString folder = "../data/";
+   TString folder = "../data/vmm/";
    TString file = "run_0057";
    TString ending = ".root";
 
@@ -31,6 +31,7 @@ public :
    virtual void     Init() {};
    virtual void     Loop(unsigned long n = 0) {};
    virtual TChain* GetTree(TString filename = "", TString treeName = "vmm");
+   virtual unsigned int GetEntries(){return fChain->GetEntries();}
 
    bool syncSignal = false;
    void useSyncSignal(bool use = true) {syncSignal = use;}
@@ -39,10 +40,12 @@ public :
      bool approx, sync, signal, trigger;
      unsigned long timeSec;
      unsigned int timeMSec;
-     long stripX, stripY;
-     long pdo;
-     long bcid;
-     map<long, long> hitsX;
+     int stripX, stripY;
+     int pdo;
+     int bcid;
+     int srsT;
+     map<int, int> hitsX;
+     map<int, map<int, int>> hitsPerLayer;
      double pdoRelative;
      long long nHitsToPrev;
      float time; // ns
@@ -63,24 +66,33 @@ public :
        return signalTypeText;
      }
      void print() const {
-       printf("Hit to straw %ld with relative pdo %.3f and time %.2f at daq time %lld. %s Previous synchrosignal was %.2f us ago.\n",
+       printf("Hit to straw %d with relative pdo %.3f and time %.2f at daq time %lld. %s Previous synchrosignal was %.2f us ago.\n",
               stripX, pdoRelative, time, timeFull(), getSignalTypeText().c_str(), timeSinceSync);
      }
      void printfBrief(bool revert = false) const {
        if(revert)
-         printf("%s %3ld - %.2f - %.3f - %7lld - %.2g (%llu)",
+         printf("%s %3d - %.2f - %.3f - %7lld - %.2g (%llu)",
                 getSignalTypeText().c_str(),
                 stripX, time, pdoRelative,
                 timeFull() % int(1E7), timeSinceSync, previousSync);
        else
-         printf("(%llu) %.2g - %7lld - %.3f - %.2f - %3ld %s",
+         printf("(%llu) %.2g - %7lld - %.3f - %.2f - %3d %s",
                 previousSync, timeSinceSync, timeFull() % int(1E7),
                 pdoRelative, time, stripX,
                 getSignalTypeText().c_str());
      }
 
    };
-  virtual map<unsigned long, mm2CenterHitParameters> GetCentralHits(unsigned long long fromSec = 0, unsigned long long toSec = 0) {return {};};
+   virtual mm2CenterHitParameters GetCentralHitsData(unsigned long) {return {};};
+   virtual map<unsigned long, mm2CenterHitParameters> GetCentralHits(unsigned long long fromSec = 0, unsigned long long toSec = 0, bool saveOnly = false) {return {};};
+
+  struct hitParam{
+    int detector, strip;
+    int pdo;
+    long long timestamp;
+    double timeToScint;
+  };
+  virtual vector<hitParam> getHits(unsigned long){return {};}
 };
 
 TChain* analysisGeneral::GetTree(TString filename, TString treeName){

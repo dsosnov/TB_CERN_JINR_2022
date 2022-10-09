@@ -6,6 +6,30 @@
 #include <TROOT.h>
 #include <TChain.h>
 #include <TFile.h>
+#include <TString.h>
+
+#include <vector> 
+#include <map>
+#include <utility>
+#include <string>
+#include <memory>
+#include <set>
+
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <algorithm> // max_element, sort
+
+using std::vector;
+using std::map;
+using std::string;
+using std::shared_ptr, std::make_shared;
+using std::pair, std::make_pair;
+using std::tuple, std::get;
+using std::set;
+using std::array;
+using std::begin, std::end;
+using std::ifstream;
 
 // Header file for the classes stored in the TTree if any.
 //#include "c++/v1/vector"
@@ -66,7 +90,7 @@ public :
 
    vmm(TString, TString runType_ = "g1_p25_s100", TString mapFile_ = "map-strawOnly.txt");
    vmm(vector<TString>, TString runType_ = "g1_p25_s100", TString mapFile_ = "map-strawOnly.txt");
-   vmm(TChain *tree = nullptr);
+   vmm(TChain *tree = nullptr, TString runType_ = "g1_p25_s100", TString mapFile_ = "map-strawOnly.txt");
    virtual ~vmm();
    virtual void     Init() override;
    virtual void     Loop(unsigned long n = 0) override;
@@ -123,13 +147,14 @@ vmm::vmm(vector<TString> filenames, TString runType_, TString mapFile_) : runTyp
   Init();
 }
 
-vmm::vmm(TChain *tree) : analysisGeneral(tree),  triggerTimeStamp(nullptr), triggerCounter(nullptr),
-   boardId(nullptr), chip(nullptr), eventSize(nullptr),
-   daq_timestamp_s(nullptr), daq_timestamp_ns(nullptr),
-   tdo(nullptr), pdo(nullptr), flag(nullptr), threshold(nullptr),
-   bcid(nullptr), relbcid(nullptr), overflow(nullptr), orbitCount(nullptr), grayDecoded(nullptr),
-   channel(nullptr), febChannel(nullptr), mappedChannel(nullptr),
-   art_valid(nullptr), art(nullptr), art_trigger(nullptr)
+vmm::vmm(TChain *tree, TString runType_, TString mapFile_) : analysisGeneral(tree),  runType(runType_), mapFile(mapFile_),
+                                                             triggerTimeStamp(nullptr), triggerCounter(nullptr),
+                                                             boardId(nullptr), chip(nullptr), eventSize(nullptr),
+                                                             daq_timestamp_s(nullptr), daq_timestamp_ns(nullptr),
+                                                             tdo(nullptr), pdo(nullptr), flag(nullptr), threshold(nullptr),
+                                                             bcid(nullptr), relbcid(nullptr), overflow(nullptr), orbitCount(nullptr), grayDecoded(nullptr),
+                                                             channel(nullptr), febChannel(nullptr), mappedChannel(nullptr),
+                                                             art_valid(nullptr), art(nullptr), art_trigger(nullptr)
 {
   fChain = (tree == nullptr) ? GetTree("") : tree;
   Init();
@@ -141,7 +166,7 @@ vmm::~vmm()
 
 void vmm::addLimits(int minLimit, TString filename, bool verbose){
    vector<array<int, 2>> limitsCurrent;
-   ifstream myfile(Form("../out/%s", filename.Data()));
+   ifstream myfile(Form("../configs/%s", filename.Data()));
    int bin1 = 0;
    int bin2 = 0;
    int i = 0;
@@ -192,7 +217,7 @@ double vmm::getTimeByHand(int bcid, int tdo, int lowLimit, int upLimit){
 }
 
 void vmm::addPDOCorrection(TString filename, bool verbose){
-   ifstream myfile(Form("../out/%s", filename.Data()));
+   ifstream myfile(Form("../configs/%s", filename.Data()));
    float p0, p1;
    int i = 0;
    unsigned int sizeBefore = pdoCorrection.size();
@@ -215,7 +240,7 @@ int vmm::correctPDO(int channel, int pdoIn){
 }
 
 void vmm::addMap(TString filename, bool verbose){
-   ifstream infile(Form("../out/%s", filename.Data()));
+   ifstream infile(Form("../configs/%s", filename.Data()));
    std::string line;
    int ch, d, dch;
    while (std::getline(infile, line))

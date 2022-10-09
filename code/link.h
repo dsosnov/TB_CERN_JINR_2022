@@ -1,7 +1,11 @@
 #pragma once
 #include <vector>
 #include <string>
+#include <map>
 #include "apv_cluster.h"
+#include "analysisGeneral.h"
+#include "apv.C"
+
 namespace {
   std::vector<int> vector_int;
   std::vector<std::vector<int>> vector_vector_int;
@@ -28,4 +32,9 @@ namespace {
   std::vector<apvTrack> vector_apvTrack;
   std::vector<std::vector<apvTrack>> vector_vector_apvTrack;
 
+  std::map<int, int> map_int_int;
+  std::map<int, std::map<int, int>> map_int_map_int_int;
+
+  analysisGeneral::mm2CenterHitParameters analysisGeneral_mm2CenterHitParameters;
+  apv::doubleReadoutHits apv_doubleReadoutHits;
 };

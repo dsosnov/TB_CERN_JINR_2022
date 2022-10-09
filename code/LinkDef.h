@@ -26,4 +26,10 @@
 #pragma link C++ class vector<apvTrack>+;
 #pragma link C++ class vector<vector<apvTrack>>+;
 
+#pragma link C++ class map<int, int>+;
+#pragma link C++ class map<int, map<int, int>>+;
+
+#pragma link C++ class analysisGeneral::mm2CenterHitParameters+;
+#pragma link C++ class apv::doubleReadoutHits+;
+
 #endif

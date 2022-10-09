@@ -1,12 +1,13 @@
 /.vscode/
-
-/_for_andrei/
-
 /data/
-/data-calibration/
-/data-apv/
-/data-tiger/
+/build/
 /out/
 
-*.txt
 *~
+*.root
+*.pdf
+*.png
+*.log
+
+*.pcm
+link.C

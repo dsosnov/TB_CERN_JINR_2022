@@ -44,13 +44,13 @@ void calibration::Loop()
 
    vector<array<int, 2>> limits; // vector of TDO limits for every Ch [limits.size() == 64]!
 
-   TFile *out = new TFile("../out/calibration_25_100" + ending, "RECREATE"); // PATH where to save out_*.root file
+   TFile *out = new TFile("../configs/calibration_25_100" + ending, "RECREATE"); // PATH where to save out_*.root file
    TDirectory *tdo_dir = out->mkdir("TDO");
    tdo_dir->cd();
 
    // ================================== LIMITS SEARCH ==================================
    ofstream out_txt;
-   out_txt.open("../out/calibration_25_100.txt");
+   out_txt.open("../configs/calibration_25_100.txt");
 
    auto *gausFitF = new TF1("gausFitF", "gaus", 0, 256); //
    for (Int_t i = 0; i < 64; i++)

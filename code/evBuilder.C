@@ -1,32 +1,12 @@
+#ifndef evBuilder_cxx
 #define evBuilder_cxx
 #include "evBuilder.h"
-#include <TH1.h>
-
-tuple<bool, int, int, int> getDiffBCID(const int bcid1, const int bcid2, const int maxDiffBCID = 2, const int maxPeriods = 4) {
-  long long bcidDiff = (bcid2 > bcid1) ? bcid2 - bcid1 : bcid2 - bcid1 + 4096;
-  int periods = -1;
-  int difference = -1;
-
-  if(bcidDiff > 4096 - 8){
-    periods = 0;
-    difference = 4096-bcidDiff;
-  } else {
-    for(auto i = 0; i < 256; i++){
-      if( abs((2000*i)%4096 - bcidDiff) <= 8){
-        periods = i;
-        difference = abs((2000*i)%4096 - bcidDiff);
-        break;
-      }
-    }
-  }
-
-  bool goodEvent = false;
-  if(periods > maxPeriods || difference > maxDiffBCID)
-    goodEvent = false;
-  else
-    goodEvent = true;
-  return {goodEvent, periods, difference, bcidDiff};
-}
+#include "TStyle.h"
+#include "TF1.h"
+#include "TLegend.h"
+#include "TCanvas.h"
+#include "TH2D.h"
+#include "TH1D.h"
 
 void evBuilder::threePlotDrawF(TH1D *h1, TH1D *h2, TH1D *h3, TString fileEnding)
 {
@@ -182,36 +162,107 @@ long long evBuilder::findFirstGoodPulser(unsigned long long fromSec, unsigned lo
   }
   return -1;
 }
-map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentralHits(unsigned long long fromSec, unsigned long long toSec){
-  printf("evBuilder::GetCentralHits(%llu, %llu)\n", fromSec, toSec);
 
-  map<unsigned long, analysisGeneral::mm2CenterHitParameters> outputData = {};
-  unsigned long long hitsToPrev = 0;
+vector<analysisGeneral::hitParam> evBuilder::getHits(unsigned long entry){
+  Long64_t ientry = LoadTree(entry);
+  if (ientry < 0)
+    return {};
+  fChain->GetEntry(entry);
 
-  if (fChain == 0)
-    return outputData;
-
+  double t_srtraw = 0;
+  int straw_bcid_ch_srtraw = 0;
+  int straw_pdo_ch_srtraw = 0;
   unsigned int pdoThr = 100;
+
+  vector<hitParam> hitsScint0; // Scintillator 0
+  vector<hitParam> hitsStraw; // straw
+  vector<hitParam> hitsMM; // MM
+
+  for (int j = 0; j < channel->at(0).size(); j++)
+  {
+    int fch = channel->at(0).at(j);
+    int fchD = getMappedDetector(fch);
+    int fchM = getMappedChannel(fch);
+
+    int fpdoUC = pdo->at(0).at(j); // Uncorrected PDO, used at time calibration
+    int fpdo = correctPDO(fch, fpdoUC);
+    int ftdo = tdo->at(0).at(j);
+    int fbcid = grayDecoded->at(0).at(j);
+
+    // if(fpdo < pdoThr) continue;
+    if(fchD == -1) continue;
+
+    if (fchD == 0 && fchM == 0){ // Sci 0
+      t_srtraw = getTimeByHand(fbcid, ftdo, 88, 140); //'hand' limits
+      hitsScint0.push_back({fchD, fchM, fpdo, 0, t_srtraw});        
+    } else if (fchD == 1){ // All straw ch
+      t_srtraw = getTime(fch, fbcid, ftdo, fpdoUC); // 'auto' limits
+      // t_srtraw = getTimeByHand(fbcid, ftdo, Y, Y); //'hand' limits
+      hitsStraw.push_back({fchD, fchM, fpdo, 0, t_srtraw});
+    } else if (fchD == mmDoubleReadout){ // All straw ch
+      // t_srtraw = getTime(fch, fbcid, ftdo, fpdoUC); // 'auto' limits
+      // t_srtraw = getTimeByHand(fbcid, ftdo, Y, Y); //'hand' limits
+      hitsMM.push_back({fchD, fchM, fpdo, 0, 0});
+    } else {
+      continue;
+    }
+  }
+  if(!hitsScint0.size())
+    return {};
+  for(auto &h: hitsStraw){
+    int minTScint = 0;
+    for(auto sN = 1; sN < hitsScint0.size(); sN++){
+      if(fabs(h.timeToScint - hitsScint0.at(sN).timeToScint) < fabs(h.timeToScint - hitsScint0.at(minTScint).timeToScint))
+        minTScint = sN;
+    }
+    h.timeToScint = h.timeToScint - hitsScint0.at(minTScint).timeToScint;
+  }
+  // adding MM to output vector
+  hitsStraw.insert(hitsStraw.end(), hitsMM.begin(), hitsMM.end());
+  return hitsStraw;
+
+}
+
+analysisGeneral::mm2CenterHitParameters evBuilder::GetCentralHitsData(unsigned long event){
+  // printf("evBuilder::GetCentralHitsData(%lu)\n", event);
+
+  analysisGeneral::mm2CenterHitParameters hit;
+    hit.signal = false;
+    hit.sync = false;
+    hit.trigger = false;
+    // hit.approx = false;
+    // hit.signal = meanCh != 0;
+    // hit.sync = isSync;
+    // hit.trigger = isTrigger;
+    // hit.stripX = meanCh;
+    // hit.pdo = syncPDO;
+    // hit.bcid = syncBcid;
+    // hit.pdoRelative = maxPdo / 1024.0;
+    // hit.nHitsToPrev = hitsToPrev;
+    // hit.time = trigTime - meanT;
+
+
+  // if (fChain == 0)
+  //   return outputData;
+
+  // unsigned int pdoThr = 100;
   unsigned int nLoopEntriesAround = 0;
-  Long64_t nentries = fChain->GetEntries();
-  double lastSyncTime = -1;
-  unsigned long long previousSync = 0;
+  // Long64_t nentries = fChain->GetEntries();
+  // double lastSyncTime = -1;
+  // unsigned long long previousSync = 0;
 
   Long64_t nbytes = 0, nb = 0, mbytes = 0, mb = 0;
 
   // =============================== CORRELATION FINDING ===============================
-  for (Long64_t jentry = 0; jentry < nentries; jentry++) // You can remove "/ 10" and use the whole dataset
-  {
-    Long64_t ientry = LoadTree(jentry);
+  
+    Long64_t ientry = LoadTree(event);
     if (ientry < 0)
-      break;
-    nb = fChain->GetEntry(jentry);
+      return hit;
+    nb = fChain->GetEntry(event);
     nbytes += nb;
 
-    if(fromSec > 0 && daq_timestamp_s->at(0) < fromSec)
-      continue;
-    else if(toSec > 0 && toSec >= fromSec && daq_timestamp_s->at(0) > toSec)
-      break;
+    hit.timeSec = daq_timestamp_s->at(0);
+    hit.timeMSec = daq_timestamp_ns->at(0) / 1000;
 
     bool isTrigger = false;
     bool isSync = false;
@@ -219,6 +270,7 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentra
     double trigTime = 0;
     long prevbcid63 = -1;
     int syncBcid = 0;
+    int syncPDO = 0;
     for (int j = 0; j < channel->at(0).size(); j++)
     {
       int fch = channel->at(0).at(j);
@@ -240,24 +292,23 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentra
         if(fpdo > 650){
           if(prevbcid63 >= 0){
             auto bcidSincePrevious63 = (fbcid > prevbcid63) ? fbcid - prevbcid63 : fbcid - prevbcid63 + 4096;
-            unsigned int maxDiffBCID = 1; // bcid
+            unsigned int maxDiffBCID = 5; // bcid
             // Remove any synchrosigtnal not with the 2000 and 4000 bcid difference with previous
-            if((abs(static_cast<long long>(bcidSincePrevious63) - 2000) < maxDiffBCID ||
-                abs(static_cast<long long>(bcidSincePrevious63) - 4000) < maxDiffBCID)){
-              isSync = true;
-              syncTime = getTime(fch, fbcid, ftdo, fpdoUC);
-            } else {
-              printf("Event %lld with bcid difference %ld -- between %ld and %d\n", jentry, bcidSincePrevious63, prevbcid63, fbcid);
-              continue;
-            }
+            // if((bcidSincePrevious63 >= 2000 - maxDiffBCID && bcidSincePrevious63 <= 2000 + maxDiffBCID) ||
+            //    (bcidSincePrevious63 >= 4000 - maxDiffBCID && bcidSincePrevious63 <= 4000 + maxDiffBCID)){
+            // }
           }
+          isSync = true;
+          // printf("event %lu -- synchrosignal at %d (pdo %d)\n", event, j, fpdo);
+          syncTime = getTime(fch, fbcid, ftdo, fpdoUC);
           prevbcid63 = fbcid;
           syncBcid = fbcid;
+          syncPDO = fpdo;
         }
       }
     }
     if(!isTrigger && !isSync){
-      continue;
+      return hit;
     }
     if(!isTrigger && isSync)
       trigTime = syncTime;
@@ -267,7 +318,7 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentra
     MmCluster.clear();
     mbytes = 0, mb = 0;
 
-    for (Long64_t kentry = jentry - nLoopEntriesAround; kentry <= jentry + nLoopEntriesAround; kentry++)
+    for (Long64_t kentry = event - nLoopEntriesAround; kentry <= event + nLoopEntriesAround; kentry++)
     {
       Long64_t iientry = LoadTree(kentry);
       if (iientry < 0)
@@ -290,12 +341,12 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentra
 
         // if(ffpdo < pdoThr) continue;
 
-        if(ffchD == 4) // All MM channels
+        if(ffchD == mmDoubleReadout) // All MM channels
         { 
-          if (fabs(trigTime - fft) < 500)
-          {
+          // if (fabs(trigTime - fft) < 500)
+          // {
             MmCluster.push_back({ffchM * 1.0, ffpdo * 1.0, fft});
-          }
+          // }
         }
         else if(ffchD == 0 && ffchM == 4){ // master clock
           if(ffpdo < 250) continue;
@@ -306,57 +357,234 @@ map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentra
     double minT_straw_mm = 600;
     auto [meanT, meanCh, maxPdo] = getClusterParameters(trigTime, minT_straw_mm, 1);
 
-    if(meanCh == 0 && !isSync){
-      hitsToPrev++;
-      continue;
-    }
-
-
-    analysisGeneral::mm2CenterHitParameters hit;
     hit.approx = false;
     hit.signal = meanCh != 0;
     hit.sync = isSync;
     hit.trigger = isTrigger;
-    hit.timeSec = daq_timestamp_s->at(0);
-    hit.timeMSec = daq_timestamp_ns->at(0) / 1000;
     hit.stripX = meanCh;
-    hit.pdo = static_cast<int>(maxPdo);
+    hit.pdo = syncPDO;
     hit.bcid = syncBcid;
     hit.pdoRelative = maxPdo / 1024.0;
-    hit.nHitsToPrev = hitsToPrev;
+    hit.nHitsToPrev = 0;
     hit.time = trigTime - meanT;
 
+    if(meanCh == 0 && !isSync)
+      return hit;
+
     if(meanCh != 0){
-      hitsToPrev = 0;
       for(auto h: MmCluster){
         hit.hitsX.emplace(h.channel, h.pdo);
       }
-
     }
 
-    double syncTimeDiff = syncTime - lastSyncTime;
-    if(lastSyncTime < 0)
-      syncTimeDiff = lastSyncTime;
-    else if(syncTime < lastSyncTime)
-      syncTimeDiff += 4096 * 25.0;
-    hit.timeSinceSync = syncTimeDiff / 1000.0;
+    return hit;
+}
+// analysisGeneral::mm2CenterHitParameters evBuilder::GetCentralHitsData(unsigned long event){
+//   // printf("evBuilder::GetCentralHitsData(%lu)\n", event);
 
-    double deltaTimeSyncTrigger = 0;
-    if(isTrigger && isSync){
-      deltaTimeSyncTrigger = trigTime - syncTime;
+//   analysisGeneral::mm2CenterHitParameters hit;
+//     hit.signal = false;
+//     hit.sync = false;
+//     hit.trigger = false;
+//     // hit.approx = false;
+//     // hit.signal = meanCh != 0;
+//     // hit.sync = isSync;
+//     // hit.trigger = isTrigger;
+//     // hit.stripX = meanCh;
+//     // hit.pdo = syncPDO;
+//     // hit.bcid = syncBcid;
+//     // hit.pdoRelative = maxPdo / 1024.0;
+//     // hit.nHitsToPrev = hitsToPrev;
+//     // hit.time = trigTime - meanT;
+
+
+//   // if (fChain == 0)
+//   //   return outputData;
+
+//   // unsigned int pdoThr = 100;
+//   // Long64_t nentries = fChain->GetEntries();
+//   // double lastSyncTime = -1;
+//   // unsigned long long previousSync = 0;
+
+//     Long64_t ientry = LoadTree(event);
+//     if (ientry < 0)
+//       return hit;
+//     fChain->GetEntry(event);
+
+//     hit.timeSec = daq_timestamp_s->at(0);
+//     hit.timeMSec = daq_timestamp_ns->at(0) / 1000;
+
+//     bool isTrigger = false;
+//     bool isSync = false;
+//     double syncTime = 0;
+//     double trigTime = 0;
+//     long prevbcid63 = -1;
+//     int syncBcid = 0;
+//     int syncPDO = 0;
+//     for (int j = 0; j < channel->at(0).size(); j++)
+//     {
+//       int fch = channel->at(0).at(j);
+//       int fchD = getMappedDetector(fch);
+//       int fchM = getMappedChannel(fch);
+//       // printf("VERSO: ch %d -> %d %d\n", fch, fchD, fchM);
+      
+//       int fpdoUC = pdo->at(0).at(j); // Uncorrected PDO, used at time calibration
+//       int fpdo = correctPDO(fch, fpdoUC);
+//       int ftdo = tdo->at(0).at(j);
+//       int fbcid = grayDecoded->at(0).at(j);
+
+//       // isTrigger = isTrigger || (ffchD == 0 && ffchM == 3);
+//       if(fchD == 0 && fchM == 3){
+//         isTrigger = true;
+//         trigTime = getTime(fch, fbcid, ftdo, fpdoUC);
+//       }
+//       else if(fchD == 0 && fchM == 4){
+//         if(fpdo > 650){
+//           if(prevbcid63 >= 0){
+//             auto bcidSincePrevious63 = (fbcid > prevbcid63) ? fbcid - prevbcid63 : fbcid - prevbcid63 + 4096;
+//             unsigned int maxDiffBCID = 5; // bcid
+//             // Remove any synchrosigtnal not with the 2000 and 4000 bcid difference with previous
+//             // if((bcidSincePrevious63 >= 2000 - maxDiffBCID && bcidSincePrevious63 <= 2000 + maxDiffBCID) ||
+//             //    (bcidSincePrevious63 >= 4000 - maxDiffBCID && bcidSincePrevious63 <= 4000 + maxDiffBCID)){
+//             // }
+//           }
+//           isSync = true;
+//           // printf("event %lu -- synchrosignal at %d (pdo %d)\n", event, j, fpdo);
+//           syncTime = getTime(fch, fbcid, ftdo, fpdoUC);
+//           prevbcid63 = fbcid;
+//           syncBcid = fbcid;
+//           syncPDO = fpdo;
+//         }
+//       }
+//     }
+//     if(!isTrigger && !isSync){
+//       return hit;
+//     }
+//     if(!isTrigger && isSync)
+//       trigTime = syncTime;
+//     if(!isSync && isTrigger)
+//       syncTime = trigTime;
+
+//     MmCluster.clear();
+
+//     for (int k = 0; k < channel->at(0).size(); k++)
+//     {
+//       int ffch = channel->at(0).at(k);
+//       int ffchD = getMappedDetector(ffch);
+//       int ffchM = getMappedChannel(ffch);
+                      
+//       int ffpdoUC = pdo->at(0).at(k); // Uncorrected PDO, used at time calibration
+//       int ffpdo = correctPDO(ffch, ffpdoUC);
+//       int fftdo = tdo->at(0).at(k);
+//       int ffbcid = grayDecoded->at(0).at(k);
+//       // double fft = getTimeByHand(ffbcid, fftdo, 110, 160); //'hand' limits
+//       double fft = getTime(ffch, ffbcid, fftdo, ffpdoUC); // 'auto' limits
+
+//       // if(ffpdo < pdoThr) continue;
+
+//       if(ffchD == mmDoubleReadout) // All MM channels
+//       { 
+//         // if (fabs(trigTime - fft) < 500)
+//         // {
+//         MmCluster.push_back({ffchM * 1.0, ffpdo * 1.0, fft});
+//         // }
+//       }
+//       else if(ffchD == 0 && ffchM == 4){ // master clock
+//         if(ffpdo < 250)
+//           continue;
+//       }
+//     }
+
+//     double minT_straw_mm = 600;
+//     auto [meanT, meanCh, maxPdo] = getClusterParameters(trigTime, minT_straw_mm, 1);
+
+//     hit.approx = false;
+//     hit.signal = meanCh != 0;
+//     hit.sync = isSync;
+//     hit.trigger = isTrigger;
+//     hit.stripX = meanCh;
+//     hit.pdo = syncPDO;
+//     hit.bcid = syncBcid;
+//     hit.pdoRelative = maxPdo / 1024.0;
+//     hit.nHitsToPrev = 0;
+//     hit.time = trigTime - meanT;
+
+//     if(meanCh == 0 && !isSync)
+//       return hit;
+
+//     if(MmCluster.size()){
+//       for(auto h: MmCluster){
+//         hit.hitsX.emplace(h.channel, h.pdo);
+//       }
+//     }
+
+//     return hit;
+// }
+map<unsigned long, analysisGeneral::mm2CenterHitParameters> evBuilder::GetCentralHits(unsigned long long fromSec, unsigned long long toSec, bool saveOnly){
+  printf("evBuilder::GetCentralHits(%llu, %llu)\n", fromSec, toSec);
+
+  auto out = new TFile("../out/out_" + file + "_centralHits" + ending, "RECREATE");
+  auto outTree = new TTree("vmm_event", "vmm_event");
+  outTree->AutoSave("10000");
+  pair<unsigned long, analysisGeneral::mm2CenterHitParameters> eventData;
+  outTree->Branch("event", &eventData);
+
+  map<unsigned long, analysisGeneral::mm2CenterHitParameters> outputData = {};
+  unsigned long long hitsToPrev = 0;
+
+  if (fChain == 0)
+    return outputData;
+
+  unsigned int pdoThr = 100;
+  unsigned int nLoopEntriesAround = 0;
+  Long64_t nentries = fChain->GetEntries();
+  double lastSyncTime = -1;
+  unsigned long long previousSync = 0;
+
+  Long64_t nbytes = 0, nb = 0, mbytes = 0, mb = 0;
+
+  // =============================== CORRELATION FINDING ===============================
+  for (Long64_t jentry = 0; jentry < nentries; jentry++) // You can remove "/ 10" and use the whole dataset
+  {
+    auto hit = GetCentralHitsData(jentry);
+    if(fromSec > 0 && hit.timeSec < fromSec)
+      continue;
+    else if(toSec > 0 && toSec >= fromSec && hit.timeSec > toSec)
+      break;
+
+    if(!hit.signal && !hit.sync){
+      hitsToPrev++;
+      continue;
     }
-    hit.deltaTimeSyncTrigger = deltaTimeSyncTrigger;
 
-    hit.previousSync = previousSync;
+    // double syncTimeDiff = syncTime - lastSyncTime;
+    // if(lastSyncTime < 0)
+    //   syncTimeDiff = lastSyncTime;
+    // else if(syncTime < lastSyncTime)
+    //   syncTimeDiff += 4096 * 25.0;
+    // hit.timeSinceSync = syncTimeDiff / 1000.0;
 
-    outputData.emplace(jentry, hit);
+    // double deltaTimeSyncTrigger = 0;
+    // if(isTrigger && isSync){
+    //   deltaTimeSyncTrigger = trigTime - syncTime;
+    // }
+    // hit.deltaTimeSyncTrigger = deltaTimeSyncTrigger;
 
-    if(isSync){
-      lastSyncTime = syncTime;
-      previousSync = jentry;
-    }
+    // hit.previousSync = previousSync;
+
+    if(!saveOnly)
+      outputData.emplace(jentry, hit);
+    eventData = make_pair(jentry, hit);
+    outTree->Fill();
+
+    // if(isSync){
+    //   lastSyncTime = syncTime;
+    //   previousSync = jentry;
+    // }
   }
   
+  outTree->Write();
+  out->Close();
   return outputData;
 }
 
@@ -431,7 +659,7 @@ void evBuilder::Loop(unsigned long n)
         strawMin = s.second.second;
       if(strawMax < 0 || strawMax < s.second.second)
         strawMax = s.second.second;
-    } else if(s.second.first == 4){
+    } else if(s.second.first == mmDoubleReadout){
       if(mmMin < 0 || mmMin > s.second.second)
         mmMin = s.second.second;
       if(mmMax < 0 || mmMax < s.second.second)
@@ -587,26 +815,7 @@ void evBuilder::Loop(unsigned long n)
   auto hNPeriodsBenweenSync = make_shared<TH1F>("hNPeriodsBenweenSync", Form("Run %s: hNPeriodsBenweenSync; N sync periods", file.Data()), 12+500, -1, 11+500);
   auto his0 = make_shared<TH1F>("his0", Form("Run %s: his0", file.Data()), 2, 0, 2);
   auto hbcidDifference63PrevNext = make_shared<TH2F>("hbcidDifference63PrevNext", Form("Run %s: hbcidDifference63PrevNext; distance to previous [bcid]; distance to next [bcid]", file.Data()), 4096, 0, 4096, 4096, 0, 4096);
-  auto hbcidDifference63Any = make_shared<TH1F>("hbcidDifference63Any", Form("Run %s: hbcidDifference63Any; [bcid]", file.Data()), 8000, 0, 8000);
-  auto hbcidDifference63PrevNextAny = make_shared<TH2F>("hbcidDifference63PrevNextAny", Form("Run %s: hbcidDifference63PrevNextAny; distance to previous [bcid]; distance to next [bcid]", file.Data()), 4096, 0, 4096, 4096, 0, 4096);
-  auto hdaqTimeDifference63 = make_shared<TH1F>("hdaqTimeDifference63", Form("Run %s: hdaqTimeDifference63; [#mus]", file.Data()), 200, 0, 200);
-  auto hTimeDifference63 = make_shared<TH1F>("hTimeDifference63", Form("Run %s: hTimeDifference63; [#mus]", file.Data()), 2000000, 0, 200);
-  auto hTimeBCIDDifference63 = make_shared<TH2F>("hTimeBCIDDifference63", Form("Run %s: hTimeBCIDDifference63; [#mus]", file.Data()), 20000, 0, 200, 4096,0,4096);
-  auto hbcidDifference63WrongBetweenCorrect = make_shared<TH1F>("hbcidDifference63WrongBetweenCorrect", Form("Run %s: hbcidDifference63WrongBetweenCorrect; [bcid]", file.Data()), 4096, 0, 4096);
 
-  auto hpdoVsBCIDDiff63Next = make_shared<TH2F>("hpdoVsBCIDDiff63Next", Form("Run %s: hpdoVsBCIDDiff63Next; [bcid]; pdo", file.Data()), 4096, 0, 4096, 124, 900, 1024);
-  auto hpdoVsBCIDDiff63Previous = make_shared<TH2F>("hpdoVsBCIDDiff63Previous", Form("Run %s: hpdoVsBCIDDiff63Previous; [bcid]; pdo", file.Data()), 4096, 0, 4096, 124, 900, 1024);
-  auto hpdoUCVsBCIDDiff63Next = make_shared<TH2F>("hpdoUCVsBCIDDiff63Next", Form("Run %s: hpdoUCVsBCIDDiff63Next; [bcid]; pdo", file.Data()), 4096, 0, 4096, 174, 850, 1024);
-  auto hpdoUCVsBCIDDiff63Previous = make_shared<TH2F>("hpdoUCVsBCIDDiff63Previous", Form("Run %s: hpdoUCVsBCIDDiff63Previous; [bcid]; pdo", file.Data()), 4096, 0, 4096, 174, 850, 1024);
-  auto hpdo63 = make_shared<TH1F>("hpdo63", Form("Run %s: hpdo63; [pdo]", file.Data()), 1024, 0, 1024);
-  auto hpdoUC63 = make_shared<TH1F>("hpdoUC63", Form("Run %s: hpdoUC63; [pdo]", file.Data()), 1024, 0, 1024);
-
-  auto hDaqTimeDifferenceComparison = make_shared<TH2F>("hDaqTimeDifferenceComparison", Form("Run %s: hDaqTimeDifferenceComparison; #Delta T_{DAQ}, #mus; #Delta T_{DAQ} - #Delta T_{bcid}, #mus", file.Data()),
-                                                        6E3, 0, 6E6, 1E3+400, -400, 1E3);
-  auto hDaqTimeDifferenceComparisonFull = make_shared<TH2F>("hDaqTimeDifferenceComparisonFull", Form("Run %s: hDaqTimeDifferenceComparisonFull; #Delta T_{DAQ}, #mus; #Delta T_{DAQ} - #Delta T_{bcid}, #mus", file.Data()),
-                                                        60E2, 0, 600E6, 6E3+400, -400, 6E3);
-                                                        // 40E2, 0, 40E6, 6E3+400, -400, 6E3);
-  
   unsigned int pdoThr = 100;
   unsigned int nLoopEntriesAround = 0;
   Long64_t nentries = fChain->GetEntries();
@@ -621,26 +830,7 @@ void evBuilder::Loop(unsigned long n)
   Long64_t nbytes = 0, nb = 0;
 
   unsigned long long daqPrevTime60 = 0, daqPrevTime0 = 0;
-  long long daqPrevTime63 = 0;
-  double prevTime63 = -1;
-  long long prevbcid63Any = -1, prevbcid63diffAny = -1;
-  vector<long long> prevbcid63diffAnyV = {-1,-1,-1};
-
-  int forceGoodEvent = -1; // If >= 0, then that hit in event should be forsed as "good" pulser
-  tuple <long, long, int, long, long> prev63 = {-1, -1, -1, -1, -1}; // event, hit in event, bcid, difference, previous bcid
-  vector<tuple <long, long, int, long, long>> bad63; // event, hit in event, bcid, difference, previous bcid
-  bool passInternalLoop = false;
-
-  long long daqTimeFirstSync = -1;
-  long long sumPulserFromFirst = 0;
-
-  long long firstEventDaqTimeS = -1; // daq_timestamp_s->at(0);
-  long long firstEventDaqTimeNS = -1; // daq_timestamp_ns->at(0);
-
-  if(syncSignal)
-    printf("First good sync event: %lld\n", findFirstGoodPulser());
-
-  long long sumPulserPeriods = 0, pulserSignals = 0;
+  long long prevbcid63 = -1, prevbcid63diff = -1, prevbcid63Good = -1;
 
   // =============================== CORRELATION FINDING ===============================
   for (Long64_t jentry = 0; jentry < nentries; jentry++) // You can remove "/ 10" and use the whole dataset
@@ -659,20 +849,9 @@ void evBuilder::Loop(unsigned long n)
     int straw_bcid_ch_srtraw = 0;
     int straw_pdo_ch_srtraw = 0;
 
-    if(firstEventDaqTimeS < 0){
-      firstEventDaqTimeS = daq_timestamp_s->at(0);
-      firstEventDaqTimeNS = daq_timestamp_ns->at(0);
-    }
-
-
-    long long daqCurrTime = (daq_timestamp_s->at(0) - firstEventDaqTimeS) * int(1E9) + (daq_timestamp_ns->at(0) - firstEventDaqTimeNS);
 
     for (int j = 0; j < channel->at(0).size(); j++)
     {
-      if(passInternalLoop){
-        passInternalLoop = false;
-        break;
-      }
       int fch = channel->at(0).at(j);
       int fchD = getMappedDetector(fch);
       int fchM = getMappedChannel(fch);
@@ -732,9 +911,9 @@ void evBuilder::Loop(unsigned long n)
             // double fft = getTimeByHand(ffbcid, fftdo, 110, 160); //'hand' limits
             double fft = getTime(ffch, ffbcid, fftdo, ffpdoUC); // 'auto' limits
 
-            if(ffchD != 4 && ffpdo < pdoThr) continue; // only for non-mm
+            if(ffchD != mmDoubleReadout && ffpdo < pdoThr) continue; // only for non-mm
 
-            if(ffchD == 4) // All MM channels
+            if(ffchD == mmDoubleReadout) // All MM channels
             { 
               if (fabs(t_srtraw - fft) < 500)
               {
@@ -876,7 +1055,7 @@ void evBuilder::Loop(unsigned long n)
 
             if(ffpdo < pdoThr) continue;
 
-            if(ffchD == 4) // All MM channels
+            if(ffchD == mmDoubleReadout) // All MM channels
             { 
               if (fabs(t_srtraw - fft) < 500)
               {
@@ -943,6 +1122,7 @@ void evBuilder::Loop(unsigned long n)
       }
       else if (fchD == 0 && fchM == 0){
         t_srtraw = getTimeByHand(fbcid, ftdo, 88, 140); //'hand' limits
+        unsigned long long daqCurrTime = daq_timestamp_s->at(0) * int(1E9) + daq_timestamp_ns->at(0);
         unsigned long long difftime = daqCurrTime - daqPrevTime0;
         if(daqPrevTime0 > 0)
           hdaqTimeDifference0->Fill(daqCurrTime - daqPrevTime0);
@@ -968,99 +1148,36 @@ void evBuilder::Loop(unsigned long n)
         his0->Fill(is0);
 
       }
-      else if (syncSignal && fchD == 0 && fchM == 4){
-        t_srtraw = getTime(fch, fbcid, ftdo, fpdoUC); // 'auto' limits
-        if(fpdoUC < 850) continue;
-        if(forceGoodEvent >= 0 && forceGoodEvent != j) continue;
-        unsigned int maxDiffBCID = 1; // bcid
-        if(prevbcid63Any >= 0){
-          long long bcidSincePrevious63Any = (fbcid > prevbcid63Any) ? fbcid - prevbcid63Any : fbcid - prevbcid63Any + 4096;
-          hbcidDifference63Any->Fill(bcidSincePrevious63Any);
-          hbcidDifference63PrevNextAny->Fill(prevbcid63diffAny, bcidSincePrevious63Any);
-
-          prevbcid63diffAnyV.at(0) = prevbcid63diffAnyV.at(1);
-          prevbcid63diffAnyV.at(1) = prevbcid63diffAny;
-          prevbcid63diffAnyV.at(2) = bcidSincePrevious63Any;
-          
-          prevbcid63diffAny = bcidSincePrevious63Any;
-        }
-        prevbcid63Any = fbcid;
-
-        if(
-          (abs(static_cast<long long>(prevbcid63diffAnyV.at(1)) - 2000) > 1 && abs(static_cast<long long>(prevbcid63diffAnyV.at(1)) - 4000) > 1) && 
-          (abs(static_cast<long long>(prevbcid63diffAnyV.at(0)) - 2000) <= 1 || abs(static_cast<long long>(prevbcid63diffAnyV.at(0)) - 4000) <= 1) &&
-          (abs(static_cast<long long>(prevbcid63diffAnyV.at(2)) - 2000) <= 1 || abs(static_cast<long long>(prevbcid63diffAnyV.at(2)) - 4000) <= 1)
-          ){
-          hbcidDifference63WrongBetweenCorrect->Fill(prevbcid63diffAnyV.at(1));
-        }
-
-        if(get<2>(prev63) >= 0){
-          auto [isGood, periods, bcidDiff, bcidSincePrevious63_] = getDiffBCID(get<2>(prev63), fbcid);
-          bcidSincePrevious63 = bcidSincePrevious63_;
-          if(isGood || forceGoodEvent == j){
-            printf("Event %lld with bcid difference %lld -- between %lld and %d (to any previous %lld)%s -- %d periods\n",
-                   jentry, bcidSincePrevious63, get<2>(prev63), fbcid, prevbcid63diffAny, forceGoodEvent == j ? " -- forced" : "", periods);
-            bad63.clear();
-            forceGoodEvent = -1;
-            sumPulserPeriods += periods;
-            pulserSignals++;
-            sumPulserFromFirst += periods;
-            printf("Time for pulser %lld: %lld - %lld; pdo: %d - %d\n", pulserSignals, daq_timestamp_s->at(0), daq_timestamp_ns->at(0), fpdo, fpdoUC);
-          } else {
-            int foundGood = -1;
-            for(auto i = 0; i < bad63.size(); i++){
-              auto [isGood, periods, bcidDiff, bcidSincePreviousBad] = getDiffBCID(get<2>(bad63.at(i)), fbcid);
-              if(isGood){
-                printf("Event %lld with bcid difference %lld -- between %lld and %d (to any previous %lld) -- removed -- but may be good with event %d\n", jentry, bcidSincePrevious63, get<2>(prev63), fbcid, prevbcid63diffAny, get<0>(bad63.at(i)));
-                forceGoodEvent = get<1>(bad63.at(i));
-                jentry = get<0>(bad63.at(i)) - 1;
-                foundGood = i;
-                prev63= {0, 0, get<3>(bad63.at(i)), 0, get<4>(bad63.at(i))};
-                prevbcid63Any = get<3>(bad63.at(i));
-                break;
-              }
-            }
-            if(foundGood >= 0){
-              passInternalLoop = true;
-              continue;
-            }
-            bad63.push_back({jentry, j, fbcid, get<2>(prev63), get<4>(prev63)});
-            printf("Event %lld with bcid difference %lld -- between %lld and %d (to any previous %lld) -- removed\n", jentry, bcidSincePrevious63, get<2>(prev63), fbcid, prevbcid63diffAny);
-            continue;
-          }
-            
+      else if (fchD == 0 && fchM == 4){
+        if(fpdo < 250) continue;
+        if(prevbcid63 >= 0){
+          auto bcidSincePrevious63 = (fbcid > prevbcid63) ? fbcid - prevbcid63 : fbcid - prevbcid63 + 4096;
           hbcidDifference63->Fill(bcidSincePrevious63);
-          hbcidDifference63PrevNext->Fill(get<4>(prev63), bcidSincePrevious63);
+          hbcidDifference63PrevNext->Fill(prevbcid63diff, bcidSincePrevious63);
+          prevbcid63diff = bcidSincePrevious63;
 
-          hpdoVsBCIDDiff63Next->Fill(bcidSincePrevious63, fpdo);
-          hpdoVsBCIDDiff63Previous->Fill(get<4>(prev63), fpdo);
-          hpdoUCVsBCIDDiff63Next->Fill(bcidSincePrevious63, fpdoUC);
-          hpdoUCVsBCIDDiff63Previous->Fill(get<4>(prev63), fpdoUC);
-          hpdo63->Fill(fpdo);
-          hpdoUC63->Fill(fpdo);
+          unsigned int maxDiffBCID = 1; // bcid
+          // // Remove any synchrosigtnal not with the 2000 and 4000 bcid difference with previous
+          // if((bcidSincePrevious63 < 2000 - maxDiffBCID || bcidSincePrevious63 > 2000 + maxDiffBCID) &&
+          //    (bcidSincePrevious63 < 4000 - maxDiffBCID || bcidSincePrevious63 > 4000 + maxDiffBCID))
+          //   continue;
 
-          // long long daqCurrTime = daq_timestamp_s->at(0) * int(1E9) + daq_timestamp_ns->at(0);
-          // long long difftime = daqCurrTime - daqPrevTime63;
-          if(daqPrevTime63 > 0)
-            hdaqTimeDifference63->Fill(static_cast<double>(daqCurrTime - daqPrevTime63)/1E3);
-          daqPrevTime63 = daqCurrTime;
-          if(prevTime63 > 0){
-            hTimeDifference63->Fill(static_cast<double>(t_srtraw - prevTime63 + (periods * 4096 * 25))/1E3);
-            hTimeBCIDDifference63->Fill(static_cast<double>(t_srtraw - prevTime63 + (periods * 4096 * 25))/1E3, bcidSincePrevious63);
+          // prevbcid63Good = fbcid;
+          // prevbcid63diff = bcidSincePrevious63;
+
+
+          unsigned int syncPeriod = 2000; // bcid
+          auto nSignalsBetween = static_cast<int>(round(static_cast<double>(bcidSincePrevious63) / static_cast<double>(syncPeriod)));
+          if(abs(static_cast<long>(bcidSincePrevious63) - static_cast<long>(syncPeriod * nSignalsBetween)) > maxDiffBCID){
+            printf("For event %lld: Time difference between sync is: %llu, what is about %d signal period and %ld difference\n",
+                   jentry, bcidSincePrevious63, nSignalsBetween, abs(static_cast<long>(bcidSincePrevious63) - static_cast<long>(syncPeriod * nSignalsBetween))
+              );
+            hNPeriodsBenweenSync->Fill(-1);
+          } else{
+            hNPeriodsBenweenSync->Fill(nSignalsBetween);
           }
-          prevTime63 = t_srtraw;
-          hDaqTimeDifferenceComparison->Fill(static_cast<double>(daqCurrTime - daqTimeFirstSync)/1E3, static_cast<double>(daqCurrTime - daqTimeFirstSync)/1E3 - sumPulserFromFirst * 50);
-          hDaqTimeDifferenceComparisonFull->Fill(static_cast<double>(daqCurrTime - daqTimeFirstSync)/1E3, static_cast<double>(daqCurrTime - daqTimeFirstSync)/1E3 - sumPulserFromFirst * 50);
-          printf("hDaqTimeDifferenceComparison: %f, %f\n", static_cast<double>(daqCurrTime - daqTimeFirstSync)/1E3, static_cast<double>(daqCurrTime - daqTimeFirstSync)/1E3 - sumPulserFromFirst * 50);
-        } else {
-          printf("! Time for first pulser: %lld - %lld; pdo: %d - %d\n", daq_timestamp_s->at(0), daq_timestamp_ns->at(0), fpdo, fpdoUC);
         }
-        // prevbcid63 = fbcid;
-        if(forceGoodEvent < 0){
-          prev63 = {jentry, j, fbcid, get<2>(prev63), bcidSincePrevious63};
-        }
-        if(daqTimeFirstSync < 0)
-          daqTimeFirstSync = daqCurrTime;
+        prevbcid63 = fbcid;
       }
       else
       {
@@ -1068,8 +1185,6 @@ void evBuilder::Loop(unsigned long n)
       }
     }
   }
-
-  printf("SumPulserPeriods: %lld -- %f ms (%d signals)\n", sumPulserPeriods, static_cast<double>(sumPulserPeriods) * 50 * 1E-3, pulserSignals);
 
   auto straw_rt_normed_dir = out->mkdir("straw_rt_normed");
   straw_rt_normed_dir->cd();
@@ -1196,3 +1311,4 @@ void evBuilder::Loop(unsigned long n)
   out->Close();
 
 }
+#endif

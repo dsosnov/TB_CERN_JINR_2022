@@ -13,6 +13,7 @@
 #include <utility>
 #include <string>
 #include <memory>
+#include <set>
 
 #include <algorithm> // max_element, sort
 
@@ -22,7 +23,9 @@ using std::vector;
 using std::map;
 using std::string;
 using std::shared_ptr, std::make_shared;
-using std::pair;
+using std::pair, std::make_pair;
+using std::tuple, std::get;
+using std::set;
 
 class apv : public analysisGeneral {
 public :
@@ -94,19 +97,22 @@ public :
   virtual ~apv();
   virtual void     Init() override;
   virtual void     Loop(unsigned long n = 0) override;
-  virtual map<unsigned long, analysisGeneral::mm2CenterHitParameters> GetCentralHits(unsigned long long fromSec = 0, unsigned long long toSec = 0) override;
+  virtual map<unsigned long, analysisGeneral::mm2CenterHitParameters> GetCentralHits(unsigned long long fromSec = 0, unsigned long long toSec = 0, bool saveOnly = false) override;
 
   struct doubleReadoutHits{
     bool sync;
     unsigned long timeSec;
     unsigned int timeMSec;
+    int timeSrs;
     long long timeFull() const {
       return timeMSec + timeSec * 1E6;
     }
     vector<apvHit> hits;
     vector<apvHit> hitsSync;
+    map<int, map<int, int>> hitsPerLayer;
   };
-  map<unsigned long, doubleReadoutHits> GetCentralHits2ROnly(unsigned long long fromSec = 0, unsigned long long toSec = 0);
+  doubleReadoutHits GetCentralHits2ROnlyData(unsigned long long event);
+  map<unsigned long, doubleReadoutHits> GetCentralHits2ROnly(unsigned long long fromSec = 0, unsigned long long toSec = 0, bool saveOnly = false);
 
   static unsigned long long unique_srs_time_stamp(int, int, int);
 
@@ -128,7 +134,9 @@ public :
   tuple<double,double,double> getHitsForTrack(apvTrack track);
   vector<apvTrack> constructTracks(vector<apvCluster> clusters);
 
-  unsigned int nAPVs = 5;
+  unsigned int nAPVLayers = 5;
+  unsigned int pulserAPV = 2; // 10
+  unsigned int layerDoubleReadout = 2; // 0
 };
 
 tuple<double,double,double> apv::getHitsForTrack(apvTrack track){
@@ -196,7 +204,7 @@ apv::apv(TString filename) : fChainPedestal(nullptr),
                              clusterTree(nullptr)
 {
   file = filename;
-  folder = "../data-apv/";
+  folder = "../data/apv/";
   fChain = GetTree(filename, "apv_raw");
   fChainPedestal = GetTree(filename, "apv_raw_ped");
   Init();
@@ -212,7 +220,7 @@ apv::apv(vector<TString> filenames): fChainPedestal(nullptr),
                                      clusterTree(nullptr)
 {
   file = filenames.at(0);
-  folder = "../data-apv/";
+  folder = "../data/apv/";
   fChain = GetTree(filenames.at(0), "apv_raw");
   fChainPedestal = GetTree(filenames.at(0), "apv_raw_ped");
   for(auto i = 1; i < filenames.size(); i++)
@@ -230,7 +238,7 @@ apv::apv(TChain *tree, TChain *treePed) : analysisGeneral(tree), fChainPedestal(
                                         ped_meanPed(nullptr), ped_stdevPed(nullptr), ped_sigmaPed(nullptr),
                                         clusterTree(nullptr)
 {
-  folder = "../data-apv/";
+  folder = "../data/apv/";
   fChain = (tree == nullptr) ? GetTree("", "apv_raw") : tree;
   fChainPedestal = (treePed == nullptr) ? GetTree("", "apv_raw_ped") : treePed;
   Init();
@@ -349,11 +357,13 @@ void apv::constructClusters(){
 #ifndef apv_cxx
 void apv::Loop(unsigned long n) {};
 map<unsigned long, analysisGeneral::mm2CenterHitParameters> apv::GetCentralHits(unsigned long long fromSec,
-                                                                                unsigned long long toSec) {
+                                                                                unsigned long long toSec,
+                                                                                bool saveOnly) {
   return {};
 };
 map<unsigned long, apv::doubleReadoutHits> apv::GetCentralHits2ROnly(unsigned long long fromSec,
-                                                                 unsigned long long toSec){
+                                                                     unsigned long long toSec,
+                                                                     bool saveOnly){
   return {};
 }
 #endif // #ifdef apv_cxx
