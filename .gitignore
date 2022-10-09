@@ -1,8 +1,8 @@
 /.vscode/
 /data/
 /build/
+/out/
 
-*.txt
 *~
 *.root
 *.pdf
