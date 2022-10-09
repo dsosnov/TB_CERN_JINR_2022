@@ -357,6 +357,8 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
     long long T_apv_sincePulse = 0;
     long long T_apv_sincePulseSRSTS = 0; // in timestamps
     long long T_apv_pulse_prev = 0;
+    long long T_vmm = 0;
+    long long T_vmm_pulse_prev = 0;
     long long nPeriodsAPV = 0;
     // if time between two syncs larger then multiple pulser periods, merging fails due to calculation N periods for APV from pulser time only
     long long nPeriodsAPV_corrected = 0;
@@ -456,9 +458,12 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
     long long vectorPositionInTree = firstSelectedEntries.first;
     unsigned long startIndex = 0;
     int prevSyncBcid = vmman->GetCentralHitsData(vectorPositionInTree).bcid;
+    T_vmm_pulse_prev = vmman->GetCentralHitsData(vectorPositionInTree).timeFull();
     int prevPrevSyncBcid = 0;
     long long nPeriods = 0;
+    long long nPeriodsAddAPV = 0;
     long long pulseTime = 0;
+    long long T_vmm_pulse_first = T_vmm_pulse_prev;
 
     /* Try to load variables from previous runs */
     if(saveTemporaryParameters)
@@ -498,6 +503,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                 tree->SetBranchAddress("prevPrevSyncBcid", &prevPrevSyncBcid);
                 tree->SetBranchAddress("nPeriods", &nPeriods);
                 tree->SetBranchAddress("pulseTime", &pulseTime);
+                tree->SetBranchAddress("T_vmm_pulse_prev", &T_vmm_pulse_prev);
                 tree->GetEntry(bestAPVni);
                 tree->ResetBranchAddresses();
                 startIndexAPV = bestAPVn;
@@ -508,14 +514,14 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
        }
     }
     
-    tuple<long long, unsigned long, int, int, long long, long long> beforeLastPulserParameters = {vectorPositionInTree, startIndex, prevSyncBcid, prevPrevSyncBcid, nPeriods, pulseTime};
+    tuple<long long, unsigned long, int, int, long long, long long, long long> beforeLastPulserParameters = {vectorPositionInTree, startIndex, prevSyncBcid, prevPrevSyncBcid, nPeriods, pulseTime, T_vmm_pulse_prev};
     map<long long, vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>>> hits_vmm_events_map;
     auto nLoaded = loadNextVMM(get<0>(beforeLastPulserParameters), hits_vmm_events_map, vmman);
     // printf("nLoaded: %lld\n", nLoaded);
     if(nLoaded <= 1)
         return;
     auto beforeLastPulserParametersCurrent = beforeLastPulserParameters;
-    tuple<long long, long long, tuple<long long, unsigned long, int, int, int, long long>, unsigned long, int> bestHit;
+    tuple<long long, long long, tuple<long long, unsigned long, int, int, long long, long long, long long>, unsigned long, int> bestHit;
     map<long long, int> pairedVMM = {};
     analysisGeneral::mm2CenterHitParameters* currEvent;
 
@@ -534,6 +540,8 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
     long long dt_apv_vmm;
     int strip, pdo;
     int diff, diffDiff;
+    optional<int> nPeriodsAdd;
+    long long diffTvmm;
 
     int maxAPVPulserCountDifference = tight ? 0 : 1;
     bool ignoreNextSync = true;
@@ -673,6 +681,8 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                 vectorPositionInTree = get<0>(beforeLastPulserParameters); // TODO
                 currentEventsMap = hits_vmm_events_map.at(vectorPositionInTree).size();
 
+                T_vmm_pulse_prev = get<6>(beforeLastPulserParameters);
+
                 if(DEBUG_PRINT)
                     printf("For APV event %lu search starting from VMM event %lu\n", i, get<1>(beforeLastPulserParameters));
                 for (unsigned long j = get<1>(beforeLastPulserParameters); j <= currentEventsMap; j++)
@@ -691,32 +701,23 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                     currEvent = &(hits_vmm_events_map.at(vectorPositionInTree).at(j).second);
                     if (currEvent->sync)
                     {
+                        T_vmm = currEvent->timeSec*1E6 + currEvent->timeMSec;
                         if(ignoreNextSync)
                         {
                             ignoreNextSync = false;
                         }
                         else
                         {
-                            beforeLastPulserParametersCurrent = {vectorPositionInTree, j, prevSyncBcid, prevPrevSyncBcid, nPeriods, pulseTime};
+                            beforeLastPulserParametersCurrent = {vectorPositionInTree, j, prevSyncBcid, prevPrevSyncBcid, nPeriods, pulseTime, T_vmm_pulse_prev};
                             diff = (currEvent->bcid - prevSyncBcid > 0) ? currEvent->bcid - prevSyncBcid : currEvent->bcid + 4096 - prevSyncBcid;
                             diffDiff = (currEvent->bcid - prevPrevSyncBcid > 0) ? currEvent->bcid - prevPrevSyncBcid: currEvent->bcid + 4096 - prevPrevSyncBcid;
 
-                            auto nPeriodsAdd = calculateVMMNPulsers(diff, 5, 9);
+                            nPeriodsAdd = calculateVMMNPulsers(diff, 2, 4);
+                            
+                            diffTvmm = T_vmm-T_vmm_pulse_prev;
 
                             if(!nPeriodsAdd)
                             {
-                              // auto nPeriodsAdd2 = calculateVMMNPulsers(diffDiff, 5, 9);
-                              // if (!nPeriodsAdd2)
-                              // {
-                              //   bad++;
-                              //   prevPrevSyncBcid = prevSyncBcid;
-                              //   prevSyncBcid = currEvent->bcid;
-                              //   continue;
-                              // }
-                              // else
-                              // {
-                              //   nPeriodsAdd = nPeriodsAdd2;
-                              // }
                                 continue;
                             }
                             nPeriods += nPeriodsAdd.value();
@@ -724,6 +725,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                         prevPrevSyncBcid = prevSyncBcid;
                         prevSyncBcid = currEvent->bcid;
                         pulseTime = nPeriods * 50;
+                        T_vmm_pulse_prev = T_vmm;
                     }
 
                     if(DEBUG_PRINT)
@@ -1059,12 +1061,14 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
         tree->Branch("prevPrevSyncBcid", &prevPrevSyncBcid);
         tree->Branch("nPeriods", &nPeriods);
         tree->Branch("pulseTime", &pulseTime);
+        tree->Branch("T_vmm_pulse_prev", &T_vmm_pulse_prev);
         vectorPositionInTree = get<0>(beforeLastPulserParameters); 
         index = get<1>(beforeLastPulserParameters);
         prevSyncBcid = get<2>(beforeLastPulserParameters);
         prevPrevSyncBcid = get<3>(beforeLastPulserParameters);
         nPeriods = get<4>(beforeLastPulserParameters);
         pulseTime = get<5>(beforeLastPulserParameters);
+        T_vmm_pulse_prev = get<6>(beforeLastPulserParameters);
         tree->Fill();
         tree->Write();
         file->Close();
