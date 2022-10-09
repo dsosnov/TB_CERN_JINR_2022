@@ -103,7 +103,7 @@ public :
 tiger::tiger(TString filename, TString mapFile_) : mapFile(mapFile_)
 {
   file = filename;
-  folder = "../data-tiger/";
+  folder = "../data/tiger/";
   fChain = GetTree(filename, "tigerTL");
   Init();
 }
@@ -111,7 +111,7 @@ tiger::tiger(TString filename, TString mapFile_) : mapFile(mapFile_)
 tiger::tiger(vector<TString> filenames, TString mapFile_) : mapFile(mapFile_)
 {
   file = filenames.at(0);
-  folder = "../data-tiger/";
+  folder = "../data/tiger/";
   fChain = GetTree(filenames.at(0), "tigerTL");
   for(auto i = 1; i < filenames.size(); i++)
     fChain->Add(folder + filenames.at(i) + ending);
@@ -120,7 +120,7 @@ tiger::tiger(vector<TString> filenames, TString mapFile_) : mapFile(mapFile_)
 
 tiger::tiger(TChain *tree) : analysisGeneral(tree)
 {
-  folder = "../data-tiger/";
+  folder = "../data/tiger/";
   fChain = (tree == nullptr) ? GetTree("", "tigerTL") : tree;
   Init();
 }
@@ -130,7 +130,7 @@ tiger::~tiger()
 }
 
 void tiger::addMap(TString filename, bool verbose){
-   ifstream infile(Form("../out/%s", filename.Data()));
+   ifstream infile(Form("../configs/%s", filename.Data()));
    std::string line;
    int gr, t, ch, d, dch;
    while (std::getline(infile, line))
