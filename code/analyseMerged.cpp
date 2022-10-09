@@ -4,19 +4,23 @@
 
 #include <optional>
 #include <utility>
+#include <algorithm>
+
+
 using std::optional, std::nullopt;
 using std::pair, std::make_pair;
 
 constexpr unsigned int layerDoubleReadout = 2; // 0
 
-optional<double> getMeanPosition(map<int, int> hitsPerLayer, int layer){
+optional<pair<double, double>> getMeanPosition(map<int, int> hitsPerLayer, int layer, bool vmmHits = false){
   long long sum = 0, sumWeights = 0, nHits = 0;
+  optional<double> min = nullopt, max = nullopt;
   for(auto &h: hitsPerLayer){
     long long strip = h.first;
     long long pdo = h.second;
+    if(!vmmHits && (h.first <= 118 || h.first >= 172))
+      continue; // TODO check why
     // shifts from Stefano
-    if(h.first <= 118 || h.first >= 172)
-      continue;
     switch(layer){
       case 0:
         strip = h.first;
@@ -31,13 +35,20 @@ optional<double> getMeanPosition(map<int, int> hitsPerLayer, int layer){
         strip = h.first;
         break;
     }
+    if(!min || min.value() < strip) min = {strip};
+    if(!max || max.value() > strip) max = {strip};
+    if(layer == 0)
+      printf("Strip in layer 0: %lld\n", strip);
     sum += strip * pdo;
     sumWeights += pdo;
     nHits++;
   }
-  optional<double> center = nullopt;
-  if(nHits)
-    center.emplace(static_cast<double>(sum) / static_cast<double>(sumWeights));
+  optional<pair<double, double>> center = nullopt;
+  if(nHits){
+    double centerV = static_cast<double>(sum) / static_cast<double>(sumWeights);
+    center.emplace(make_pair(centerV,
+                             std::max(fabs(centerV-min.value()), fabs(centerV-max.value()))));
+  }
   return center;
 }
 
@@ -63,32 +74,42 @@ int getLayerPosition(int layer){
   return y;
 }
 
-pair<double, double> getEstimatedTrack(map<int, double> positions){
+pair<double, double> getEstimatedTrack(map<int, pair<double, double>> positions){
   int n = 0;
-  double sumXY = 0, sumX = 0, sumY = 0, sumX2 = 0, sumY2 = 0;
-  int y; double x; // x: horizontal, y - vertical coordinate
+  double sumWXY = 0, sumWX = 0, sumWY = 0, sumWX2 = 0, sumY2 = 0, sumW = 0;
+  double y, x, w, yE; // x: horizontal, y - vertical coordinate
   for(auto &pos: positions){
-    y = getLayerPosition(pos.first);
-    x = pos.second;
-    sumXY += x * y;
-    sumX += x;
-    sumY += y;
-    sumX2 += x * x;
+    x = getLayerPosition(pos.first);
+    y = pos.second.first;
+    yE = pos.second.second;
+    w = 1.0 / yE;
+    sumW += w;
+    sumWXY += w * x * y;
+    sumWX += w * x;
+    sumWY += w * y;
+    sumWX2 += w * x * x;
     // sumY2 += y * y;
     n++;
   }
-  double a0 = (n * sumXY - sumX * sumY)/(n * sumX2 - sumX * sumX);
-  double b0 = (sumY - a0*sumX)/n;
-  double b1 = (sumX2 * sumY - sumXY * sumX) / (n * sumX2 - sumX * sumX);
-  double a1 = (sumY - n*b1) / sumX;
+  double d = sumW * sumWX2 - sumWX * sumWX;
+  double a0 = (sumW*sumWXY - sumWX*sumWY) / d;
+  double b0 = (sumWX2 * sumWY - sumWX*sumWXY)/d;
+  double sigmaa = sqrt(sumW/d);
+  double sigmab = sqrt(sumWX2/d);
   // printf("%d layers -- a0: %g, b0: %g; a1: %g, b1: %g;\n", n, a0, b0, a1, b1);
+  for(auto &pos: positions){
+    x = getLayerPosition(pos.first);
+    y = pos.second.first;
+    yE = pos.second.second;
+    printf("X = %g; y = %g; y_calc = %g\t\tyE = %g\n", x, y, a0 * x + b0, yE);
+  }
   return {a0, b0};
 }
 
 double estimatePositionInLayer(pair<double, double> trackAB, int layer){
-  double y = getLayerPosition(layer);
-  double x = (y - trackAB.second) / trackAB.first;
-  return x;
+  double x = getLayerPosition(layer);
+  double y = trackAB.first * x + trackAB.second;
+  return y;
 }
 
 TH2F* renormToUnityByY(TH2F* histIn){
@@ -124,6 +145,12 @@ TH2F* renormToUnityByX(TH2F* histIn){
   return histOut;
 }
 
+// output: mm
+double stripToCoord(double strip){
+  return strip * 0.25;
+}
+
+bool drLayerFromVMM = true;
 void analyseMerged(string runVMM = "0832", string runAPV = "423", bool tight = false, bool timefix = true, string partialfileEnd = ""){
   string tightText = tight ? "_tight" : "";
   string fixTimeText = timefix ? "_timefix" : "";
@@ -144,12 +171,14 @@ void analyseMerged(string runVMM = "0832", string runAPV = "423", bool tight = f
   auto apvan = new apv(tAPV, nullptr);
   apvan->useSyncSignal();
 
-  auto fOut = TFile::Open("_analysed_.root", "recreate");
+  auto fOut = TFile::Open(Form("_analysed_%s_%s%s.root", runVMM.c_str(), runAPV.c_str(), (tightText+fixTimeText+partialfileEnd).c_str()), "recreate");
 
   auto hL0Straw = new TH2F("hL0Straw", "hL0Straw; straw; L0 strip", 6, 24, 30, 206, 54, 260);
   auto hL1Straw = new TH2F("hL1Straw", "hL2Straw; straw; L1 strip", 6, 24, 30, 206, 54, 260);
   auto hL2Straw = new TH2F("hL2Straw", "hL2Straw; straw; L2 strip", 6, 24, 30, 206, 54, 260);
-  auto estimatedStraw = new TH2F("estimatedStraw", "Estimated track position; straw; estimated position in L2 coords", 6, 24, 30, 206, 54, 260);
+  auto estimatedStraw = new TH2F("estimatedStraw", "Estimated track position; straw; estimated position, mm", 6, 24, 30, 500, 0, 50);
+  // // 1 in MM strips
+  // auto estimatedStraw1 = new TH2F("estimatedStraw1", "Estimated track position; straw; estimated position, mm", 6, 24, 30, 206, 54, 260);
 
   map<pair<int,int>, TH2F*> dtHists;
   for(auto &straw: {25, 26, 27, 28, 29}){
@@ -157,18 +186,18 @@ void analyseMerged(string runVMM = "0832", string runAPV = "423", bool tight = f
       dtHists.emplace(make_pair(l, straw), new TH2F(Form("hL%dStraw%dDT",l, straw), Form("hL%dStraw%dDT; MM strip; dT, ns",l, straw), 206, 54, 260, 200, -100, 100));
     }
   }
-  map<int, TH2F*> dtHistsProj;
+  map<int, TH2F*> dtHistsProj, dtHistsProj1;
   for(auto &straw: {25, 26, 27, 28, 29}){
-    dtHistsProj.emplace(straw, new TH2F(Form("hProjecteddStraw%dDT",straw), Form("hProjecteddStraw%dDT; MM strip; dT, ns",straw), 206, 54, 260, 200, -100, 100));
+    dtHistsProj.emplace(straw, new TH2F(Form("hProjecteddStraw%dDT",straw), Form("hProjecteddStraw%dDT; position, mm; dT, ns",straw), 500, 0, 50, 200, -100, 100));
+    dtHistsProj1.emplace(straw, new TH2F(Form("hProjecteddStraw%dDT_1",straw), Form("hProjecteddStraw%dDT_1; position, strip; dT, ns",straw), 206, 54, 260, 200, -100, 100));
   }
-
 
   int nGood = 0;
   auto nEvents = apvan->GetEntries();
   for(auto event = 0; event < nEvents; event++){
     auto dataAPV = apvan->GetCentralHits2ROnlyData(event);
     auto dataVMM = vmman->getHits(event);
-    map<int, double> positions;
+    map<int, pair<double,double>> positions;
     if(!getMeanPosition(dataAPV.hitsPerLayer.at(2), 2))
       continue;
     for(auto i = 0; i < 3; i++){
@@ -176,7 +205,7 @@ void analyseMerged(string runVMM = "0832", string runAPV = "423", bool tight = f
       auto meanPos = getMeanPosition(layerData, i);
       if(!meanPos)
         continue;
-      if(i < 2)
+      if(i < 2 || !drLayerFromVMM)
         positions.emplace(i, meanPos.value());
       // printf("Event %d, position for layer %d: %g\n", event, i, meanPos.value());
       TH2F* hist = nullptr;
@@ -207,13 +236,31 @@ void analyseMerged(string runVMM = "0832", string runAPV = "423", bool tight = f
     if(positions.size() < 2)
       continue;
     // printf("Event %d\t", event);
+
+    if(drLayerFromVMM){
+      // Adding MM layer from VMM data
+      map<int, int> hitsMMVMM;
+      for(auto h: dataVMM){
+        if(h.detector != 4) continue;
+        // printf("MM VMM strip %d\n", h.strip);
+        hitsMMVMM.emplace(h.strip, h.pdo);
+      }
+      // printf("Number of MM VMM strips %lu\n", hitsMMVMM.size());
+      auto meanPosMMVMM = getMeanPosition(hitsMMVMM, 2, true);
+      if(!meanPosMMVMM)
+        continue;
+      positions.emplace(2, meanPosMMVMM.value());
+    }
+
     auto trackParam = getEstimatedTrack(positions);
     auto estimatedCoord = estimatePositionInLayer(trackParam, 3);
+    printf("Event %d -- estimated: %g\n", event, estimatedCoord);
     for(auto h: dataVMM){
       if(h.detector != 1)
         continue;
-      estimatedStraw->Fill(h.strip, estimatedCoord);
-      dtHistsProj.at(h.strip)->Fill(estimatedCoord, h.timeToScint);
+      estimatedStraw->Fill(h.strip, stripToCoord(estimatedCoord));
+      dtHistsProj.at(h.strip)->Fill(stripToCoord(estimatedCoord), h.timeToScint);
+      dtHistsProj1.at(h.strip)->Fill(estimatedCoord, h.timeToScint);
     }
     nGood++;
   }

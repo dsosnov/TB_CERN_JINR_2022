@@ -176,6 +176,7 @@ vector<analysisGeneral::hitParam> evBuilder::getHits(unsigned long entry){
 
   vector<hitParam> hitsScint0; // Scintillator 0
   vector<hitParam> hitsStraw; // straw
+  vector<hitParam> hitsMM; // MM
 
   for (int j = 0; j < channel->at(0).size(); j++)
   {
@@ -188,7 +189,7 @@ vector<analysisGeneral::hitParam> evBuilder::getHits(unsigned long entry){
     int ftdo = tdo->at(0).at(j);
     int fbcid = grayDecoded->at(0).at(j);
 
-    if(fpdo < pdoThr) continue;
+    // if(fpdo < pdoThr) continue;
     if(fchD == -1) continue;
 
     if (fchD == 0 && fchM == 0){ // Sci 0
@@ -198,6 +199,10 @@ vector<analysisGeneral::hitParam> evBuilder::getHits(unsigned long entry){
       t_srtraw = getTime(fch, fbcid, ftdo, fpdoUC); // 'auto' limits
       // t_srtraw = getTimeByHand(fbcid, ftdo, Y, Y); //'hand' limits
       hitsStraw.push_back({fchD, fchM, fpdo, 0, t_srtraw});
+    } else if (fchD == mmDoubleReadout){ // All straw ch
+      // t_srtraw = getTime(fch, fbcid, ftdo, fpdoUC); // 'auto' limits
+      // t_srtraw = getTimeByHand(fbcid, ftdo, Y, Y); //'hand' limits
+      hitsMM.push_back({fchD, fchM, fpdo, 0, 0});
     } else {
       continue;
     }
@@ -212,6 +217,8 @@ vector<analysisGeneral::hitParam> evBuilder::getHits(unsigned long entry){
     }
     h.timeToScint = h.timeToScint - hitsScint0.at(minTScint).timeToScint;
   }
+  // adding MM to output vector
+  hitsStraw.insert(hitsStraw.end(), hitsMM.begin(), hitsMM.end());
   return hitsStraw;
 
 }
