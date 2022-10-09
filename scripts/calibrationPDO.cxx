@@ -1,7 +1,7 @@
 #include "calibrationPDO.h"
 
 int calibrationPDO(){
-  string outdir = "../out";
+  string outdir = "../configs";
 
   // string comment = "t@t_g1_p25_s100_sci0&60";
   // string callibpath = "../data/calibration/t@t_g1_p25_s100_sci0&60";
