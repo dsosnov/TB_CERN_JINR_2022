@@ -155,7 +155,7 @@ long long loadNextVMM(long long firstElement,
                       long long nElements = 100000){
     if(hits_vmm_events_map.count(firstElement))
         return hits_vmm_events_map.at(firstElement).size();
-    printf("loadNextVMM(%lld, %p, %lld)\n", firstElement, &hits_vmm_events_map, nElements);
+    // printf("loadNextVMM(%lld, %p, %lld)\n", firstElement, &hits_vmm_events_map, nElements);
   
     vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>> elementVector;
     auto hit_vmm = vmman->GetCentralHitsData(firstElement);
