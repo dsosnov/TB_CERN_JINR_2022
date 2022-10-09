@@ -35,18 +35,19 @@ struct tigerHitTL : public tigerHit {
   Int_t    counterWord;     // 24 bit data -- "I" == Int_t    == int32_t
 
   double timeFine() const; // ns
-  double charge() const;
+  double charge(const bool fine = true) const;
   void print(bool hex = false) const override;
 
   friend bool isLater(const tigerHitTL hit1, const tigerHitTL hit2);
-  friend long long timeDifferenceCoarsePS(const tigerHitTL hit1, const tigerHitTL hit2);
+  friend Long64_t timeDifferenceCoarsePS(const tigerHitTL hit1, const tigerHitTL hit2);
   friend double timeDifferenceFineNS(const tigerHitTL hit1, const tigerHitTL hit2);
 };
 
-double tigerHitTL::charge() const{
+double tigerHitTL::charge(const bool fine) const{
   double ediff = eCoarse - tCoarse%0x400;
   ediff += (ediff >= 0) ? 0 : 1024;
-  ediff -= (eFine / 1024.0 - tFine / 1024.0);
+  if(fine)
+    ediff -= (eFine - tFine) / 1024.0;
   return ediff;    
 }
 
@@ -88,7 +89,8 @@ bool isLater(const tigerHitTL hit1, const tigerHitTL hit2){
   return later;
 }
 
-long long timeDifferenceCoarsePS(const tigerHitTL hit1, const tigerHitTL hit2){
+/*The diffarance should be not larger then ~106 days */
+Long64_t timeDifferenceCoarsePS(const tigerHitTL hit1, const tigerHitTL hit2){
   auto later = isLater(hit1, hit2);
   auto hitFirst = later ? &hit2: &hit1;
   auto hitLast = later ? &hit1: &hit2;
@@ -108,7 +110,7 @@ long long timeDifferenceCoarsePS(const tigerHitTL hit1, const tigerHitTL hit2){
   Long64_t tCoarseRollOvers = (FCDiff - (FCDiff%2 ? 1 : 0)) / 2;
   Long64_t tCoarseDiff = hitLast->tCoarse - hitFirst->tCoarse;
   Long64_t clk_periods = tCoarseDiff + tCoarseRollOvers * 65536;
-  long long absTime = clk_periods * 6250;
+  Long64_t absTime = clk_periods * 6250;
 
   return later ? absTime : -absTime; // picoseconds
 }
