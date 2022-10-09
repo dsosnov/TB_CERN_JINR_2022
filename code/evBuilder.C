@@ -189,7 +189,7 @@ vector<analysisGeneral::hitParam> evBuilder::getHits(unsigned long entry){
     int ftdo = tdo->at(0).at(j);
     int fbcid = grayDecoded->at(0).at(j);
 
-    if(fpdo < pdoThr) continue;
+    // if(fpdo < pdoThr) continue;
     if(fchD == -1) continue;
 
     if (fchD == 0 && fchM == 0){ // Sci 0
