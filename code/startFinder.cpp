@@ -25,7 +25,7 @@ void startFinder()
 
     auto apvan = new apv(run_pair.second);
     apvan->useSyncSignal();
-    auto vmman = new evBuilder(run_pair.first, "g1_p25_s100-0&60", "map-20220605");
+    auto vmman = new evBuilder(run_pair.first, "g1_p25_s100-0&60", "map-20220721");
     vmman->useSyncSignal();
 
     cout << "Num of events: APV -- " << apvan->GetEntries() << "; VMM -- " << vmman->GetEntries() << endl;
@@ -83,7 +83,7 @@ void startFinder()
             // }
             cout << "VMM Pulse event " << i << " N = " << pulseN << "\t T = " << T_vmm << "\t from last pulse dT = " << T_vmm - prev_T_vmm<< "\t vs FirstAPV = " << T_vmm - first_pulse_T_apv << endl;
             prev_T_vmm = T_vmm;
-            if (pulseN == 10000)
+            if (pulseN == 1000)
                 break;
             pulseN++;
         }
