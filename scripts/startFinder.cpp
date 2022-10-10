@@ -1,5 +1,5 @@
-#include "apv.C"
-#include "evBuilder.C"
+#include "../code/apv.C"
+#include "../code/evBuilder.C"
 #include <iostream>
 #include <fstream>
 
@@ -77,11 +77,11 @@ void startFinder()
             }
             T_vmm = hit_vmm.timeSec*1E6 + hit_vmm.timeMSec;
 
-            // if (abs(T_vmm - first_pulse_T_apv) < 300)
-            // {
-            //     cout << "VMM Pulse event " << i << " N = " << pulseN << "\t T = " << T_vmm << "\t from last pulse dT = " << T_vmm - prev_T_vmm<< "\t vs FirstAPV = " << T_vmm - first_pulse_T_apv << endl;
-            // }
-            cout << "VMM Pulse event " << i << " N = " << pulseN << "\t T = " << T_vmm << "\t from last pulse dT = " << T_vmm - prev_T_vmm<< "\t vs FirstAPV = " << T_vmm - first_pulse_T_apv << endl;
+            if (abs(T_vmm - first_pulse_T_apv) < 300)
+            {
+                cout << "VMM Pulse event " << i << " N = " << pulseN << "\t T = " << T_vmm << "\t from last pulse dT = " << T_vmm - prev_T_vmm<< "\t vs FirstAPV = " << T_vmm - first_pulse_T_apv << endl;
+            }
+            // cout << "VMM Pulse event " << i << " N = " << pulseN << "\t T = " << T_vmm << "\t from last pulse dT = " << T_vmm - prev_T_vmm<< "\t vs FirstAPV = " << T_vmm - first_pulse_T_apv << endl;
             prev_T_vmm = T_vmm;
             if (pulseN == 1000)
                 break;
