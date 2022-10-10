@@ -51,7 +51,7 @@ void rawAna()
                 prev_T_apv = first_pulse_T_apv;
             }
             T_apv = hit_apv.timeSec*1E6 + hit_apv.timeMSec;
-            if (T_apv - prev_T_apv > 1e6)
+            if (T_apv - prev_T_apv > 1.1e4 && T_apv - first_pulse_T_apv > 235e6)
             {
                 cout << "APV Pulse event " << i << " N = " << pulseN << "\t T = " << (T_apv - first_pulse_T_apv)/1e6 << "\t from last pulse dT = " << T_apv - prev_T_apv << endl;
             }
@@ -66,13 +66,17 @@ void rawAna()
     cout << "\n\n";
 
     pulseN = 0;
+    
+    int numOfVmmHits = 0;
 
     for (unsigned long i = 0; i < vmman->GetEntries(); i++)
+    // for (unsigned long i = 3128938; i < 3157399; i++)
     {
         auto hit_vmm = vmman->GetCentralHitsData(i);
 
         if (hit_vmm.sync)
         {
+            numOfVmmHits += hit_vmm.hitsX.size();
             if (first_pulse_T_vmm == 0)
             {
                 first_pulse_T_vmm = hit_vmm.timeSec*1E6 + hit_vmm.timeMSec;
@@ -80,15 +84,20 @@ void rawAna()
             }
             T_vmm = hit_vmm.timeSec*1E6 + hit_vmm.timeMSec;
 
-            if (T_vmm - prev_T_vmm > 500000)
+            if (T_vmm - prev_T_vmm > 0 && T_vmm - first_pulse_T_vmm > 235e6)
             {
-                cout << "VMM Pulse event " << i << " N = " << pulseN << "\t T = " << (T_vmm - first_pulse_T_vmm)/1e6 << "\t from last pulse dT = " << T_vmm - prev_T_vmm << endl;
+                cout << "VMM Pulse event " << i << " N = " << pulseN << "\t T = " << (T_vmm - first_pulse_T_vmm)/1e6 << "\t from last pulse dT = " << T_vmm - prev_T_vmm << "\t N of hits inside " << numOfVmmHits << endl;
             }
+            // numOfVmmHits = 0;
             prev_T_vmm = T_vmm;
             // if (pulseN == 1000)
             if (T_vmm - first_pulse_T_vmm > 260e6)
                 break;
             pulseN++;
+        }
+        else
+        {
+            numOfVmmHits += hit_vmm.hitsX.size();
         }
     }
 
