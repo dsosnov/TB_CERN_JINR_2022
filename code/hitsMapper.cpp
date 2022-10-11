@@ -229,7 +229,6 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
         return thr;
     };
 
-
     // out_VMM.close();
 
     // std::cout << "\t ---> TOTAL N of VMM events " << hits_vmm_t->GetEntries() << "\n";
