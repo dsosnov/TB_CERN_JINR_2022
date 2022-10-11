@@ -26,11 +26,11 @@ void mergeMapped(string runVMM = "0832_cut10m", string runAPV = "423_cut10m", bo
   pairTree->SetBranchAddress("vmm", &eventNumVMM);
   pairTree->SetBranchAddress("deltaT", &deltaT);
 
-  auto vmmFile = TFile::Open(TString("../data/run_"+runVMM+".root"), "read");
+  auto vmmFile = TFile::Open(TString("../data/vmm/run_"+runVMM+".root"), "read");
   auto vmmTree = static_cast<TTree*>(vmmFile->Get("vmm"));
   // auto vmmEntryList = new TEntryList("","");
   // vmmEntryList->SetTree(vmmTree);
-  auto apvFile = TFile::Open(TString("../data-apv/run"+runAPV+".root"), "read");
+  auto apvFile = TFile::Open(TString("../data/apv/run"+runAPV+".root"), "read");
   auto apvTree = static_cast<TTree*>(apvFile->Get("apv_raw"));
   // auto apvEntryList = new TEntryList("","");
   // apvEntryList->SetTree(apvTree);
