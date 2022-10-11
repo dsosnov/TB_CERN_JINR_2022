@@ -72,7 +72,7 @@ void filterClusters(vector<map<double, int>> &clusters, int layer, bool vmmHits)
                  clusters.end());
 }
 
-vector<pair<double, double>> getMeanClusterPositions(map<int, int> hitsPerLayer, int layer, bool vmmHits = false){
+vector<pair<double, double>> getMeanClusterPositions(map<int, int> hitsPerLayer, int layer, bool vmmHits = false, double singleHitAccuracy = 5){
   map<double, int> hitsPerLayerShifted;
   for(auto &h: hitsPerLayer){
     double strip = correctAlignment(h.first, layer);
@@ -101,7 +101,7 @@ vector<pair<double, double>> getMeanClusterPositions(map<int, int> hitsPerLayer,
     if(!nHits)
       continue;
     double centerV = static_cast<double>(sum) / static_cast<double>(sumWeights);
-    double maxDiff = (nHits == 1) ? 1.0 : std::max(fabs(centerV-min.value()), fabs(centerV-max.value()));
+    double maxDiff = (nHits == 1) ? singleHitAccuracy : std::max(fabs(centerV-min.value()), fabs(centerV-max.value()));
     out.push_back(make_pair(centerV, maxDiff));
   }
   return out;
@@ -153,6 +153,12 @@ int getLayerPosition(int layer){
   return y;
 }
 
+double estimatePositionInLayer(pair<double, double> trackAB, int layer){
+  double x = getLayerPosition(layer);
+  double y = trackAB.first * x + trackAB.second;
+  return y;
+}
+
 pair<double, double> getEstimatedTrack(map<int, pair<double, double>> positions){
   int n = 0;
   double sumWXY = 0, sumWX = 0, sumWY = 0, sumWX2 = 0, sumY2 = 0, sumW = 0;
@@ -185,11 +191,52 @@ pair<double, double> getEstimatedTrack(map<int, double> positions){
   return getEstimatedTrack(positionsW);
 }
 
-double estimatePositionInLayer(pair<double, double> trackAB, int layer){
-  double x = getLayerPosition(layer);
-  double y = trackAB.first * x + trackAB.second;
-  return y;
+double getDistanceToTrack(map<int, pair<double, double>> positions, pair<double, double> track){
+  double distance = 0;
+  for(auto &pos: positions){
+    auto distanceToEstimated = pos.second.first - estimatePositionInLayer(track, pos.first);
+    distance += distanceToEstimated * distanceToEstimated;
+  }
+  distance = sqrt(distance);
+  return distance;
 }
+
+void printCurrentMap(vector<map<int, pair<double, double>>> currentMap){
+  for(auto &m: currentMap){
+    printf("Map:");
+    for(auto &v: m){
+      printf("\tLayer %d -- %g (%g)", v.first, v.second.first, v.second.second);
+    }
+    printf("\n");
+  }
+}
+vector<map<int, pair<double, double>>> getAllClusterCombinations(map<int, vector<pair<double, double>>> positions){
+  vector<map<int, pair<double, double>>> positionsMap = {{}};
+  vector<map<int, pair<double, double>>> currentMap = {};
+  for(auto &pos: positions){
+    for(auto &pair: pos.second){
+      for(auto m: positionsMap){
+        m.emplace(pos.first, pair);
+        currentMap.push_back(m);
+      }
+    }
+    positionsMap.clear();
+    positionsMap.insert(positionsMap.end(), currentMap.begin(), currentMap.end());
+    currentMap.clear();
+  }
+  return positionsMap;
+}
+vector<pair<double, double>> getEstimatedTracks(vector<map<int, pair<double, double>>> positions){
+  vector<pair<double, double>> out = {};
+  std::transform(positions.begin(), positions.end(), std::back_inserter(out), [](auto p){return getEstimatedTrack(p);});
+  return out;
+}
+vector<pair<double, double>> getEstimatedTracks(map<int, vector<pair<double, double>>> positions){
+  vector<map<int, pair<double, double>>> positionsMap = getAllClusterCombinations(positions);
+  auto out = getEstimatedTracks(positionsMap);
+  return out;
+}
+
 
 // From hitsMapper
 

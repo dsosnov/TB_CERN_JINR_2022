@@ -6,7 +6,8 @@
 #include "hitsMapper.h"
 #include "analyseMerged.h"
 
-bool drLayerFromVMM = true;
+constexpr bool drLayerFromVMM = true;
+constexpr double maxDistanceToTrack = 5.0; // max tolerance
 void analyseMerged(string runVMM = "0832", string runAPV = "423", bool tight = false, bool timefix = true, string partialfileEnd = ""){
   string tightText = tight ? "_tight" : "";
   string fixTimeText = timefix ? "_timefix" : "";
@@ -47,17 +48,16 @@ void analyseMerged(string runVMM = "0832", string runAPV = "423", bool tight = f
   for(auto event = 0; event < nEvents; event++){
     auto dataAPV = apvan->GetCentralHits2ROnlyData(event);
     auto dataVMM = vmman->getHits(event);
-    map<int, pair<double,double>> positions;
+    map<int, vector<pair<double,double>>> positions;
     if(!dataAPV.hitsPerLayer.at(2).size())
       continue;
     for(auto i = 0; i < 3; i++){
       auto layerData = dataAPV.hitsPerLayer.at(i);
-      auto meanPos = getMeanPosition(layerData, i);
-      getMeanClusterPositions(layerData, i);
-      if(!meanPos)
+      auto meanPos = getMeanClusterPositions(layerData, i);
+      if(!meanPos.size())
         continue;
       if(i < 2 || !drLayerFromVMM)
-        positions.emplace(i, meanPos.value());
+        positions.emplace(i, meanPos);
       // printf("Event %d, position for layer %d: %g\n", event, i, meanPos.value());
       TH2F* hist = nullptr;
       switch(i){
@@ -97,22 +97,28 @@ void analyseMerged(string runVMM = "0832", string runAPV = "423", bool tight = f
         hitsMMVMM.emplace(h.strip, h.pdo);
       }
       // printf("Number of MM VMM strips %lu\n", hitsMMVMM.size());
-      auto meanPosMMVMM = getMeanPosition(hitsMMVMM, 2, true);
-      getMeanClusterPositions(hitsMMVMM, 2, true);
-      if(!meanPosMMVMM)
+      auto meanPosMMVMM = getMeanClusterPositions(hitsMMVMM, 2, true);
+      if(!meanPosMMVMM.size())
         continue;
-      positions.emplace(2, meanPosMMVMM.value());
+      positions.emplace(2, meanPosMMVMM);
     }
 
-    auto trackParam = getEstimatedTrack(positions);
-    auto estimatedCoord = estimatePositionInLayer(trackParam, 3);
-    printf("Event %d -- estimated: %g\n", event, estimatedCoord);
-    for(auto h: dataVMM){
-      if(h.detector != 1)
+    auto combinations = getAllClusterCombinations(positions);
+    auto trackParams = getEstimatedTracks(combinations);
+    for(auto trackN = 0; trackN < trackParams.size(); trackN++){
+      auto track = trackParams.at(trackN);
+      auto clusters = combinations.at(trackN);
+      auto distance = getDistanceToTrack(clusters, track);
+      if(distance > maxDistanceToTrack)
         continue;
-      estimatedStraw->Fill(h.strip, stripToCoord(estimatedCoord));
-      dtHistsProj.at(h.strip)->Fill(stripToCoord(estimatedCoord), h.timeToScint);
-      dtHistsProj1.at(h.strip)->Fill(estimatedCoord, h.timeToScint);
+      auto estimatedCoord = estimatePositionInLayer(track, 3);
+      for(auto h: dataVMM){
+        if(h.detector != 1)
+          continue;
+        estimatedStraw->Fill(h.strip, stripToCoord(estimatedCoord));
+        dtHistsProj.at(h.strip)->Fill(stripToCoord(estimatedCoord), h.timeToScint);
+        dtHistsProj1.at(h.strip)->Fill(estimatedCoord, h.timeToScint);
+      }
     }
     nGood++;
   }
