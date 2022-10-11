@@ -8,7 +8,6 @@
 #include <tuple>
 #include <map>
 #include <set>
-#include <optional>
 
 using std::cout, std::endl;
 using std::ifstream, std::ofstream;
@@ -18,9 +17,8 @@ using std::pair, std::make_pair;
 using std::tuple, std::get;
 using std::map;
 using std::set;
-using std::optional, std::nullopt;
 
-optional<int> calculateVMMNPulsers(int bcidDiff, int maxDiff = 2, int maxNPulsers = 9)
+int calculateVMMNPulsers(int bcidDiff, int maxDiff = 2, int maxNPulsers = 9)
 {
     bcidDiff += (bcidDiff > 0) ? 0 : 4096;
     int predicted;
@@ -30,7 +28,7 @@ optional<int> calculateVMMNPulsers(int bcidDiff, int maxDiff = 2, int maxNPulser
       if(abs(predicted - bcidDiff) <= maxDiff)
         return i;
     }
-    return nullopt;
+    return -1;
 }
 
 // IMPORTANT change: fixSRSTime
@@ -545,7 +543,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
     long long dt_apv_vmm;
     int strip, pdo;
     int diff, diffDiff;
-    optional<int> nPeriodsAdd;
+    int nPeriodsAdd;
     long long diffTvmm;
 
     int maxAPVPulserCountDifference = tight ? 0 : 1;
@@ -735,15 +733,15 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                                        i, T_apv - startT_apv,
                                        static_cast<long long>(j + vectorPositionInTree),
                                        diff,
-                                       nPeriodsAdd.value_or(0),
+                                       nPeriodsAdd,
                                        diffTvmm,
                                        nPeriods,
-                                       (T_vmm - T_vmm_pulse_first) - (nPeriods+nPeriodsAdd.value_or(0))*50, static_cast<long long>(T_vmm - T_apv),
-                                       (T_apv - startT_apv) - (nPeriods+nPeriodsAdd.value_or(0))*50,
+                                       (T_vmm - T_vmm_pulse_first) - (nPeriods+(nPeriodsAdd < 0 ? 0 : nPeriodsAdd))*50, static_cast<long long>(T_vmm - T_apv),
+                                       (T_apv - startT_apv) - (nPeriods+(nPeriodsAdd < 0 ? 0 : nPeriodsAdd))*50,
                                        nPeriodsAdd ? "" : " -- cancelled"
                                     );
 
-                            if(!nPeriodsAdd)
+                            if(nPeriodsAdd < 0)
                             {
                                 // hbcidDiffIgnored->Fill(diff);
                                 continue;
@@ -774,7 +772,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                             //     continue;
                             // }
 
-                            nPeriods += nPeriodsAdd.value();
+                            nPeriods += nPeriodsAdd;
                         }
                         prevPrevSyncBcid = prevSyncBcid;
                         prevSyncBcid = currEvent->bcid;
