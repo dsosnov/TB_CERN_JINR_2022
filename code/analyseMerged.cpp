@@ -40,8 +40,9 @@ void analyseMerged(string runVMM = "0832", string runAPV = "423", bool tight = f
   map<int, TH2F*> dtHistsProj, dtHistsProj1;
   for(auto &straw: {25, 26, 27, 28, 29}){
     dtHistsProj.emplace(straw, new TH2F(Form("hProjecteddStraw%dDT",straw), Form("hProjecteddStraw%dDT; position, mm; dT, ns",straw), 500, 0, 50, 200, -100, 100));
-    dtHistsProj1.emplace(straw, new TH2F(Form("hProjecteddStraw%dDT_1",straw), Form("hProjecteddStraw%dDT_1; position, strip; dT, ns",straw), 206, 54, 260, 200, -100, 100));
+    // dtHistsProj1.emplace(straw, new TH2F(Form("hProjecteddStraw%dDT_1",straw), Form("hProjecteddStraw%dDT_1; position, strip; dT, ns",straw), 206, 54, 260, 200, -100, 100));
   }
+  auto hProjecteddStrawDT = new TH2F("hProjecteddStrawDT", "hProjecteddStrawDT; position, mm; dT, ns", 500, 0, 50, 200, -100, 100);
 
   int nGood = 0;
   auto nEvents = apvan->GetEntries();
@@ -117,7 +118,8 @@ void analyseMerged(string runVMM = "0832", string runAPV = "423", bool tight = f
           continue;
         estimatedStraw->Fill(h.strip, stripToCoord(estimatedCoord));
         dtHistsProj.at(h.strip)->Fill(stripToCoord(estimatedCoord), h.timeToScint);
-        dtHistsProj1.at(h.strip)->Fill(estimatedCoord, h.timeToScint);
+        // dtHistsProj1.at(h.strip)->Fill(estimatedCoord, h.timeToScint);
+        hProjecteddStrawDT->Fill(stripToCoord(estimatedCoord), h.timeToScint);
       }
     }
     nGood++;
