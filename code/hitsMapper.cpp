@@ -96,6 +96,7 @@ constexpr bool printMerged = false;
 constexpr bool saveBackup = false;
 constexpr bool saveTemporaryParameters = true;
 constexpr bool reloopVMMFile = false;
+constexpr int ignoreVMMLargeMultiplicity = 20; // values less then 2 disables check
 
 // AlternativeStart -- first VMM selected as first good VMM pulser in case the difference between first good APV and VMM is about 33ms
 void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n = 0, string runVMM="0832", string runAPV = "423", bool alternativeStart = false, int mergeTimeWindow = 1000)
@@ -537,6 +538,9 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                         continue;
                     else if (!currEvent->trigger) // IMPORTANT change: passing event without triple scint coincsidence
                         continue;
+
+                    if(ignoreVMMLargeMultiplicity > 1 && currEvent->hitsX.size() >= ignoreVMMLargeMultiplicity)
+                      continue;
  
                     diff_hit = (currEvent->bcid - prevSyncBcid >= 0) ? currEvent->bcid - prevSyncBcid : currEvent->bcid + 4096 - prevSyncBcid;
                     dt_apv_vmm = T_apv_sincePulse - static_cast<long long>((nPeriods - nPeriodsAPV*200) * 50) - static_cast<long long>(round(diff_hit * 25.0 / 1000.0));
