@@ -106,7 +106,10 @@ vector<pair<double, double>> getMeanClusterPositions(map<int, int> hitsPerLayer,
   }
   return out;
 }
-
+vector<pair<double, double>> getMeanClusterPositions(vector<pair<int, int>> hitsPerLayer, int layer, bool vmmHits = false, double singleHitAccuracy = 5){
+  map<int, int> hitsMap(hitsPerLayer.begin(), hitsPerLayer.end());
+  return getMeanClusterPositions(hitsMap, layer, vmmHits, singleHitAccuracy);
+}
 optional<pair<double, double>> getMeanPosition(map<int, int> hitsPerLayer, int layer, bool vmmHits = false){
   double sum = 0;
   long long sumWeights = 0, nHits = 0;

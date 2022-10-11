@@ -421,14 +421,14 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                 }
                 for (auto &h : hit_apv.hitsPerLayer.at(1))
                 {
-                    strip = h.first * (1 - 2.29e-3) - 2.412 / 0.25;
+                    strip = h.first; // * (1 - 2.29e-3) - 2.412 / 0.25;
                     pdo = h.second;
                     if (strip > 118 && strip < 172)
                         apv_hits_vec_l1.push_back(make_pair(strip, pdo));
                 }
                 for (auto &h : hit_apv.hitsPerLayer.at(2))
                 {
-                    strip = h.first * (1 - 8e-3) - 8.46 / 0.25;
+                    strip = h.first; // * (1 - 8e-3) - 8.46 / 0.25;
                     pdo = h.second;
                     if (strip > 118 && strip < 172)
                         apv_hits_vec.push_back(make_pair(strip, pdo));
@@ -441,9 +441,17 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                     continue;
 
 
-                map<int, double> means = {{0, weightedMean(apv_hits_vec_l0)}, {1, weightedMean(apv_hits_vec_l1)}};
-                auto tr = getEstimatedTrack(means);
-                int propogated = static_cast<int>(round(estimatePositionInLayer(tr, 2)));
+                map<int, vector<pair<double, double>>> means = {{0, getMeanClusterPositions(apv_hits_vec_l0, 0)}, {1, getMeanClusterPositions(apv_hits_vec_l1, 1)}};
+                auto tracks = getEstimatedTracks(means);
+                // remove tracks propogated out of layer bounds
+                // tracks.erase(std::remove_if(tracks.begin(), tracks.end(),
+                //                             [](auto tr){
+                //                                 auto e = estimatePositionInLayer(tr, 2);
+                //                                 return (e >= 146 && e <= 210);
+                //                             }),
+                //              tracks.end());
+                vector<double> propogated = {};
+                std::transform(tracks.begin(), tracks.end(), std::back_inserter(propogated), [](auto tr){return estimatePositionInLayer(tr, 2);});
 
                 vmm_hits_vec.clear();
 
@@ -569,10 +577,12 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
 
                     for (unsigned long l = 0; l < vmm_hits_vec.size(); l++)
                     {
-                        if (abs(propogated - vmm_hits_vec.at(l).first) < 5){
-                            hitMapped = true;
-                            break;
-                        }
+                        for(auto &p: propogated)
+                            if (abs(p - vmm_hits_vec.at(l).first) < 5){
+                                hitMapped = true;
+                                break;
+                            }
+                        if(hitMapped) break;
                     }
 
                     // for (unsigned long k = 0; k < apv_hits_vec.size(); k++)
