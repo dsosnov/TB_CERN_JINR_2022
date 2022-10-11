@@ -3,6 +3,7 @@
 #include <iostream>
 #include <fstream>
 
+#include "hitsMapper.h"
 #include <vector>
 #include <utility>
 #include <tuple>
@@ -19,233 +20,6 @@ using std::tuple, std::get;
 using std::map;
 using std::set;
 using std::optional, std::nullopt;
-
-optional<int> calculateVMMNPulsers(int bcidDiff, int maxDiff = 2, int maxNPulsers = 9)
-{
-    bcidDiff += (bcidDiff > 0) ? 0 : 4096;
-    int predicted;
-    for(auto i = 1; i <= maxNPulsers; i++)
-    {
-      predicted = (2000 * i) % 4096;
-      if(abs(predicted - bcidDiff) <= maxDiff)
-        return i;
-    }
-    return nullopt;
-}
-
-// IMPORTANT change: fixSRSTime
-// return: time, us
-double apvTimeTimeSRSTimestamp(int diff, bool fixSRSTime = false){
-    return diff * 25.0 * (fixSRSTime ? 400000.0/400037.0 : 1.0) / 1000.0;
-}
-
-int apv_time_from_SRS(int srs1, int srs2, bool fixSRSTime = false)
-{
-    int diff = 0;
-    int srsT_period = 16777215;
-    if (srs2 - srs1 >= 0)
-    {
-        diff = srs2 - srs1;
-    }
-    else
-    {
-        diff = srs2 + srsT_period - srs1;
-    }
-
-    // Since standard time between SRSTimeStamps is 400038 (400037), but not 400000, correct srsTimeStamp clock time
-    // return round(diff * 25.0 * (fixSRSTime ? 400000.0/400037.0 : 1.0) / 1000.0);
-    return round(apvTimeTimeSRSTimestamp(diff, fixSRSTime));
-}
-
-int vmmRemoveFirstNPuslers(vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>> &hits_vmm_v, int nRemoved = 637){
-    int firstSyncBcid = 0;
-    int index = -nRemoved; // 650; 665
-
-    unsigned long j = 0;
-    for (j = 0; j < hits_vmm_v.size() && index < 0; j++)
-    {
-        if (hits_vmm_v.at(j).second.sync)
-            index++;
-    }
-    hits_vmm_v.erase(hits_vmm_v.begin(), hits_vmm_v.begin() + j-1); // remove first j elements: from 0 to j-1
-    if (index == 0) // check if arways?
-    {
-        firstSyncBcid = hits_vmm_v.at(0).second.bcid;
-        hits_vmm_v.erase(hits_vmm_v.begin(), hits_vmm_v.begin()); // remove first elements
-    }
-    else if(index < 0)
-    {
-        cout << "Removed all VMM events due to incorrect index value" << endl;
-    }
-    return firstSyncBcid;
-}
-pair<int, int> vmmRemoveFirstNPuslers(TTree* hits_vmm_t, pair<unsigned long, analysisGeneral::mm2CenterHitParameters> *hits_vmm_event, int nRemoved = 637){
-    int firstSyncBcid = 0;
-    int index = -nRemoved; // 650; 665
-
-    unsigned long j = 0;
-    for (j = 0; j < hits_vmm_t->GetEntries() && index < 0; j++)
-    {
-        hits_vmm_t->GetEntry(j);
-        if (hits_vmm_event->second.sync)
-            index++;
-    }
-    if (index == 0) // check if arways?
-    {
-        hits_vmm_t->GetEntry(j);
-        firstSyncBcid = hits_vmm_event->second.bcid;
-        j++;
-        printf("First VMM sync-signal: %lu\n", hits_vmm_event->first);
-    }
-    else if(index < 0)
-    {
-        cout << "Removed all VMM events due to incorrect index value" << endl;
-    }
-    return make_pair(j, firstSyncBcid);
-}
-
-bool freeMemory(map<long long, vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>>> &hits_vmm_events_map, long long firstElement)
-{
-    bool released = false;
-    vector<long long> keysToErase;
-    for(auto &i: hits_vmm_events_map)
-        if(i.first < firstElement)
-            keysToErase.push_back(i.first);
-    if(!keysToErase.empty())
-        released = true;
-    for(auto &i: keysToErase)
-        hits_vmm_events_map.erase(i);
-    return released;
-}
-
-long long loadNextVMM(long long firstElement, map<long long, vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>>> &hits_vmm_events_map,
-                 TTree* hits_vmm_t, pair<unsigned long, analysisGeneral::mm2CenterHitParameters> *hits_vmm_event,
-                 long long nElements = 100000){
-    // printf("loadNextVMM(%lld, %p, %p, %p, %lld)\n", firstElement, &hits_vmm_events_map, hits_vmm_t, hits_vmm_event, nElements);
-    if(hits_vmm_events_map.count(firstElement))
-        return hits_vmm_events_map.at(firstElement).size();
-  
-    vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>> elementVector;
-    hits_vmm_t->GetEntry(firstElement);
-    if(!(hits_vmm_event->second.sync)){ // Not a sync event, it seems a problem!
-        printf("First loaded event not the sync!\n");
-        hits_vmm_t->GetEntry(firstElement-1);
-        if(hits_vmm_event->second.sync)
-            printf("First before First loaded is sync!\n");
-        hits_vmm_events_map.emplace(firstElement, elementVector);
-        return 0;
-    };
-    // hits_vmm_event->second.print();
-    long long lastSyncIndex = 0;
-    auto maxEntries = hits_vmm_t->GetEntries() - firstElement;
-    for(auto i = 0; i < maxEntries && lastSyncIndex < nElements; i++){
-        hits_vmm_t->GetEntry(firstElement + i);
-        elementVector.push_back(make_pair(hits_vmm_event->first, hits_vmm_event->second));
-        if(hits_vmm_event->second.sync)
-            lastSyncIndex = i;
-    }
-    // remove last sync and all after
-    elementVector.erase(elementVector.begin() + lastSyncIndex, elementVector.end());
-    hits_vmm_events_map.emplace(firstElement, elementVector);
-    return elementVector.size(); // next start index
-}
-long long loadNextVMM(long long firstElement,
-                      map<long long, vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>>> &hits_vmm_events_map,
-                      evBuilder* vmman,
-                      long long nElements = 100000){
-    if(hits_vmm_events_map.count(firstElement))
-        return hits_vmm_events_map.at(firstElement).size();
-    // printf("loadNextVMM(%lld, %p, %lld)\n", firstElement, &hits_vmm_events_map, nElements);
-  
-    vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>> elementVector;
-    auto hit_vmm = vmman->GetCentralHitsData(firstElement);
-    if(!(hit_vmm.sync)){ // Not a sync event, it seems a problem!
-        printf("First loaded event not the sync!\n");
-        auto hit_vmm_prev = vmman->GetCentralHitsData(firstElement-1);
-        if(hit_vmm_prev.sync)
-            printf("First before First loaded is sync!\n");
-        hits_vmm_events_map.emplace(firstElement, elementVector);
-        return 0;
-    };
-    // hits_vmm_event->second.print();
-    long long lastSyncIndex = 0;
-    auto maxEntries = vmman->GetEntries() - firstElement;
-    for(auto i = 0; i < maxEntries && lastSyncIndex < nElements; i++){
-        hit_vmm = vmman->GetCentralHitsData(firstElement + i);
-        elementVector.push_back(make_pair(firstElement+i, hit_vmm));
-        if(hit_vmm.sync)
-            lastSyncIndex = i;
-    }
-    // remove last sync and all after
-    elementVector.erase(elementVector.begin() + lastSyncIndex, elementVector.end());
-    hits_vmm_events_map.emplace(firstElement, elementVector);
-    return elementVector.size(); // next start index
-}
-
-double weightedMean(vector<pair<int, int>> hits){
-    long long sum = 0, sumWeights = 0, nHits = 0;
-    for(auto &h: hits){
-        long long strip = h.first;
-        long long pdo = h.second;
-        sum += strip * pdo;
-        sumWeights += pdo;
-        nHits++;
-    }
-    double center = -1;
-    if(nHits)
-        center = static_cast<double>(sum) / static_cast<double>(sumWeights);
-    return center;
-}
-
-/*
- * positions:
- * L0 - L1: 285
- * L1 - L2: 345
- * L2 - Straw: 523
- * return: position in mm, from Layer 0
- */
-int getLayerPosition(int layer){
-  int y = 0;
-  switch(layer){
-    case 3:
-      y += 523;
-    case 2:
-      y += 345;
-    case 1:
-      y += 285;
-    case 0:
-      y += 0;
-  }
-  return y;
-}
-
-pair<double, double> getEstimatedTrack(map<int, double> positions){
-  int n = 0;
-  double sumXY = 0, sumX = 0, sumY = 0, sumX2 = 0, sumY2 = 0;
-  int y; double x; // x: horizontal, y - vertical coordinate
-  for(auto &pos: positions){
-    y = getLayerPosition(pos.first);
-    x = pos.second;
-    sumXY += x * y;
-    sumX += x;
-    sumY += y;
-    sumX2 += x * x;
-    // sumY2 += y * y;
-    n++;
-  }
-  double a0 = (n * sumXY - sumX * sumY)/(n * sumX2 - sumX * sumX);
-  double b0 = (sumY - a0*sumX)/n;
-  // double b1 = (sumX2 * sumY - sumXY * sumX) / (n * sumX2 - sumX * sumX);
-  // double a1 = (sumY - n*b1) / sumX;
-  // printf("%d layers -- a0: %g, b0: %g; a1: %g, b1: %g;\n", n, a0, b0, a1, b1);
-  return {a0, b0};
-}
-
-double estimatePositionInLayer(pair<double, double> trackAB, int layer){
-  double y = getLayerPosition(layer);
-  double x = (y - trackAB.second) / trackAB.first;
-  return x;
-}
 
 map<pair<string, string>, pair<int, int>> firstPulserMap = {
     {{"run_0832", "run423"}, {180059, 7042}}, // First APV vs VMM dt = 23209318 or 2320 pulses
@@ -566,7 +340,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
         {
             T_apv_sincePulseSRSTS += (hit_apv.timeSrs - prevSRS) + ((prevSRS > hit_apv.timeSrs)?16777216:0);
             // T_apv_sincePulse += apv_time_from_SRS(prevSRS, hit_apv.timeSrs, fixSRSTime);
-            T_apv_sincePulse = static_cast<long long>(apvTimeTimeSRSTimestamp(T_apv_sincePulseSRSTS, fixSRSTime));
+            T_apv_sincePulse = static_cast<long long>(apvTimeFromSRSTimestamp(T_apv_sincePulseSRSTS, fixSRSTime));
         }
         prevSRS = hit_apv.timeSrs;
 
@@ -589,18 +363,18 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
             //     printf("SRS Timestamps since last pulser: %lld (%%400037 = %lld) = (%lld ms if 25ns, %lld ms if smaller), %lld found -- theoretically, %g ns per srsTimeStamp\n",
             //            T_apv_sincePulseSRSTS,
             //            T_apv_sincePulseSRSTS%400037,
-            //            static_cast<long long>(apvTimeTimeSRSTimestamp(T_apv_sincePulseSRSTS, false)),
-            //            static_cast<long long>(apvTimeTimeSRSTimestamp(T_apv_sincePulseSRSTS, true)),
+            //            static_cast<long long>(apvTimeFromSRSTimestamp(T_apv_sincePulseSRSTS, false)),
+            //            static_cast<long long>(apvTimeFromSRSTimestamp(T_apv_sincePulseSRSTS, true)),
             //            T_apv_sincePulse,
             //            1000.0 * T_apv_sincePulse / T_apv_sincePulseSRSTS
             //         );
-            //     // printf("SRS Timestamps since last pulser: %lld = %lld microseconds (%lld)\n", T_apv_sincePulseSRSTS, static_cast<long long>(apvTimeTimeSRSTimestamp(T_apv_sincePulseSRSTS, fixSRSTime)), T_apv_sincePulse);
+            //     // printf("SRS Timestamps since last pulser: %lld = %lld microseconds (%lld)\n", T_apv_sincePulseSRSTS, static_cast<long long>(apvTimeFromSRSTimestamp(T_apv_sincePulseSRSTS, fixSRSTime)), T_apv_sincePulse);
             T_apv_pulse_prev = T_apv;
             prev_pulse_SRS = hit_apv.timeSrs;
             T_apv_sincePulse = 0;
             T_apv_sincePulseSRSTS = 0;
             // std::cout << "Period " << nPeriodsAPV << "--- is sync! N = " << hit_apv.hitsPerLayer.at(0).size() << "\n";
-            // apvTimeTimeSRSTimestamp(int diff, bool fixSRSTime = false)
+            // apvTimeFromSRSTimestamp(int diff, bool fixSRSTime = false)
         }
         nPeriodsAPV_corrected = nPeriodsAPV + T_apv_sincePulse / 10000;
         // if(nPeriodsAPV_corrected != nPeriodsAPV)
