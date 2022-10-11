@@ -579,6 +579,12 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
             }
             else
             {
+                nPeriodsAddAPV = round((T_apv - T_apv_pulse_prev) * 1.0 / 1e4);
+                // if(abs((T_apv-T_apv_pulse_prev) - 10000*nPeriodsAddAPV) > 250)
+                // {
+                //     printf("Too large difference between APV N pulsers and estimation! %lld - %lld = %lld\n", T_apv, T_apv_pulse_prev, (T_apv-T_apv_pulse_prev) % 10000);
+                //     continue;
+                // }
                 hAPVEstimatedTimeInSpill->Fill((T_apv - startT_apv)*1.0/1E6, round((T_apv - T_apv_pulse_prev) * 1.0 / 1e4)*1e4 - T_apv_sincePulse);
                 nPeriodsAPV += round((T_apv - T_apv_pulse_prev) * 1.0 / 1e4);
                 pulser_T = nPeriodsAPV * 1e4;
@@ -622,6 +628,10 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
             printed = true;
             printf("Start time: %lld\n", T_apv);
         }
+
+        // if(!(i % 10000))
+        //     printf("Current APV event: %lu\n", i);
+
         
         if(!hit_apv.hits.size())
             continue;
@@ -717,14 +727,55 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                             diff = (currEvent->bcid - prevSyncBcid > 0) ? currEvent->bcid - prevSyncBcid : currEvent->bcid + 4096 - prevSyncBcid;
                             diffDiff = (currEvent->bcid - prevPrevSyncBcid > 0) ? currEvent->bcid - prevPrevSyncBcid: currEvent->bcid + 4096 - prevPrevSyncBcid;
 
-                            nPeriodsAdd = calculateVMMNPulsers(diff, 2, 4);
+                            // nPeriodsAdd = calculateVMMNPulsers(diff, 2, 255); // --, 3, 10
+                            // nPeriodsAdd = calculateVMMNPulsers(diff, 3, 10); // --, 3, 10
+                            nPeriodsAdd = calculateVMMNPulsers(diff, 3, 4); // --, 3, 10
                             
                             diffTvmm = T_vmm-T_vmm_pulse_prev;
+                            if(static_cast<double>(T_apv - startT_apv) / 1e6 > 230 && static_cast<double>(T_apv - startT_apv) / 1e6 < 265)
+                                printf("APV event %lu (time %lld); pulser event %lld, bcid diff: %d (%d periods); time difference to previous: %lld; periods since start: %lld; period estimation error: %lld; diff to APV: %lld (%lld)%s\n",
+                                       i, T_apv - startT_apv,
+                                       static_cast<long long>(j + vectorPositionInTree),
+                                       diff,
+                                       nPeriodsAdd.value_or(0),
+                                       diffTvmm,
+                                       nPeriods,
+                                       (T_vmm - T_vmm_pulse_first) - (nPeriods+nPeriodsAdd.value_or(0))*50, static_cast<long long>(T_vmm - T_apv),
+                                       (T_apv - startT_apv) - (nPeriods+nPeriodsAdd.value_or(0))*50,
+                                       nPeriodsAdd ? "" : " -- cancelled"
+                                    );
 
                             if(!nPeriodsAdd)
                             {
+                                // hbcidDiffIgnored->Fill(diff);
                                 continue;
                             }
+
+                            // if(nPeriodsAdd.value() > 2)
+                            // if(j+vectorPositionInTree > 561965)
+                            //     printf("APV event %lu, Pulser event %lld, bcid diff: %d (%d periods); time difference to previous: %lld; periods since start: %lld; period estimation error: %lld\n",
+                            //            i, static_cast<long long>(j + vectorPositionInTree),
+                            //            diff,
+                            //            nPeriodsAdd.value(),
+                            //            diffTvmm,
+                            //            nPeriods,
+                            //            (T_vmm - T_vmm_pulse_first) - (nPeriods+nPeriodsAdd.value())*50);
+                            
+                            // // if(diffTvmm > 50 * 256)
+                            // // {
+                            // //     auto fullLoops = static_cast<long long>(round(diffTvmm * 1.0 / (50*256)));
+                            // //     nPeriodsAdd = {nPeriodsAdd.value() + 256*fullLoops};
+                            // //     diffTvmm -= fullLoops * (256*50);
+                            // //     // printf("Large pulser shift! estimated %lld periods -> %lld estimation error\n",
+                            // //     //        nPeriods+nPeriodsAdd.value(),
+                            // //     //        (T_vmm - T_vmm_pulse_first) - (nPeriods+nPeriodsAdd.value())*50);
+                            // // }
+                            // if(abs(nPeriodsAdd.value()*50 - diffTvmm) > 700) // TODO to variable? 2000 -> 700
+                            // {
+                            //     // printf("Event %lld cancelled!\n", static_cast<long long>(j + vectorPositionInTree));
+                            //     continue;
+                            // }
+
                             nPeriods += nPeriodsAdd.value();
                         }
                         prevPrevSyncBcid = prevSyncBcid;
@@ -742,10 +793,14 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                     
                     if (nPeriods / 200 > nPeriodsAPV_corrected + maxAPVPulserCountDifference)
                     {
+                        if(static_cast<double>(T_apv - startT_apv) / 1e6 > 230 && static_cast<double>(T_apv - startT_apv) / 1e6 < 265)
+                            printf("nPeriods / 200 > nPeriodsAPV_corrected + maxAPVPulserCountDifference\n");
                         break;
                     }
                     else if (nPeriods / 200 < nPeriodsAPV_corrected - maxAPVPulserCountDifference)
                     {
+                        if(static_cast<double>(T_apv - startT_apv) / 1e6 > 230 && static_cast<double>(T_apv - startT_apv) / 1e6 < 265)
+                            printf("nPeriods / 200 < nPeriodsAPV_corrected - maxAPVPulserCountDifference\n");
                         // printf("%lld / 200 = %lld < %lld - %d\n", nPeriods, nPeriods / 200, nPeriodsAPV_corrected, maxAPVPulserCountDifference);
                         if(beforeLastPulserParametersCurrent != beforeLastPulserParameters)
                         {
@@ -821,7 +876,8 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                             bestHit = {hits_vmm_events_map.at(vectorPositionInTree).at(j).first, dt_apv_vmm, beforeLastPulserParametersCurrent, j, hitsMappedInEvent};
                         }
                         {
-                            if(DEBUG_PRINT)
+                            // if(DEBUG_PRINT)
+                            if(static_cast<double>(T_apv - startT_apv) / 1e6 > 230 && static_cast<double>(T_apv - startT_apv) / 1e6 < 265)
                             {
                             std::cout << "APV event: " << i << " (" << i << ")" << "\t";
                             std::cout << "VMM event: " << j << " (" << hits_vmm_events_map.at(vectorPositionInTree).at(j).first << ")" << "\t Total of mapped " << numOfMapped << "\n";
