@@ -322,7 +322,7 @@ constexpr bool saveTemporaryParameters = true;
 constexpr bool reloopVMMFile = false;
 
 // AlternativeStart -- first VMM selected as first good VMM pulser in case the difference between first good APV and VMM is about 33ms
-void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n = 0, string runVMM="0832", string runAPV = "423", bool alternativeStart = false, int mergeTimeWindow = 1000)
+void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n = 0, string runVMM="0826", string runAPV = "418", bool alternativeStart = false, int mergeTimeWindow = 1000)
 {
     pair<string, string> run_pair = {Form("run_%s", runVMM.c_str()), Form("run%s", runAPV.c_str())};
     if(!firstPulserMap.count(run_pair))
@@ -631,8 +631,8 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
         //     printf("Current APV event: %lu\n", i);
 
         
-        if(!hit_apv.hits.size())
-            continue;
+        // if(!hit_apv.hits.size())
+        //     continue;
         
         if (prev_pulse_SRS != -1)
         {
@@ -671,8 +671,8 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                 if (apv_hits_vec_l0.size() && apv_hits_vec_l1.size())
                     tracksPerTime->Fill((T_apv - startT_apv)/1E6);
                 
-                if (!apv_hits_vec.size() || !apv_hits_vec_l0.size() || !apv_hits_vec_l1.size())
-                    continue;
+                // if (!apv_hits_vec.size() || !apv_hits_vec_l0.size() || !apv_hits_vec_l1.size())
+                //     continue;
 
 
                 map<int, double> means = {{0, weightedMean(apv_hits_vec_l0)}, {1, weightedMean(apv_hits_vec_l1)}};
@@ -728,9 +728,12 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                             nPeriodsAdd = calculateVMMNPulsers(diff, 3, 4);
                             
                             diffTvmm = T_vmm-T_vmm_pulse_prev;
-                            if(static_cast<double>(T_apv - startT_apv) / 1e6 > 230 && static_cast<double>(T_apv - startT_apv) / 1e6 < 265)
+                            if ((T_apv - startT_apv) / 1e6 < 246)
+                                cout << (T_apv - startT_apv) / 1e6 << endl;
+
+                            if(static_cast<double>(T_apv - startT_apv) / 1e6 > 246.0 && static_cast<double>(T_apv - startT_apv) / 1e6 < 246.5)
                                 printf("APV event %lu (time %lld); pulser event %lld, bcid diff: %d (%d periods); time difference to previous: %lld; periods since start: %lld; period estimation error: %lld; diff to APV: %lld (%lld)%s\n",
-                                       i, T_apv - startT_apv,
+                                       i, (T_apv - startT_apv) / 1000000,
                                        static_cast<long long>(j + vectorPositionInTree),
                                        diff,
                                        nPeriodsAdd,
@@ -789,14 +792,14 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                     
                     if (nPeriods / 200 > nPeriodsAPV_corrected + maxAPVPulserCountDifference)
                     {
-                        if(static_cast<double>(T_apv - startT_apv) / 1e6 > 230 && static_cast<double>(T_apv - startT_apv) / 1e6 < 265)
-                            printf("nPeriods / 200 > nPeriodsAPV_corrected + maxAPVPulserCountDifference\n");
+                        // if(static_cast<double>(T_apv - startT_apv) / 1e6 > 230 && static_cast<double>(T_apv - startT_apv) / 1e6 < 265)
+                        //     printf("nPeriods / 200 > nPeriodsAPV_corrected + maxAPVPulserCountDifference\n");
                         break;
                     }
                     else if (nPeriods / 200 < nPeriodsAPV_corrected - maxAPVPulserCountDifference)
                     {
-                        if(static_cast<double>(T_apv - startT_apv) / 1e6 > 230 && static_cast<double>(T_apv - startT_apv) / 1e6 < 265)
-                            printf("nPeriods / 200 < nPeriodsAPV_corrected - maxAPVPulserCountDifference\n");
+                        // if(static_cast<double>(T_apv - startT_apv) / 1e6 > 230 && static_cast<double>(T_apv - startT_apv) / 1e6 < 265)
+                        //     printf("nPeriods / 200 < nPeriodsAPV_corrected - maxAPVPulserCountDifference\n");
                         // printf("%lld / 200 = %lld < %lld - %d\n", nPeriods, nPeriods / 200, nPeriodsAPV_corrected, maxAPVPulserCountDifference);
                         if(beforeLastPulserParametersCurrent != beforeLastPulserParameters)
                         {
@@ -875,9 +878,9 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                             // if(DEBUG_PRINT)
                             if(static_cast<double>(T_apv - startT_apv) / 1e6 > 230 && static_cast<double>(T_apv - startT_apv) / 1e6 < 265)
                             {
-                            std::cout << "APV event: " << i << " (" << i << ")" << "\t";
-                            std::cout << "VMM event: " << j << " (" << hits_vmm_events_map.at(vectorPositionInTree).at(j).first << ")" << "\t Total of mapped " << numOfMapped << "\n";
-                            printf("dt_apv_vmm = %lld - %lld - %lld - round(%d * 25.0 / 1000.0) = %lld\n", T_apv, startT_pulse_apv, pulseTime, diff_hit, dt_apv_vmm);
+                            // std::cout << "APV event: " << i << " (" << i << ")" << "\t";
+                            // std::cout << "VMM event: " << j << " (" << hits_vmm_events_map.at(vectorPositionInTree).at(j).first << ")" << "\t Total of mapped " << numOfMapped << "\n";
+                            // printf("dt_apv_vmm = %lld - %lld - %lld - round(%d * 25.0 / 1000.0) = %lld\n", T_apv, startT_pulse_apv, pulseTime, diff_hit, dt_apv_vmm);
                             }
                             // printf("Event parameters: %lld, %lu, %d, %d, %d, %lld\n", get<0>(beforeLastPulserParameters), get<1>(beforeLastPulserParameters), get<2>(beforeLastPulserParameters),
                             //        get<3>(beforeLastPulserParameters), get<4>(beforeLastPulserParameters), get<5>(beforeLastPulserParameters));
