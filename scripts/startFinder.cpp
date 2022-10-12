@@ -21,7 +21,7 @@ using std::set;
 
 void startFinder()
 {
-    pair<string, string> run_pair = {"run_0087", "run43"};
+    pair<string, string> run_pair = {"run_0091", "run47"};
 
     auto apvan = new apv(run_pair.second);
     apvan->useSyncSignal();

@@ -8,7 +8,6 @@
 #include <tuple>
 #include <map>
 #include <set>
-#include <optional>
 
 using std::cout, std::endl;
 using std::ifstream, std::ofstream;
@@ -18,9 +17,8 @@ using std::pair, std::make_pair;
 using std::tuple, std::get;
 using std::map;
 using std::set;
-using std::optional, std::nullopt;
 
-optional<int> calculateVMMNPulsers(int bcidDiff, int maxDiff = 2, int maxNPulsers = 9)
+int calculateVMMNPulsers(int bcidDiff, int maxDiff = 2, int maxNPulsers = 9)
 {
     bcidDiff += (bcidDiff > 0) ? 0 : 4096;
     int predicted;
@@ -30,7 +28,7 @@ optional<int> calculateVMMNPulsers(int bcidDiff, int maxDiff = 2, int maxNPulser
       if(abs(predicted - bcidDiff) <= maxDiff)
         return i;
     }
-    return nullopt;
+    return -1;
 }
 
 // IMPORTANT change: fixSRSTime
@@ -248,6 +246,8 @@ double estimatePositionInLayer(pair<double, double> trackAB, int layer){
 }
 
 map<pair<string, string>, pair<int, int>> firstPulserMap = {
+    {{"run_0087", "run43"}, {99638, 143}}, //July
+    {{"run_0091", "run47"}, {207153, 7147}}, //July
     {{"run_0832", "run423"}, {180059, 7042}}, // First APV vs VMM dt = 23209318 or 2320 pulses
     {{"run_0832_cut", "run423_cut"}, {180059, 7042}}, // First APV vs VMM dt = 23209318 or 2320 pulses
     {{"run_0832_cut10m", "run423_cut10m"}, {180059, 7042}}, // First APV vs VMM dt = 23209318 or 2320 pulses
@@ -324,7 +324,7 @@ constexpr bool saveTemporaryParameters = true;
 constexpr bool reloopVMMFile = false;
 
 // AlternativeStart -- first VMM selected as first good VMM pulser in case the difference between first good APV and VMM is about 33ms
-void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n = 0, string runVMM="0832", string runAPV = "423", bool alternativeStart = false, int mergeTimeWindow = 1000)
+void hitsMapper(bool tight = false, bool fixSRSTime = true, int nAll = 1, int n = 0, string runVMM="0091", string runAPV = "47", bool alternativeStart = false, int mergeTimeWindow = 1000)
 {
     pair<string, string> run_pair = {Form("run_%s", runVMM.c_str()), Form("run%s", runAPV.c_str())};
     if(!firstPulserMap.count(run_pair))
@@ -338,7 +338,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
 
     auto apvan = new apv(run_pair.second);
     apvan->useSyncSignal();
-    auto vmman = new evBuilder(run_pair.first, "g1_p25_s100-0&60", "map-20220605");
+    auto vmman = new evBuilder(run_pair.first, "g1_p25_s100-0&60", "map-20220721");
     vmman->useSyncSignal();
 
     cout << "Num of events: APV -- " << apvan->GetEntries() << "; VMM -- " << vmman->GetEntries() << endl;
@@ -545,7 +545,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
     long long dt_apv_vmm;
     int strip, pdo;
     int diff, diffDiff;
-    optional<int> nPeriodsAdd;
+    int nPeriodsAdd;
     long long diffTvmm;
 
     int maxAPVPulserCountDifference = tight ? 0 : 1;
@@ -721,11 +721,11 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                             
                             diffTvmm = T_vmm-T_vmm_pulse_prev;
 
-                            if(!nPeriodsAdd)
+                            if(nPeriodsAdd < 0)
                             {
                                 continue;
                             }
-                            nPeriods += nPeriodsAdd.value();
+                            nPeriods += nPeriodsAdd;
                         }
                         prevPrevSyncBcid = prevSyncBcid;
                         prevSyncBcid = currEvent->bcid;
