@@ -137,6 +137,8 @@ TMDataFrameType getTypeTM(const TMDataFrame &hit){
   return TMDataFrameType::unknown;
 }
 
+constexpr bool DEBUG_PRINT = false;
+
 void convertTL(ifstream* fIn, Char_t gemroc){
   Char_t gemrocID = gemroc; // -- "B" = Char_t == int8_t
   Short_t tigerID; // 8 bit -- "S" == Short_t == int16_t
@@ -171,8 +173,10 @@ void convertTL(ifstream* fIn, Char_t gemroc){
   vector<Int_t> lastFrameCount(256, 0);
   vector<Int_t> lastSEU(256, 0);
   vector<Int_t> lastCW(256*64, 0);
-  TLDataFrame frame = {0};
-  for(; !fIn->eof(); fIn->read(reinterpret_cast<char*>(&frame), sizeof(frame))){
+  TLDataFrame frame = {};
+  for(fIn->read(reinterpret_cast<char*>(&frame), sizeof(frame));
+      !fIn->eof();
+      fIn->read(reinterpret_cast<char*>(&frame), sizeof(frame))){
     switch(getTypeTL(frame)){
       case TLDataFrameType::EventWord: { // EW
         tigerID = frame.eventWord.tiger;
@@ -187,8 +191,9 @@ void convertTL(ifstream* fIn, Char_t gemroc){
         frameCountLoops = FCRollOvers.at(tigerID);
         counterWord = lastCW.at(tigerID*64 + channelID);
         tree->Fill();
-        // printf("TIGER %01X: EW: ChID: %02X tacID: %01X Tcoarse: %04X Ecoarse: %03X Tfine: %03X Efine: %03X \n",
-        //        tigerID, channelID, tacID, tCoarse, eCoarse, tFine, eFine);
+        if(DEBUG_PRINT)
+          printf("TIGER %01X: EW: ChID: %02X tacID: %01X Tcoarse: %04X Ecoarse: %03X Tfine: %03X Efine: %03X \n",
+                 tigerID, channelID, tacID, tCoarse, eCoarse, tFine, eFine);
         break;
       }
       case TLDataFrameType::FrameWord: { // HB
@@ -199,7 +204,8 @@ void convertTL(ifstream* fIn, Char_t gemroc){
           FCRollOvers.at(tigerID)++;
         lastSEU.at(tigerID) = seu;
         lastFrameCount.at(tigerID) = frameCount;
-        // printf("TIGER %01X: HB: Framecount: %08X SEUcount: %08X\n", tigerID, frameCount, seu);
+        if(DEBUG_PRINT)
+          printf("TIGER %01X: HB: Framecount: %08X SEUcount: %08X\n", tigerID, frameCount, seu);
         break;
       }
       case TLDataFrameType::CountWord: { // CW
@@ -207,7 +213,8 @@ void convertTL(ifstream* fIn, Char_t gemroc){
         channelID = frame.countWord.channel;
         counterWord = frame.countWord.counter;
         lastCW.at(tigerID*64 + channelID) = counterWord;
-        // printf("TIGER %01X: CW: ChID: %02X CounterWord: %016X\n", tigerID, channelID, counterWord);
+        if(DEBUG_PRINT)
+          printf("TIGER %01X: CW: ChID: %02X CounterWord: %016X\n", tigerID, channelID, counterWord);
         break;
       }
       case TLDataFrameType::unknown: {
