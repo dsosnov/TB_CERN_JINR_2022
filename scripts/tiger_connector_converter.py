@@ -235,7 +235,8 @@ def convert_connectors_to_tiger_channels(infile):
 #   - channel 1 - sci1
 #   - channel 2 - sci2
 #   - channel 3 - triple scintillator coinsidence prescaled
-#   - channel 4 - master clock
+#   - channel 4 - master clock (10ms)
+#   - channel 5 - master clock (50us)
 # - 1: straw
 # - 2: MM layer 0
 # - 3: MM layer 1
