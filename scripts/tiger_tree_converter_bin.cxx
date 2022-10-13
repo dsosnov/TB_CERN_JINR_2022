@@ -171,10 +171,17 @@ void convertTL(ifstream* fIn, Char_t gemroc){
   tree->Branch("frameCountLoops", &frameCountLoops, "frameCountLoops/L");
   tree->Branch("counterWord", &counterWord, "counterWord/I");
 
-  vector<Long64_t> FCRollOvers(256, 0);
-  vector<optional<Int_t>> lastFrameCount(256, nullopt);
-  vector<Int_t> lastSEU(256, 0);
-  vector<Int_t> lastCW(256*64, 0);
+  map<Int_t, Long64_t> FCRollOvers;
+  map<Int_t, optional<Int_t>> lastFrameCount;
+  map<Int_t, Int_t> lastSEU;
+  map<pair<Int_t, Int_t>, Int_t> lastCW;
+  for(auto i = 0; i < 256; i++){
+    FCRollOvers.emplace(i, 0);
+    lastFrameCount.emplace(i, nullopt);
+    lastSEU.emplace(i, 0);
+    for(auto j = 0; j < 64; j++)
+      lastCW.emplace(make_pair(i, j), 0);
+  }
   TLDataFrame frame = {};
   for(fIn->read(reinterpret_cast<char*>(&frame), sizeof(frame));
       !fIn->eof();
@@ -190,10 +197,10 @@ void convertTL(ifstream* fIn, Char_t gemroc){
         eCoarse = frame.eventWord.eCoarse;
         tFine = frame.eventWord.tFine;
         eFine = frame.eventWord.eFine;
-        frameCount = lastFrameCount.at(tigerID);
+        frameCount = lastFrameCount.at(tigerID).value();
         seu = lastSEU.at(tigerID);
         frameCountLoops = FCRollOvers.at(tigerID);
-        counterWord = lastCW.at(tigerID*64 + channelID);
+        counterWord = lastCW.at({tigerID, channelID});
         tree->Fill();
         if(DEBUG_PRINT)
           printf("TIGER %01X: EW: ChID: %02X tacID: %01X Tcoarse: %04X Ecoarse: %03X Tfine: %03X Efine: %03X \n",
@@ -204,10 +211,10 @@ void convertTL(ifstream* fIn, Char_t gemroc){
         tigerID = frame.frameWord.tiger;
         frameCount = frame.frameWord.frameCount;
         seu = frame.frameWord.seuCount;
-        if(lastFrameCount.at(tigerID) && frameCount < lastFrameCount.at(tigerID))
-          FCRollOvers.at(tigerID)++;
-        lastSEU.at(tigerID) = seu;
-        lastFrameCount.at(tigerID) = frameCount;
+        if(lastFrameCount.at(tigerID) && frameCount < lastFrameCount.at(tigerID).value())
+          FCRollOvers[tigerID]++;
+        lastSEU[tigerID] = seu;
+        lastFrameCount[tigerID] = frameCount;
         if(DEBUG_PRINT)
           printf("TIGER %01X: HB: Framecount: %08X SEUcount: %08X\n", tigerID, frameCount, seu);
         break;
@@ -216,7 +223,7 @@ void convertTL(ifstream* fIn, Char_t gemroc){
         tigerID = frame.countWord.tiger;
         channelID = frame.countWord.channel;
         counterWord = frame.countWord.counter;
-        lastCW.at(tigerID*64 + channelID) = counterWord;
+        lastCW[{tigerID, channelID}] = counterWord;
         if(DEBUG_PRINT)
           printf("TIGER %01X: CW: ChID: %02X CounterWord: %016X\n", tigerID, channelID, counterWord);
         break;
