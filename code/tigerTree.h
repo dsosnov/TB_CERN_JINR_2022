@@ -105,7 +105,7 @@ bool isLater(const tigerHitTL hit1, const tigerHitTL hit2){
   return later;
 }
 
-/*The diffarance should be not larger then ~106 days */
+/*The differance should be not larger then ~106 days */
 Long64_t timeDifferenceCoarsePS(const tigerHitTL hit1, const tigerHitTL hit2){
   auto later = isLater(hit1, hit2);
   auto hitFirst = later ? &hit2: &hit1;
