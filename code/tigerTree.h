@@ -35,7 +35,9 @@ struct tigerHitTL : public tigerHit {
   Int_t    counterWord;     // 24 bit data -- "I" == Int_t    == int32_t
 
   double timeFine() const; // ns
-  double charge(const bool fine = true) const;
+  double chargeToT(const bool fine = true) const;
+  int chargeSH() const;
+  double charge(const bool ToTMode = false) const;
   void print(bool hex = false) const override;
 
   friend bool isLater(const tigerHitTL hit1, const tigerHitTL hit2);
@@ -43,13 +45,25 @@ struct tigerHitTL : public tigerHit {
   friend double timeDifferenceFineNS(const tigerHitTL hit1, const tigerHitTL hit2);
 };
 
-double tigerHitTL::charge(const bool fine) const{
+double tigerHitTL::chargeToT(const bool fine) const{
   double ediff = eCoarse - tCoarse%0x400;
   ediff += (ediff >= 0) ? 0 : 1024;
   if(fine)
     ediff -= (eFine - tFine) / 1024.0;
   return ediff;    
 }
+
+int tigerHitTL::chargeSH() const{
+  return 1024 - eFine;
+}
+
+double tigerHitTL::charge(const bool ToTMode) const{
+  if(ToTMode)
+    return chargeToT(true);
+  else
+    return static_cast<double>(chargeSH());
+}
+
 
 double tigerHitTL::timeFine() const { // ns
   double tCounts = double(tCoarse) - (double(tFine) - 0.0) / 1024.0;
