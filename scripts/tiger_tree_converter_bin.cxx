@@ -238,7 +238,7 @@ void convertTL(ifstream* fIn, Char_t gemroc){
 }
 
 void tiger_tree_converter_tl(string folderName){
-  
+
   auto dir = new TSystemDirectory(folderName.c_str(), folderName.c_str());
   auto files = dir->GetListOfFiles();
   if(!files){
@@ -275,7 +275,7 @@ void tiger_tree_converter_tl(string folderName){
     fOut->Close();
     delete fOut;
   }
-  
+
 }
 
 void tiger_tree_converter_bin(string folderName){

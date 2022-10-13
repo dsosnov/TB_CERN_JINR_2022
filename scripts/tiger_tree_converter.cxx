@@ -59,7 +59,7 @@ void convertTL(ifstream* fIn, TFile* fOut, Char_t gemroc){
   tree->Branch("seu", &seu, "seu/I");
   tree->Branch("frameCountLoops", &frameCountLoops, "frameCountLoops/L");
   tree->Branch("counterWord", &counterWord, "counterWord/I");
-  
+
   vector<Long64_t> FCRollOvers(256, 0);
   vector<Int_t> lastFrameCount(256, 0);
   vector<Int_t> lastSEU(256, 0);
@@ -142,7 +142,7 @@ void tiger_tree_converter_tl(string folderName){
     fOut->Close();
     delete fOut;
   }
-  
+
 }
 
 void tiger_tree_converter(string folderName){
