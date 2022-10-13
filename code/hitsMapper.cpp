@@ -717,11 +717,11 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                             diff = (currEvent->bcid - prevSyncBcid > 0) ? currEvent->bcid - prevSyncBcid : currEvent->bcid + 4096 - prevSyncBcid;
                             diffDiff = (currEvent->bcid - prevPrevSyncBcid > 0) ? currEvent->bcid - prevPrevSyncBcid: currEvent->bcid + 4096 - prevPrevSyncBcid;
 
-                            nPeriodsAdd = calculateVMMNPulsers(diff, 1, 10);
+                            nPeriodsAdd = calculateVMMNPulsers(diff, 1, 30);
                             
                             diffTvmm = T_vmm-T_vmm_pulse_prev;
 
-                            if(!nPeriodsAdd || currEvent->pdo)
+                            if(!nPeriodsAdd || currEvent->pdo < 945 || currEvent->pdo > 970)
                             {
                                 continue;
                             }
