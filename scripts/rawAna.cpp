@@ -69,13 +69,13 @@ void rawAna()
     //             prev_T_apv = first_pulse_T_apv;
     //         }
     //         T_apv = hit_apv.timeSec*1E6 + hit_apv.timeMSec;
-    //         if (T_apv - prev_T_apv > 1.1e4 && T_apv - first_pulse_T_apv > 235e6)
+    //         if (T_apv - prev_T_apv > 0 && T_apv - first_pulse_T_apv > 359e6)
     //         {
-    //             cout << "APV Pulse event " << i << " N = " << pulseN << "\t T = " << (T_apv - first_pulse_T_apv)/1e6 << "\t from last pulse dT = " << T_apv - prev_T_apv << endl;
+    //             cout << "APV Pulse event " << i << " N = " << pulseN << "\t T = " << (T_apv - first_pulse_T_apv)/1e6 << "\t from last pulse dT = " << (T_apv - prev_T_apv)/1e6  << endl;
     //         }
     //         prev_T_apv = T_apv;
     //         // if (pulseN == 10)
-    //         if (T_apv - first_pulse_T_apv > 260e6)
+    //         if (T_apv - first_pulse_T_apv > 380e6)
     //             break;
     //         pulseN++;
     //     }
@@ -105,19 +105,26 @@ void rawAna()
             }
 
             T_vmm = hit_vmm.timeSec*1E6 + hit_vmm.timeMSec;
-            auto npulsers = calculateVMMNPulsers(bcid_vmm - prev_bcid_vmm, 2, 250);
+            int diff = (bcid_vmm - prev_bcid_vmm > 0) ? bcid_vmm - prev_bcid_vmm : bcid_vmm + 4096 - prev_bcid_vmm;
+            auto npulsers = calculateVMMNPulsers(diff, 1, 30);
+            if (npulsers < 0 || hit_vmm.pdo > 966 || hit_vmm.pdo < 947)
+            {
+                // hbcidDiffIgnored->Fill(diff);
+                continue;
+            }
             T_vmm_pred += npulsers * 50;
 
-            if (T_vmm - prev_T_vmm > 1000)
+
+            if (T_vmm - prev_T_vmm > 200 && T_vmm - first_pulse_T_vmm > 359e6)
             {
                 cout << "VMM Pulse event " << i << " N = " << pulseN << "\t T = " << (T_vmm - first_pulse_T_vmm)/1e6 << "\t from last pulse dT (DAQ) = " << T_vmm - prev_T_vmm << " | dT (BCID) = " << npulsers * 50 << "\t N of hits inside " << numOfVmmHits << endl;
-                cout << "DAQ vs BCID dt = " << T_vmm - first_pulse_T_vmm - T_vmm_pred << "\n";
+                cout << "DAQ vs BCID dt = " << T_vmm - first_pulse_T_vmm - T_vmm_pred << "\t delta BCID = " << diff << "\n";
             }
             // numOfVmmHits = 0;
             prev_T_vmm = T_vmm;
             prev_bcid_vmm = bcid_vmm;
             // if (pulseN == 1000)
-            if (T_vmm - first_pulse_T_vmm > 215e6)
+            if (T_vmm - first_pulse_T_vmm > 380e6)
                 break;
             pulseN++;
         }
