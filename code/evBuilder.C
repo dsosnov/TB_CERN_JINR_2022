@@ -289,7 +289,7 @@ analysisGeneral::mm2CenterHitParameters evBuilder::GetCentralHitsData(unsigned l
         trigTime = getTime(fch, fbcid, ftdo, fpdoUC);
       }
       else if(fchD == 0 && fchM == 4){
-        if(fpdo > 650){
+        if(fpdo == 948 || fpdo == 965){
           if(prevbcid63 >= 0){
             auto bcidSincePrevious63 = (fbcid > prevbcid63) ? fbcid - prevbcid63 : fbcid - prevbcid63 + 4096;
             unsigned int maxDiffBCID = 5; // bcid
