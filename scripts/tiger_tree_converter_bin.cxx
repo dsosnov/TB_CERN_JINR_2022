@@ -12,9 +12,11 @@
 #include <sstream>
 #include <vector>
 #include <map>
+#include <optional>
 using std::vector;
 using std::string;
 using std::map;
+using std::optional, std::nullopt;
 
 #include <fstream>
 using std::ifstream;
@@ -170,7 +172,7 @@ void convertTL(ifstream* fIn, Char_t gemroc){
   tree->Branch("counterWord", &counterWord, "counterWord/I");
 
   vector<Long64_t> FCRollOvers(256, 0);
-  vector<Int_t> lastFrameCount(256, 0);
+  vector<optional<Int_t>> lastFrameCount(256, nullopt);
   vector<Int_t> lastSEU(256, 0);
   vector<Int_t> lastCW(256*64, 0);
   TLDataFrame frame = {};
@@ -180,6 +182,8 @@ void convertTL(ifstream* fIn, Char_t gemroc){
     switch(getTypeTL(frame)){
       case TLDataFrameType::EventWord: { // EW
         tigerID = frame.eventWord.tiger;
+        if(!lastFrameCount.at(tigerID))
+          continue;
         channelID = frame.eventWord.channel;
         tacID = frame.eventWord.tac;
         tCoarse = frame.eventWord.tCoarse;
@@ -200,7 +204,7 @@ void convertTL(ifstream* fIn, Char_t gemroc){
         tigerID = frame.frameWord.tiger;
         frameCount = frame.frameWord.frameCount;
         seu = frame.frameWord.seuCount;
-        if(frameCount < lastFrameCount.at(tigerID))
+        if(lastFrameCount.at(tigerID) && frameCount < lastFrameCount.at(tigerID))
           FCRollOvers.at(tigerID)++;
         lastSEU.at(tigerID) = seu;
         lastFrameCount.at(tigerID) = frameCount;
