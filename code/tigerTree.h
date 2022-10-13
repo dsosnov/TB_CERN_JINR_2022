@@ -81,6 +81,8 @@ bool isLater(const tigerHitTL hit1, const tigerHitTL hit2){
     later = hit1.frameCountLoops > hit2.frameCountLoops;
   }else if(hit1.frameCount != hit2.frameCount){
     later = hit1.frameCount > hit2.frameCount;
+  }else if(std::abs(hit1.tCoarse - hit2.tCoarse) > (1<<15)){ // If difference between hits > 2^15, then there is roll-over between
+    later = hit1.tCoarse < hit2.tCoarse;
   }else if(hit1.tCoarse != hit2.tCoarse){
     later = hit1.tCoarse > hit2.tCoarse;
   }else{
@@ -109,7 +111,18 @@ Long64_t timeDifferenceCoarsePS(const tigerHitTL hit1, const tigerHitTL hit2){
   // Roll-overs: int(floor((FC2_{Last} - FC_{First})/2))
   Long64_t tCoarseRollOvers = (FCDiff - (FCDiff%2 ? 1 : 0)) / 2;
   Long64_t tCoarseDiff = hitLast->tCoarse - hitFirst->tCoarse;
-  Long64_t clk_periods = tCoarseDiff + tCoarseRollOvers * 65536;
+  if(FCDiff%2){ // odd FCDiff
+    if(tCoarseDiff < 0)
+      tCoarseRollOvers++;
+  } else { // even FCDiff
+    if(std::abs(tCoarseDiff) > (1<<15)){
+      if(tCoarseDiff < 0)
+        tCoarseDiff += (1<<16);
+      else
+        tCoarseDiff -= (1<<16);
+    }
+  }
+  Long64_t clk_periods = tCoarseDiff + tCoarseRollOvers * (1<<16);
   Long64_t absTime = clk_periods * 6250;
 
   return later ? absTime : -absTime; // picoseconds
