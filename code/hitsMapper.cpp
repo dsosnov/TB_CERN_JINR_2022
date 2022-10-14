@@ -428,7 +428,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
 
     auto hDACTimeDiff = make_shared<TH1F>("hDACTimeDiff", "hDACTimeDiff; #Delta DAC time, #mus", 20000, -10000, 10000);
     auto hDACTimeDiffPerTime = make_shared<TH2F>("hDACTimeDiffPerTime", "hDACTimeDiffPerTime; time, s; #Delta DAC time, #mus", 4000, 0, 400, 2000, -10000, 10000);
-    auto hnMerged = make_shared<TH1F>("hnMerged", "hnMerged; time, s;", 4000, 0, 400);
+    auto hnMerged = make_shared<TH1F>("hnMerged", "hnMerged; time, s;", 7200, 0, 7200);
     auto hTimeDiffPerTime = make_shared<TH2F>("hTimeDiffPerTime", "hTimeDiffPerTime; time, s; #Delta T, #mus", 1000, 0, 1000, 2000, -1000, 1000);
     auto hTimeDiff2D = make_shared<TH2F>("hTimeDiff2D", "hTimeDiff2D; #Delta T (estimated), #mus; #Delta T (DAC), #mus", 2000, -1000, 1000, 2000, -1000, 1000);
     // dac time difference
