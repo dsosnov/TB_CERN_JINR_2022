@@ -24,12 +24,15 @@ using std::map;
 using std::string;
 using std::shared_ptr, std::make_shared;
 using std::pair, std::make_pair;
-using std::tuple, std::make_tuple;
+using std::tuple, std::make_tuple, std::get;
 using std::ifstream;
 
 class tiger : public analysisGeneral {
 public :
+   TString runFolder = "";
    TString mapFile = "map-tiger-20220830.txt";
+   enum TigerEnergyMode : bool {SampleAndHold = 0, TimeOverThreshold = 1};
+   TigerEnergyMode energyMode = TigerEnergyMode::SampleAndHold;
 
    Char_t   gemrocID;        //                "B" == Char_t   ==  int8_t
    Short_t  tigerID;         //  8 bit data -- "S" == Short_t  == int16_t
@@ -46,9 +49,9 @@ public :
    Long64_t frameCountLoops; //                "L" == Long64_t == int64_t
    Int_t    counterWord;     // 24 bit data -- "I" == Int_t    == int32_t
 
-   tiger(TString, TString mapFile_ = "map-strawOnly.txt");
-   tiger(vector<TString>, TString mapFile_ = "map-strawOnly.txt");
-   tiger(TChain *tree = nullptr);
+   tiger(TString, TString runFolder_ = "", TString mapFile_ = "map-tiger-20220721.txt", short energyMode_ = 0);
+   tiger(vector<TString>, TString runFolder_ = "", TString mapFile_ = "map-tiger-20220721.txt", short energyMode_ = 0);
+   tiger(TChain *tree = nullptr, TString mapFile_ = "map-tiger-20220721.txt", short energyMode_ = 0);
    virtual ~tiger();
    virtual void     Init() override;
    virtual void     Loop(unsigned long n = 0) override;
@@ -100,25 +103,25 @@ public :
 
 #endif
 
-tiger::tiger(TString filename, TString mapFile_) : mapFile(mapFile_)
+tiger::tiger(TString filename, TString runFolder_, TString mapFile_, short energyMode_) : runFolder(runFolder_), mapFile(mapFile_), energyMode(static_cast<TigerEnergyMode>(energyMode_))
 {
   file = filename;
-  folder = "../data/tiger/";
+  folder = "../data/tiger/" + runFolder + "/";
   fChain = GetTree(filename, "tigerTL");
   Init();
 }
 
-tiger::tiger(vector<TString> filenames, TString mapFile_) : mapFile(mapFile_)
+tiger::tiger(vector<TString> filenames, TString runFolder_, TString mapFile_, short energyMode_) : runFolder(runFolder_), mapFile(mapFile_), energyMode(static_cast<TigerEnergyMode>(energyMode_))
 {
   file = filenames.at(0);
-  folder = "../data/tiger/";
+  folder = "../data/tiger/" + runFolder + "/";
   fChain = GetTree(filenames.at(0), "tigerTL");
   for(auto i = 1; i < filenames.size(); i++)
     fChain->Add(folder + filenames.at(i) + ending);
   Init();
 }
 
-tiger::tiger(TChain *tree) : analysisGeneral(tree)
+tiger::tiger(TChain *tree, TString mapFile_, short energyMode_) : analysisGeneral(tree), mapFile(mapFile_), energyMode(static_cast<TigerEnergyMode>(energyMode_))
 {
   folder = "../data/tiger/";
   fChain = (tree == nullptr) ? GetTree("", "tigerTL") : tree;
