@@ -204,17 +204,24 @@ double weightedMean(vector<pair<int, int>> hits){
  */
 int getLayerPosition(int layer){
   int y = 0;
-  switch(layer){
-    case 3:
-      y += 523;
-    case 2:
-      y += 345;
-    case 1:
-      y += 285;
-    case 0:
-      y += 0;
+  if (layer == -1)
+  {
+    return -183;
   }
-  return y;
+  else if (layer == 0)
+  {
+    return 0;
+  }
+  else
+  {
+    switch(layer){
+        case 2:
+        y += 325;
+        case 1:
+        y += 434;
+    }
+    return y;
+  }
 }
 
 pair<double, double> getEstimatedTrack(map<int, double> positions){
@@ -547,6 +554,9 @@ void hitsMapper(bool tight = false, bool fixSRSTime = true, int nAll = 1, int n 
     int diff, diffDiff;
     int nPeriodsAdd;
     long long diffTvmm;
+    int Tvmm_ = 0;
+    int prevTvmm_ = 0;
+
 
     int maxAPVPulserCountDifference = tight ? 0 : 1;
     bool ignoreNextSync = true;
@@ -640,36 +650,36 @@ void hitsMapper(bool tight = false, bool fixSRSTime = true, int nAll = 1, int n 
                 // out_APV << "------- APV Period " << nPeriodsAPV << " -------- \n";
                 for (auto &h : hit_apv.hitsPerLayer.at(0))
                 {
-                    strip = h.first;
+                    strip = h.first * 1.09 - 6.16;
                     pdo = h.second;
                     if (strip > 118 && strip < 172)
                         apv_hits_vec_l0.push_back(make_pair(strip, pdo));
                 }
                 for (auto &h : hit_apv.hitsPerLayer.at(1))
                 {
-                    strip = h.first * (1 - 2.29e-3) - 2.412 / 0.25;
+                    strip = h.first;
                     pdo = h.second;
                     if (strip > 118 && strip < 172)
                         apv_hits_vec_l1.push_back(make_pair(strip, pdo));
                 }
                 for (auto &h : hit_apv.hitsPerLayer.at(2))
                 {
-                    strip = h.first * (1 - 8e-3) - 8.46 / 0.25;
+                    strip = h.first * 1.01 + 3.77;
                     pdo = h.second;
                     if (strip > 118 && strip < 172)
                         apv_hits_vec.push_back(make_pair(strip, pdo));
                 }
 
-                if (apv_hits_vec_l0.size() && apv_hits_vec_l1.size())
+                if (apv_hits_vec_l1.size() && apv_hits_vec.size())
                     tracksPerTime->Fill((T_apv - startT_apv)/1E6);
                 
                 if (!apv_hits_vec.size() || !apv_hits_vec_l0.size() || !apv_hits_vec_l1.size())
                     continue;
 
 
-                map<int, double> means = {{0, weightedMean(apv_hits_vec_l0)}, {1, weightedMean(apv_hits_vec_l1)}};
+                map<int, double> means = {{1, weightedMean(apv_hits_vec_l1)}, {2, weightedMean(apv_hits_vec)}};
                 auto tr = getEstimatedTrack(means);
-                int propogated = static_cast<int>(round(estimatePositionInLayer(tr, 2)));
+                int propogated = static_cast<int>(round(estimatePositionInLayer(tr, 0)));
 
                 vmm_hits_vec.clear();
 
@@ -717,11 +727,17 @@ void hitsMapper(bool tight = false, bool fixSRSTime = true, int nAll = 1, int n 
                             diff = (currEvent->bcid - prevSyncBcid > 0) ? currEvent->bcid - prevSyncBcid : currEvent->bcid + 4096 - prevSyncBcid;
                             diffDiff = (currEvent->bcid - prevPrevSyncBcid > 0) ? currEvent->bcid - prevPrevSyncBcid: currEvent->bcid + 4096 - prevPrevSyncBcid;
 
-                            nPeriodsAdd = calculateVMMNPulsers(diff, 3, 4);
+                            nPeriodsAdd = calculateVMMNPulsers(diff, 1, 40);
                             
                             diffTvmm = T_vmm-T_vmm_pulse_prev;
 
-                            if(nPeriodsAdd < 0)
+                            Tvmm_ = (T_apv - startT_apv) / 1e6;
+                            if (Tvmm_ - prevTvmm_ > 0)
+                                cout << Tvmm_ << endl;
+                            prevTvmm_ = Tvmm_;
+
+
+                            if(nPeriodsAdd < 0 || currEvent->pdo != 1012)
                             {
                                 continue;
                             }
@@ -777,7 +793,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = true, int nAll = 1, int n 
 
                     for (auto it = currEvent->hitsX.begin(); it != currEvent->hitsX.end(); ++it)
                     {
-                        strip = it->first * (1 - 8e-3) - 8.46 / 0.25;
+                        strip = it->first * 1.09 - 6.16;
                         pdo = it->second;
                         if (pdo < thrPerStrip(it->first))
                             continue;
