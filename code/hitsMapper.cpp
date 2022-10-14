@@ -196,32 +196,31 @@ double weightedMean(vector<pair<int, int>> hits){
 }
 
 /*
- * positions:
- * L0 - L1: 285
- * L1 - L2: 345
- * L2 - Straw: 523
+ * Some distances (July measurements):
+ * 183 - mm0-straw (layer -1 now)
+ * 434 - mm0-mm1 - mm layer 3 (y) was connected to mm layer 1
+ * 325 - mm3-mm2
  * return: position in mm, from Layer 0
  */
 int getLayerPosition(int layer){
   int y = 0;
-  if (layer == -1)
-  {
-    return -183;
+  switch(layer){
+    case -1:
+      y = -183;
+      break;
+    case 2:
+      y += 325;
+    case 3:
+    case 1:
+      y += 434;
+    case 0:
+      y += 0;
+      break;
+    default:
+      y += 0;
+      break;
   }
-  else if (layer == 0)
-  {
-    return 0;
-  }
-  else
-  {
-    switch(layer){
-        case 2:
-        y += 325;
-        case 1:
-        y += 434;
-    }
-    return y;
-  }
+  return y;
 }
 
 pair<double, double> getEstimatedTrack(map<int, double> positions){
