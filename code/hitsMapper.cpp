@@ -315,7 +315,7 @@ map<pair<string, string>, pair<int, int>> firstPulserMapAlternative = {
     {{"run_0788", "run379"}, {350095, 18140}}, // First APV vs VMM dt = 15829384 or 1582 pulses
 };
 
-constexpr bool PRINT_TO_FILE = true;
+constexpr bool PRINT_TO_FILE = false;
 constexpr bool DEBUG_PRINT = false;
 constexpr bool findBestVMM = true;
 constexpr bool printMerged = false;
