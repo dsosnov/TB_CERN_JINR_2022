@@ -330,7 +330,7 @@ constexpr bool saveTemporaryParameters = true;
 constexpr bool reloopVMMFile = false;
 
 // AlternativeStart -- first VMM selected as first good VMM pulser in case the difference between first good APV and VMM is about 33ms
-void hitsMapper(bool tight = false, bool fixSRSTime = true, int nAll = 1, int n = 0, string runVMM="0091", string runAPV = "47", bool alternativeStart = false, int mergeTimeWindow = 1000)
+void hitsMapper(bool tight = false, bool fixSRSTime = true, int nAll = 5, int n = 0, string runVMM="0091", string runAPV = "47", bool alternativeStart = false, int mergeTimeWindow = 1000)
 {
     pair<string, string> run_pair = {Form("run_%s", runVMM.c_str()), Form("run%s", runAPV.c_str())};
     if(!firstPulserMap.count(run_pair))
@@ -431,6 +431,12 @@ void hitsMapper(bool tight = false, bool fixSRSTime = true, int nAll = 1, int n 
     auto vmmTrigScintAll = make_shared<TH1F>("vmmTrigScintAll", "vmmTrigScintAll; time, s", 400, 0, 400);
     auto vmmType3All = make_shared<TH1F>("vmmType3All", "vmmType3All; time, s", 400, 0, 400);
     auto vmmChannelTimeAll = make_shared<TH2F>("vmmChannelTimeAll", "vmmChannelTimeAll; time, s; channel", 400, 0, 400, 56, 154, 210);
+
+    auto apv0_strips = make_shared<TH1F>("apv0_strips", "apv0_strips", 400, 0, 400);
+    auto apv1_strips = make_shared<TH1F>("apv1_strips", "apv1_strips", 400, 0, 400);
+    auto apv2_strips = make_shared<TH1F>("apv2_strips", "apv2_strips", 400, 0, 400);
+    auto vmm_strips = make_shared<TH1F>("vmm_strips", "vmm_strips", 400, 0, 400);
+
 
     auto hDACTimeDiff = make_shared<TH1F>("hDACTimeDiff", "hDACTimeDiff; #Delta DAC time, #mus", 20000, -10000, 10000);
     auto hDACTimeDiffPerTime = make_shared<TH2F>("hDACTimeDiffPerTime", "hDACTimeDiffPerTime; time, s; #Delta DAC time, #mus", 4000, 0, 400, 2000, -10000, 10000);
@@ -651,21 +657,24 @@ void hitsMapper(bool tight = false, bool fixSRSTime = true, int nAll = 1, int n 
                 {
                     strip = h.first * 1.09 - 6.16;
                     pdo = h.second;
-                    if (strip > 118 && strip < 172)
+                    apv0_strips->Fill(strip);
+                    if (strip > 161 && strip < 198)
                         apv_hits_vec_l0.push_back(make_pair(strip, pdo));
                 }
                 for (auto &h : hit_apv.hitsPerLayer.at(1))
                 {
                     strip = h.first;
                     pdo = h.second;
-                    if (strip > 118 && strip < 172)
+                    apv1_strips->Fill(strip);
+                    if (strip > 161 && strip < 198)
                         apv_hits_vec_l1.push_back(make_pair(strip, pdo));
                 }
                 for (auto &h : hit_apv.hitsPerLayer.at(2))
                 {
                     strip = h.first * 1.01 + 3.77;
                     pdo = h.second;
-                    if (strip > 118 && strip < 172)
+                    apv2_strips->Fill(strip);
+                    if (strip > 161 && strip < 198)
                         apv_hits_vec.push_back(make_pair(strip, pdo));
                 }
 
@@ -676,9 +685,10 @@ void hitsMapper(bool tight = false, bool fixSRSTime = true, int nAll = 1, int n 
                     continue;
 
 
-                map<int, double> means = {{1, weightedMean(apv_hits_vec_l1)}, {2, weightedMean(apv_hits_vec)}};
-                auto tr = getEstimatedTrack(means);
-                int propogated = static_cast<int>(round(estimatePositionInLayer(tr, 0)));
+                // map<int, double> means = {{1, weightedMean(apv_hits_vec_l1)}, {2, weightedMean(apv_hits_vec)}};
+                // auto tr = getEstimatedTrack(means);
+                // int propogated = static_cast<int>(round(estimatePositionInLayer(tr, 0)));
+                int propogated = (weightedMean(apv_hits_vec_l1) + weightedMean(apv_hits_vec)) / 2;
 
                 vmm_hits_vec.clear();
 
@@ -726,7 +736,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = true, int nAll = 1, int n 
                             diff = (currEvent->bcid - prevSyncBcid > 0) ? currEvent->bcid - prevSyncBcid : currEvent->bcid + 4096 - prevSyncBcid;
                             diffDiff = (currEvent->bcid - prevPrevSyncBcid > 0) ? currEvent->bcid - prevPrevSyncBcid: currEvent->bcid + 4096 - prevPrevSyncBcid;
 
-                            nPeriodsAdd = calculateVMMNPulsers(diff, 1, 40);
+                            nPeriodsAdd = calculateVMMNPulsers(diff, 1, 256);
                             
                             diffTvmm = T_vmm-T_vmm_pulse_prev;
 
@@ -794,6 +804,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = true, int nAll = 1, int n 
                     {
                         strip = it->first * 1.09 - 6.16;
                         pdo = it->second;
+                        vmm_strips->Fill(strip);
                         if (pdo < thrPerStrip(it->first))
                             continue;
                         vmm_hits_vec.push_back(make_pair(strip, pdo));
