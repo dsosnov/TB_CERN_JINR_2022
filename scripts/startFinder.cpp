@@ -35,7 +35,7 @@ int calculateVMMNPulsers(int bcidDiff, int maxDiff = 2, int maxNPulsers = 9)
 
 void startFinder()
 {
-    pair<string, string> run_pair = {"run_0091", "run47"};
+    pair<string, string> run_pair = {"run_0080", "run31"};
 
     auto apvan = new apv(run_pair.second);
     apvan->useSyncSignal();
@@ -75,7 +75,7 @@ void startFinder()
             }
             T_apv = hit_apv.timeSec*1E6 + hit_apv.timeMSec;
 
-            if (T_apv - prev_T_apv < 1e4)
+            if (true)
             {
                 cout << "APV Pulse event " << i << " N = " << pulseN << "\t T = " << (T_apv - first_pulse_T_apv)/1e6 << "\t from last pulse dT = " << T_apv - prev_T_apv << endl;
                 cout << "delta SRS TS = " << srsTs - prevSrsrTs << "\n";
@@ -83,7 +83,7 @@ void startFinder()
 
             prev_T_apv = T_apv;
             prevSrsrTs = srsTs;
-            if ((T_apv - first_pulse_T_apv)/1e6 > 13)
+            if (pulseN > 20)
                 break;
             pulseN++;
         }
@@ -91,54 +91,64 @@ void startFinder()
 
     cout << "\n\n";
 
-    // pulseN = 0;
-    // int numOfVmmHits = 0;
+    pulseN = 0;
+    int numOfVmmHits = 0;
 
-    // for (unsigned long i = 0; i < vmman->GetEntries(); i++)
-    // {
-    //     auto hit_vmm = vmman->GetCentralHitsData(i);
+    for (unsigned long i = 0; i < vmman->GetEntries(); i++)
+    {
+        auto hit_vmm = vmman->GetCentralHitsData(i);
 
-    //     if (hit_vmm.sync)
-    //     {
-    //         bcid_vmm = hit_vmm.bcid;
+        if (hit_vmm.sync)
+        {
+            bcid_vmm = hit_vmm.bcid;
 
-    //         numOfVmmHits += hit_vmm.hitsX.size();
+            numOfVmmHits += hit_vmm.hitsX.size();
 
-    //         if (first_pulse_T_vmm == 0)
-    //         {
-    //             first_pulse_T_vmm = hit_vmm.timeSec*1E6 + hit_vmm.timeMSec;
-    //             prev_T_vmm = first_pulse_T_vmm;
-    //         }
-    //         T_vmm = hit_vmm.timeSec*1E6 + hit_vmm.timeMSec;
-    //         int diff = (bcid_vmm - prev_bcid_vmm > 0) ? bcid_vmm - prev_bcid_vmm : bcid_vmm + 4096 - prev_bcid_vmm;
-    //         auto npulsers = calculateVMMNPulsers(diff, 1, 256);
+            if (first_pulse_T_vmm == 0)
+            {
+                first_pulse_T_vmm = hit_vmm.timeSec*1E6 + hit_vmm.timeMSec;
+                prev_T_vmm = first_pulse_T_vmm;
+            }
+            T_vmm = hit_vmm.timeSec*1E6 + hit_vmm.timeMSec;
+            int diff = (bcid_vmm - prev_bcid_vmm > 0) ? bcid_vmm - prev_bcid_vmm : bcid_vmm + 4096 - prev_bcid_vmm;
+            auto npulsers = calculateVMMNPulsers(diff, 1, 86);
+            T_vmm_pred +=  npulsers * 50;
 
+            // 100.827 dt_apv_vmm = 1658668867312046 - 1658668857229304 - 10082950 - round(0 * 25.0 / 1000.0) = -379
+            // 100.884 dt_apv_vmm = 1658668867317731 - 1658668857229304 - 10088900 - round(0 * 25.0 / 1000.0) = -644
+            // 109.177 dt_apv_vmm = 1658668868146986 - 1658668857229304 - 10918500 - round(0 * 25.0 / 1000.0) = -988
 
-    //         // if (T_vmm - prev_T_vmm > 10000)
-    //         if (npulsers < 0 && hit_vmm.pdo == 1012)
-    //         {
-    //             // cout << "VMM Pulse event " << i << " N = " << pulseN << "\t T = " << T_vmm << "\t from last pulse dT = " << T_vmm - prev_T_vmm<< "\t vs FirstAPV = " << T_vmm - first_pulse_T_apv << endl;
-    //             cout << "VMM Pulse event " << i << " N = " << pulseN << "\t T = " << (T_vmm - first_pulse_T_vmm)/1e6 << "\t from last pulse dT (DAQ) = " << T_vmm - prev_T_vmm << " | dT (BCID) = " << npulsers * 50 << "\t N of hits inside " << numOfVmmHits << endl;
-    //             cout << "DAQ vs BCID dt = " << T_vmm - first_pulse_T_vmm - T_vmm_pred << "\t delta BCID = " << diff << "\n";
+            // VMM Pulse event 395025 N = 161217        T = 8.57976     from last pulse dT (DAQ) = 186613 | dT (BCID) = 50      N of hits inside 5873
+            // DAQ vs BCID dt = 187010  delta BCID = 2000
 
-    //         }
-    //         // cout << "VMM Pulse event " << i << " N = " << pulseN << "\t T = " << T_vmm << "\t from last pulse dT = " << T_vmm - prev_T_vmm<< "\t vs FirstAPV = " << T_vmm - first_pulse_T_apv << endl;
-    //         prev_T_vmm = T_vmm;
-    //         prev_bcid_vmm = bcid_vmm;
-    //         if ((T_vmm - first_pulse_T_vmm)/1e6 > 13)
-    //             break;
-    //         pulseN++;
-    //     }
-    //     else
-    //     {
-    //         numOfVmmHits += hit_vmm.hitsX.size();
-    //     }
-    // }
+            if (npulsers < 0 || hit_vmm.pdo != 1012)
+                continue;
 
-    // cout << "First APV pulse T = " << first_pulse_T_apv << endl;
-    // cout << "First VMM pulse T = " << first_pulse_T_vmm << endl;
+            // if ((T_vmm - first_pulse_T_vmm)/1e6 > 0)
+            if (true) 
+            {
+                // cout << "VMM Pulse event " << i << " N = " << pulseN << "\t T = " << T_vmm << "\t from last pulse dT = " << T_vmm - prev_T_vmm<< "\t vs FirstAPV = " << T_vmm - first_pulse_T_apv << endl;
+                cout << "VMM Pulse event " << i << " N = " << pulseN << "\t T = " << (T_vmm - first_pulse_T_vmm)/1e6 << "\t from last pulse dT (DAQ) = " << T_vmm - prev_T_vmm << " | dT (BCID) = " << npulsers * 50 << "\t N of hits inside " << numOfVmmHits << endl;
+                cout << "DAQ vs BCID dt = " << T_vmm - first_pulse_T_vmm - T_vmm_pred << "\t delta BCID = " << diff <<  "\t vs FirstAPV = " << T_vmm - first_pulse_T_apv << "\n";
 
-    // cout << "First APV vs VMM dt = " << first_pulse_T_apv - first_pulse_T_vmm << " or " << (first_pulse_T_apv - first_pulse_T_vmm) / 10000 << " pulses" << endl;
+            }
+            // cout << "VMM Pulse event " << i << " N = " << pulseN << "\t T = " << T_vmm << "\t from last pulse dT = " << T_vmm - prev_T_vmm<< "\t vs FirstAPV = " << T_vmm - first_pulse_T_apv << endl;
+            prev_T_vmm = T_vmm;
+            prev_bcid_vmm = bcid_vmm;
+            if (pulseN > 300)
+                break;
+            pulseN++;
+        }
+        else
+        {
+            numOfVmmHits += hit_vmm.hitsX.size();
+        }
+    }
+
+    cout << "First APV pulse T = " << first_pulse_T_apv << endl;
+    cout << "First VMM pulse T = " << first_pulse_T_vmm << endl;
+
+    cout << "First APV vs VMM dt = " << first_pulse_T_apv - first_pulse_T_vmm << " or " << (first_pulse_T_apv - first_pulse_T_vmm) / 10000 << " pulses" << endl;
 
 
 }

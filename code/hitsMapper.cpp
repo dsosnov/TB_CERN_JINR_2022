@@ -32,7 +32,7 @@ int calculateVMMNPulsers(int bcidDiff, int maxDiff = 2, int maxNPulsers = 9)
 }
 
 // Long should be enough (4 bytes), but to be sure we can use long long (8 bytes)
-int calculateAPVNPulsers(long long TimeStampDiff, int maxDiff = 10, int maxNPulsers = 1000) // 1000 puslesr = 10s
+int calculateAPVNPulsers(long long TimeStampDiff, int maxDiff = 1, int maxNPulsers = 1000) // 1000 puslesr = 10s
 {
     static constexpr long long maxCounter = static_cast<long long>(1<<24);
     static constexpr double pulserLength = 400036.0;
@@ -385,6 +385,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = true, int nAll = 5, int n 
     // if time between two syncs larger then multiple pulser periods, merging fails due to calculation N periods for APV from pulser time only
     long long nPeriodsAPV_corrected = 0;
 
+
     int prevSRS = -1;
     int prev_pulse_SRS = -1;
     long long prev_pulse_time_s, prev_pulse_time_ms = 0;
@@ -611,8 +612,21 @@ void hitsMapper(bool tight = false, bool fixSRSTime = true, int nAll = 5, int n 
             else
             {
                 hAPVEstimatedTimeInSpill->Fill((T_apv - startT_apv)*1.0/1E6, round((T_apv - T_apv_pulse_prev) * 1.0 / 1e4)*1e4 - T_apv_sincePulse);
-                nPeriodsAPV += round((T_apv - T_apv_pulse_prev) * 1.0 / 1e4);
-                pulser_T = nPeriodsAPV * 1e4;
+                // nPeriodsAPV += round((T_apv - T_apv_pulse_prev) * 1.0 / 1e4);
+
+                long long srsDiff = (hit_apv.timeSrs - prev_pulse_SRS) + ((prev_pulse_SRS > hit_apv.timeSrs)?16777216:0);
+                int nPulsers = calculateAPVNPulsers(srsDiff, 1, 500);
+                if (nPulsers == -1)
+                {
+                    continue;
+                }
+                else
+                {
+                    nPeriodsAPV += nPulsers;
+                    pulser_T = nPeriodsAPV * 1e4;
+                }
+
+                // pulser_T = nPeriodsAPV * 1e4;
             }
             // printf("T_apv: %lld;\tT_apv_prev: %lld;\tdiff: %g (%g)\n", T_apv, T_apv_pulse_prev, (T_apv - T_apv_pulse_prev) * 1.0 / 1e4, round((T_apv - T_apv_pulse_prev) * 1.0 / 1e4));
             // printf("N periods APV: %lld\n", nPeriodsAPV);
@@ -701,10 +715,10 @@ void hitsMapper(bool tight = false, bool fixSRSTime = true, int nAll = 5, int n 
                     continue;
 
 
-                // map<int, double> means = {{1, weightedMean(apv_hits_vec_l1)}, {2, weightedMean(apv_hits_vec)}};
-                // auto tr = getEstimatedTrack(means);
-                // int propogated = static_cast<int>(round(estimatePositionInLayer(tr, 0)));
-                int propogated = (weightedMean(apv_hits_vec_l1) + weightedMean(apv_hits_vec)) / 2;
+                map<int, double> means = {{1, weightedMean(apv_hits_vec_l1)}, {2, weightedMean(apv_hits_vec)}};
+                auto tr = getEstimatedTrack(means);
+                int propogated = static_cast<int>(round(estimatePositionInLayer(tr, 0)));
+                // int propogated = (weightedMean(apv_hits_vec_l1) + weightedMean(apv_hits_vec)) / 2;
 
                 vmm_hits_vec.clear();
 
@@ -751,9 +765,9 @@ void hitsMapper(bool tight = false, bool fixSRSTime = true, int nAll = 5, int n 
                             beforeLastPulserParametersCurrent = {vectorPositionInTree, j, prevSyncBcid, prevPrevSyncBcid, nPeriods, pulseTime, T_vmm_pulse_prev};
                             diff = (currEvent->bcid - prevSyncBcid > 0) ? currEvent->bcid - prevSyncBcid : currEvent->bcid + 4096 - prevSyncBcid;
                             diffDiff = (currEvent->bcid - prevPrevSyncBcid > 0) ? currEvent->bcid - prevPrevSyncBcid: currEvent->bcid + 4096 - prevPrevSyncBcid;
-
-                            nPeriodsAdd = calculateVMMNPulsers(diff, 1, 256);
                             
+                            nPeriodsAdd = calculateVMMNPulsers(diff, 1, 86);
+
                             diffTvmm = T_vmm-T_vmm_pulse_prev;
 
                             Tvmm_ = (T_apv - startT_apv) / 1e6;
@@ -863,10 +877,12 @@ void hitsMapper(bool tight = false, bool fixSRSTime = true, int nAll = 5, int n 
                             bestHit = {hits_vmm_events_map.at(vectorPositionInTree).at(j).first, dt_apv_vmm, beforeLastPulserParametersCurrent, j, hitsMappedInEvent};
                         }
                         {
-                            if(DEBUG_PRINT)
+                            // if(DEBUG_PRINT)
+                            if((T_apv - startT_apv) / 1e6 > 9 && (T_apv - startT_apv) / 1e6 < 11)
                             {
-                            std::cout << "APV event: " << i << " (" << i << ")" << "\t";
-                            std::cout << "VMM event: " << j << " (" << hits_vmm_events_map.at(vectorPositionInTree).at(j).first << ")" << "\t Total of mapped " << numOfMapped << "\n";
+                            // std::cout << "APV event: " << i << " (" << i << ")" << "\t";
+                            // std::cout << "VMM event: " << j << " (" << hits_vmm_events_map.at(vectorPositionInTree).at(j).first << ")" << "\t Total of mapped " << numOfMapped << "\n";
+                            cout << (T_apv - startT_apv) / 1e5 << "\t";
                             printf("dt_apv_vmm = %lld - %lld - %lld - round(%d * 25.0 / 1000.0) = %lld\n", T_apv, startT_pulse_apv, pulseTime, diff_hit, dt_apv_vmm);
                             }
                             // printf("Event parameters: %lld, %lu, %d, %d, %d, %lld\n", get<0>(beforeLastPulserParameters), get<1>(beforeLastPulserParameters), get<2>(beforeLastPulserParameters),
