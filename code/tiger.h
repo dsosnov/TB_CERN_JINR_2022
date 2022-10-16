@@ -32,7 +32,7 @@ using std::ifstream;
 class tiger : public analysisGeneral {
 public :
    TString runFolder = "";
-   TString mapFile = "map-tiger-20220830.txt";
+   TString mapFile = "map-tiger-empty.txt";
    enum TigerEnergyMode : bool {SampleAndHold = 0, TimeOverThreshold = 1};
    TigerEnergyMode energyMode = TigerEnergyMode::SampleAndHold;
 
@@ -51,9 +51,9 @@ public :
    Long64_t frameCountLoops; //                "L" == Long64_t == int64_t
    Int_t    counterWord;     // 24 bit data -- "I" == Int_t    == int32_t
 
-   tiger(TString, TString runFolder_ = "", TString mapFile_ = "map-tiger-20220721.txt", short energyMode_ = 0);
-   tiger(vector<TString>, TString runFolder_ = "", TString mapFile_ = "map-tiger-20220721.txt", short energyMode_ = 0);
-   tiger(TChain *tree = nullptr, TString mapFile_ = "map-tiger-20220721.txt", short energyMode_ = 0);
+   tiger(TString, TString runFolder_ = "", TString mapFile_ = "map-tiger-empty.txt", short energyMode_ = 0);
+   tiger(vector<TString>, TString runFolder_ = "", TString mapFile_ = "map-tiger-empty.txt", short energyMode_ = 0);
+   tiger(TChain *tree = nullptr, TString mapFile_ = "map-tiger-empty.txt", short energyMode_ = 0);
    virtual ~tiger();
    virtual void     Init() override;
    virtual void     Loop(unsigned long n = 0) override;
