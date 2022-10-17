@@ -146,9 +146,9 @@ double timeDifferenceFineNS(const tigerHitTL hit1, const tigerHitTL hit2){
   auto later = isLater(hit1, hit2);
   auto hitFirst = later ? &hit2: &hit1;
   auto hitLast = later ? &hit1: &hit2;
-  double fineDiff = hitLast->tFine / 1024.0 - hitFirst->tFine / 1024.0;
+  double fineDiff = hitFirst->tFine / 1024.0 - hitLast->tFine / 1024.0;
 
-  double timeDiffAbs = fineDiff * 6.25 + double(timeDifferenceCoarsePS(*hitLast, *hitFirst)) / 1E3;
+  double timeDiffAbs = double(timeDifferenceCoarsePS(*hitLast, *hitFirst)) / 1E3 + fineDiff * 6.25;
   
   return later ? timeDiffAbs : -timeDiffAbs; // nanoseconds
 }
