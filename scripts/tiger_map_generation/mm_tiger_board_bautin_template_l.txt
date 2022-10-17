@@ -1,5 +1,5 @@
 # tigers connected to left connector of MM0 with Bautin's board
-# connector (FEB), pin : detector, channel
+# connector (FEB), pin (on FEB3_pinout scheme) : detector, channel
 1, 10 :  NC, 0
 1, 12 : MM0, 33
 1, 14 : MM0, 34

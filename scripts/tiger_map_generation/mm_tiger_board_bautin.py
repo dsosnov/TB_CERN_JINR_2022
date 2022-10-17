@@ -22,7 +22,7 @@ for connector_type in ["l", "c", "r"]:
   desc = connector_desc[connector_type]
   with open(f'mm_tiger_board_bautin_template_{connector_type}.txt', 'w') as f:
     print(f'# tigers connected to {desc} connector of MM{mm} with Bautin\'s board', file=f)
-    print(f'# connector (FEB), pin : detector, channel', file=f)
+    print(f'# connector (FEB), pin (on FEB3_pinout scheme) : detector, channel', file=f)
     print(f'{feb}, 10 :  NC, 0', file=f)
     params = mm_connector_strips[connector_type]
     for i in(range(12,140,2)):
