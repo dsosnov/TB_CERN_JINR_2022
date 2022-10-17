@@ -2,6 +2,7 @@
 
 #include "Rtypes.h"
 #include <cstdio>
+#include <utility>
 
 // For simplisity of calculation use signed-sized types with increased size.
 struct tigerHit {
@@ -34,6 +35,11 @@ struct tigerHitTL : public tigerHit {
 
   Int_t    counterWord;     // 24 bit data -- "I" == Int_t    == int32_t
 
+  std::pair<Short_t, Short_t> tFineLimits = {0, 1023};
+  std::pair<Short_t, Short_t> eFineLimits = {0, 1023};
+  double tFineCorrected() const;
+  double eFineCorrected() const;
+
   double timeFine() const; // ns
   double chargeToT(const bool fine = true) const;
   int chargeSH() const;
@@ -45,30 +51,58 @@ struct tigerHitTL : public tigerHit {
   friend double timeDifferenceFineNS(const tigerHitTL hit1, const tigerHitTL hit2);
 };
 
-double tigerHitTL::chargeToT(const bool fine) const{
+inline double tigerHitTL::tFineCorrected() const {
+  if(tFine < tFineLimits.first){
+    printf("Hit tFine below limits! ");
+    print();
+    return 0;
+  }else if(tFine > tFineLimits.second){
+    printf("Hit tFine above limits! ");
+    print();
+    return 1.0;
+  }else{
+    return static_cast<double>(tFine - tFineLimits.first) / static_cast<double>(tFineLimits.second - tFineLimits.first + 1);
+  }
+}
+
+inline double tigerHitTL::eFineCorrected() const {
+  if(eFine < eFineLimits.first){
+    printf("Hit eFine below limits! ");
+    print();
+    return 0;
+  }else if(eFine > eFineLimits.second){
+    printf("Hit eFine above limits! ");
+    print();
+    return 1.0;
+  }else{
+    return static_cast<double>(eFine - eFineLimits.first) / static_cast<double>(eFineLimits.second - eFineLimits.first + 1);
+  }
+}
+
+double tigerHitTL::timeFine() const { // ns
+  double tCounts = double(tCoarse) - tFineCorrected();
+  return tCounts * 6.25;
+}
+
+double tigerHitTL::chargeToT(const bool fine) const {
   double ediff = eCoarse - tCoarse%0x400;
   ediff += (ediff >= 0) ? 0 : 1024;
   if(fine)
-    ediff -= (eFine - tFine) / 1024.0;
+    ediff -= eFineCorrected() - tFineCorrected();
   return ediff;    
 }
 
-int tigerHitTL::chargeSH() const{
-  return 1024 - eFine;
+int tigerHitTL::chargeSH() const {
+  return 1024 - eFine; // TODO maybe use eFineCorrected()?
 }
 
-double tigerHitTL::charge(const bool ToTMode) const{
+double tigerHitTL::charge(const bool ToTMode) const {
   if(ToTMode)
     return chargeToT(true);
   else
     return static_cast<double>(chargeSH());
 }
 
-
-double tigerHitTL::timeFine() const { // ns
-  double tCounts = double(tCoarse) - (double(tFine) - 0.0) / 1024.0;
-  return tCounts * 6.25;
-}
 
 void tigerHitTL::print(bool hex) const {
   printf("TL hit: ");
@@ -100,7 +134,7 @@ bool isLater(const tigerHitTL hit1, const tigerHitTL hit2){
   }else if(hit1.tCoarse != hit2.tCoarse){
     later = hit1.tCoarse > hit2.tCoarse;
   }else{
-    later = hit1.tFine < hit2.tFine;
+    later = hit1.tFineCorrected() < hit2.tFineCorrected();
   }
   return later;
 }
@@ -146,7 +180,7 @@ double timeDifferenceFineNS(const tigerHitTL hit1, const tigerHitTL hit2){
   auto later = isLater(hit1, hit2);
   auto hitFirst = later ? &hit2: &hit1;
   auto hitLast = later ? &hit1: &hit2;
-  double fineDiff = hitFirst->tFine / 1024.0 - hitLast->tFine / 1024.0;
+  double fineDiff = hitFirst->tFineCorrected() - hitLast->tFineCorrected();
 
   double timeDiffAbs = double(timeDifferenceCoarsePS(*hitLast, *hitFirst)) / 1E3 + fineDiff * 6.25;
   
