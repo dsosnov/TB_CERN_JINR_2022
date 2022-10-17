@@ -14,6 +14,7 @@
 #include <memory>
 #include <tuple>
 #include <set>
+#include <optional>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -26,6 +27,7 @@ using std::string;
 using std::shared_ptr, std::make_shared;
 using std::pair, std::make_pair;
 using std::tuple, std::make_tuple, std::get;
+using std::optional, std::nullopt;
 using std::set;
 using std::ifstream;
 

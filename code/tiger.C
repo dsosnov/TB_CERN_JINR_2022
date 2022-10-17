@@ -67,6 +67,7 @@ void tiger::Loop(unsigned long n)
   map<pair<int, int>, TH2F*> hTigertCoarse, hTigereCoarse, hTigertFine, hTigereFine;
   map<tuple<int, int, int>, TH2F*> hTigerChargePerTime, hTigereFinePerTime;
   map<tuple<int, int, int>, TH1F*> hTigerFullTimePerChannel;
+  map<pair<int, int>, TH1F*> hTigerFullTime1D;
   for(auto &gr: {0}){
     auto grD = out->mkdir(Form("gemroc_%d", gr));
     grD->cd();
@@ -79,19 +80,20 @@ void tiger::Loop(unsigned long n)
                                          64, 0, 64, 1025, 0, 1025));
       hTigerTimeFine.emplace(m, new TH2F(Form("timeFine_gr%d_t%d", gr, t), Form("%s: timeFine for gemroc %d tiger %d;channel;time, ns", file.Data(), gr, t), 64, 0, 64, 4096, 0, 409600));
       hTigertCoarse.emplace(m, new TH2F(Form("tCoarse_gr%d_t%d", gr, t), Form("%s: tCoarse for gemroc %d tiger %d;channel;tCoarse", file.Data(), gr, t), 64, 0, 64, 65536, 0, 65536));
-      hTigereCoarse.emplace(m, new TH2F(Form("eCoarse_gr%d_t%d", gr, t), Form("%s: eCoarse for gemroc %d tiger %d;channel;eCoarse", file.Data(), gr, t), 64, 0, 64, 1024, 0, 1024));
-      hTigertFine.emplace(m, new TH2F(Form("tFine_gr%d_t%d", gr, t), Form("%s: eFine for gemroc %d tiger %d;tFine", file.Data(), gr, t), 64, 0, 64, 1024, 0, 1024));
-      hTigereFine.emplace(m, new TH2F(Form("eFine_gr%d_t%d", gr, t), Form("%s: eFine for gemroc %d tiger %d;channel;eFine", file.Data(), gr, t), 64, 0, 64, 1024, 0, 1024));
-      hTigerFullTime.emplace(m, new TH2F(Form("fullTime_gr%d_t%d", gr, t), Form("%s: fullTime for gemroc %d tiger %d;channel;time, s", file.Data(), gr, t), 64, 0, 64, 6000, 0, 60));
+      hTigereCoarse.emplace(m, new TH2F(Form("eCoarse_gr%d_t%d", gr, t), Form("%s: eCoarse for gemroc %d tiger %d;channel;eCoarse", file.Data(), gr, t), 64, 0, 64, 512, 0, 1024));
+      hTigertFine.emplace(m, new TH2F(Form("tFine_gr%d_t%d", gr, t), Form("%s: tFine for gemroc %d tiger %d;tFine", file.Data(), gr, t), 64, 0, 64, 512, 0, 1024));
+      hTigereFine.emplace(m, new TH2F(Form("eFine_gr%d_t%d", gr, t), Form("%s: eFine for gemroc %d tiger %d;channel;eFine", file.Data(), gr, t), 64, 0, 64, 512, 0, 1024));
+      hTigerFullTime.emplace(m, new TH2F(Form("fullTime_gr%d_t%d", gr, t), Form("%s: fullTime for gemroc %d tiger %d;channel;time, s", file.Data(), gr, t), 64, 0, 64, 600, 0, 60));
+      hTigerFullTime1D.emplace(m, new TH1F(Form("fullTime1D_gr%d_t%d", gr, t), Form("%s: fullTime for gemroc %d tiger %d;time, s", file.Data(), gr, t), 600, 0, 60));
       for(auto j = 0; j < 64; j++){
         hTigerChargePerTime.emplace(make_tuple(gr, t, j),
                                     new TH2F(Form("ChargePerTime_gr%d_t%d_ch%d", gr, t, j),
                                              Form("%s: Charge for gemroc %d tiger %d channel %d;full time, s; charge%s", file.Data(), gr, t, j, ((energyMode == TigerEnergyMode::SampleAndHold) ? " = 1024 - eFine": "")),
-                                             6000, 0, 60, 512, 0, 1024));
+                                             600, 0, 60, 512, 0, 1024));
         hTigereFinePerTime.emplace(make_tuple(gr, t, j),
-                                   new TH2F(Form("eFinePerTime_gr%d_t%d_ch%d", gr, t, j), Form("%s: eFine for gemroc %d tiger %d channel %d;full time, s; eFine", file.Data(), gr, t, j), 6000, 0, 60, 512, 0, 1024));
+                                   new TH2F(Form("eFinePerTime_gr%d_t%d_ch%d", gr, t, j), Form("%s: eFine for gemroc %d tiger %d channel %d;full time, s; eFine", file.Data(), gr, t, j), 600, 0, 60, 512, 0, 1024));
         hTigerFullTimePerChannel.emplace(make_tuple(gr, t, j),
-                                         new TH1F(Form("FullTimePerChannel_gr%d_t%d_ch%d", gr, t, j), Form("%s: fullTime for gemroc %d tiger %d channel %d;time, s", file.Data(), gr, t, j), 6000, 0, 60));
+                                         new TH1F(Form("FullTimePerChannel_gr%d_t%d_ch%d", gr, t, j), Form("%s: fullTime for gemroc %d tiger %d channel %d;time, s", file.Data(), gr, t, j), 600, 0, 60));
       }
       grD->cd();
     }
@@ -99,16 +101,17 @@ void tiger::Loop(unsigned long n)
   }
 
   auto straw_vs_sci = new TH1F("straw_vs_sci", Form("%s: straw vs scint;#Deltat, ns", file.Data()), 1000, -500, 500);
-  vector<TH1F*> straw_vs_mm, mm_vs_sci;
+  map<int, TH1F*> straw_vs_mm, mm_vs_sci, mm_vs_sciCoarse;
   for(int i = 0; i < 4; i++){
-    straw_vs_mm.push_back(new TH1F(Form("straw_vs_mm%d", i), Form("%s: straw vs microMegas %d;#Deltat, ns", file.Data(), i), 1000, -500, 500));
-    mm_vs_sci.push_back(new TH1F(Form("mm%d_vs_sci", i), Form("%s: microMegas %d vs scint;#Deltat, ns", file.Data(), i), 1000, -500, 500));
+    straw_vs_mm.emplace(i+2, new TH1F(Form("straw_vs_mm%d", i), Form("%s: straw vs microMegas %d;#Deltat, ns", file.Data(), i), 1000, -500, 500));
+    mm_vs_sci.emplace(i+2, new TH1F(Form("mm%d_vs_sci", i), Form("%s: microMegas %d vs scint;#Deltat, ns", file.Data(), i), 1000, -500, 500));
+    mm_vs_sciCoarse.emplace(i+2, new TH1F(Form("mm%d_vs_sci_coarse", i), Form("%s: microMegas %d vs scint (coarse time);#Deltat, ps", file.Data(), i), 1000, -500000, 500000));
   }
 
-  vector<TH2F*> straw_vs_mm_spatial_corr;
+  map<int, TH2F*> straw_vs_mm_spatial_corr;
   for(int i = 0; i < 4; i++){
-    straw_vs_mm_spatial_corr.push_back(new TH2F(Form("straw_vs_mm%d_spatial_corr", i), Form("%s: microMegas %d vs straw spatial correaltion;straw ch;MM ch", file.Data(), i),
-                                                detMax.at(1) - detMin.at(1) + 1, detMin.at(1), detMax.at(1) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
+    straw_vs_mm_spatial_corr.emplace(i+2, new TH2F(Form("straw_vs_mm%d_spatial_corr", i), Form("%s: microMegas %d vs straw spatial correaltion;straw ch;MM ch", file.Data(), i),
+                                                   detMax.at(1) - detMin.at(1) + 1, detMin.at(1), detMax.at(1) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
   }
 
   vector<TH1F*> hprofile;
@@ -119,6 +122,7 @@ void tiger::Loop(unsigned long n)
   map<int, TH2F*> hDeltaTPrev;
   map<pair<int, int>, TH2F*> hDeltaTPrevPerCharge, hChargePerTime, heFinePerTime;
   map<pair<int, int>, TH1F*> hFullTimePerChannel;
+  vector<TH1F*> hFullTime1D;
   for(auto i = 0; i < nDetectorTypes; i++){
     auto d = out->mkdir(Form("det%d", i));
     d->cd();
@@ -129,25 +133,26 @@ void tiger::Loop(unsigned long n)
                                  detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 1025, 0, 1025));
     hTimeFine.push_back(new TH2F(Form("timeFine_det%d", i), Form("%s: timeFine for detector %d;channel;time, ns", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 4096, 0, 409600));
     htCoarse.push_back(new TH2F(Form("tCoarse_det%d", i), Form("%s: tCoarse for detector %d;channel;tCoarse", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 65536, 0, 65536));
-    heCoarse.push_back(new TH2F(Form("eCoarse_det%d", i), Form("%s: eCoarse for detector %d;channel;eCoarse", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 1024, 0, 1024));
-    htFine.push_back(new TH2F(Form("tFine_det%d", i), Form("%s: eFine for detector %d;channel;tFine", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 1024, 0, 1024));
-    heFine.push_back(new TH2F(Form("eFine_det%d", i), Form("%s: eFine for detector %d;channel;eFine", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 1024, 0, 1024));
+    heCoarse.push_back(new TH2F(Form("eCoarse_det%d", i), Form("%s: eCoarse for detector %d;channel;eCoarse", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 512, 0, 1024));
+    htFine.push_back(new TH2F(Form("tFine_det%d", i), Form("%s: tFine for detector %d;channel;tFine", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 512, 0, 1024));
+    heFine.push_back(new TH2F(Form("eFine_det%d", i), Form("%s: eFine for detector %d;channel;eFine", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 512, 0, 1024));
     htCoarse10bit.push_back(new TH2F(Form("tCoarse10bit_det%d", i), Form("%s: last 10 bit of tCoarse for detector %d;channel;tCoarse %% 0x400", file.Data(), i),
-                                     detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 1024, 0, 1024));
-    hFullTime.push_back(new TH2F(Form("fullTime_det%d", i), Form("%s: fullTime for detector %d;channel;time, s", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 6000, 0, 60));
+                                     detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 512, 0, 1024));
+    hFullTime.push_back(new TH2F(Form("fullTime_det%d", i), Form("%s: fullTime for detector %d;channel;time, s", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 600, 0, 60));
+    hFullTime1D.push_back(new TH1F(Form("fullTime1D_det%d", i), Form("%s: fullTime for detector %d;time, s", file.Data(), i), 600, 0, 60));
 
     if(detMax.at(i) >= 0){
       for(auto j = detMin.at(i); j <= detMax.at(i); j++){
         hChargePerTime.emplace(make_pair(i, j),
                                new TH2F(Form("ChargePerTime_det%d_ch%d", i, j),
                                         Form("%s: Charge for detector %d, channel %d;full time, s; charge%s", file.Data(), i, j, ((energyMode == TigerEnergyMode::SampleAndHold) ? " = 1024 - eFine": "")),
-                                        6000, 0, 60, 512, 0, 1024));
+                                        600, 0, 60, 512, 0, 1024));
         heFinePerTime.emplace(make_pair(i, j),
                               new TH2F(Form("eFinePerTime_det%d_ch%d", i, j), Form("%s: eFine for detector %d, channel %d%s;full time, s; eFine", file.Data(), i, j,
                                                                                    (detectorNames.count({i,j}) ? (string() + " (" + detectorNames.at({i,j}) + ")").c_str() : "")),
-                                       6000, 0, 60, 512, 0, 1024));
+                                       600, 0, 60, 512, 0, 1024));
         hFullTimePerChannel.emplace(make_pair(i, j),
-                                    new TH1F(Form("FullTimePerChannel_det%d_ch%d", i, j), Form("%s: fullTime for detector %d channel %d;time, s", file.Data(), i, j), 6000, 0, 60));
+                                    new TH1F(Form("FullTimePerChannel_det%d_ch%d", i, j), Form("%s: fullTime for detector %d channel %d;time, s", file.Data(), i, j), 600, 0, 60));
       }
     }
     if(i == 0 || i == 7){
@@ -215,7 +220,35 @@ void tiger::Loop(unsigned long n)
   }
   out->cd();
 
-  TH2F* DeltaTBetweenPulsers = new TH2F("DeltaTBetweenPulsers", Form("%s: DeltaTBetweenPulsers;time, s;T^{scint}_{50#mus} - T^{scint}_{10ms}, #mus", file.Data()), 6000, 0, 60, 10000, 0, 100000);
+  TH2F* DeltaTBetweenPulsers = new TH2F("DeltaTBetweenPulsers", Form("%s: DeltaTBetweenPulsers;time, s;T^{scint}_{50#mus} - T^{scint}_{10ms}, #mus", file.Data()), 600, 0, 60, 10000, 0, 100000);
+  map<int, TH2F*> heFineCorr, hNeighborsPerTime;
+  map<pair<int,int>, TH2F*> heFinePerTimeCorr;
+  out->mkdir("plots_corr_6")->cd();
+  for(auto i = 2; i < 5; i++){
+    hNeighborsPerTime.emplace(i, new TH2F(Form("hNeighborsPerTime_det%d", i), Form("%s: N neighbors per time for detector %d;full time, s; N neighbors", file.Data(), i),
+                                          600, 0, 60, detMax.at(i) - detMin.at(i) + 1, 0, detMax.at(i) - detMin.at(i) + 1));
+    heFineCorr.emplace(i, new TH2F(Form("eFine_det%d_corr", i), Form("%s: eFine for detector %d corellated with ship straw;channel;eFine", file.Data(), i),
+                                     detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 512, 0, 1024));
+    for(auto j = detMin.at(i); j <= detMax.at(i); j++){
+      heFinePerTimeCorr.emplace(make_pair(i, j),
+                                new TH2F(Form("eFinePerTime_corr_det%d_ch%d", i, j), Form("%s: eFine for detector %d, channel %d%s correllated with ship straw;full time, s; eFine", file.Data(), i, j,
+                                                                                     (detectorNames.count({i,j}) ? (string() + " (" + detectorNames.at({i,j}) + ")").c_str() : "")),
+                                         60, 0, 60, 512, 0, 1024));
+    }
+  }
+  out->cd();
+
+  map<int, TH1F*> hSciTimeToDet, hSciTimeToDetCoarse;
+  for(int i = 1; i < 7; i++){
+    hSciTimeToDet.emplace(i, new TH1F(Form("sci_vs_det%d", i), Form("%s: T_{scint} - T_{det %d};#Deltat, ns", file.Data(), i), 1000, -500, 500));
+    hSciTimeToDetCoarse.emplace(i, new TH1F(Form("sci_vs_det%d_coarse", i), Form("%s: T_{scint} - T_{det %d} (coarse time);#Deltat, ps", file.Data(), i), 1000, -500000, 500000));
+  }
+  map<int, TH2F*> hShipRT;
+  for(int i = 2; i <= 4; i++){
+    hShipRT.emplace(i, new TH2F(Form("ship_rt_vs_mm%d", i-2), Form("%s: RT for SHiP straw and MM %d;strip;#DeltaT, ns", file.Data(), i-2),
+                                detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i), 2000, -1000, 1000));
+  }
+
   
   
   Long64_t nentries = fChain->GetEntries();
@@ -223,14 +256,14 @@ void tiger::Loop(unsigned long n)
     nentries = n;
   
   // =============================== CORRELATION FINDING ===============================
-  Long64_t timeWindowNS = 1E3; // ns
+  Long64_t timeWindowNS = 1E4; // ns
   Long64_t firstHitInWindow = 0;
   tigerHitTL hitMain, hitSecondary, hitFirst;
   for (Long64_t jentry = 0; jentry < nentries; jentry++) // You can remove "/ 10" and use the whole dataset
   {
-    if (!(jentry % 100000))
-    {
+    if (!(jentry % 100000)){
       std::cout << "Entry " << jentry << "\t of \t" << nentries << "\n";
+      // if(jentry>0) break;
     }
     fChain->GetEntry(jentry);
     updateTigerHitTLCurrent(hitMain);
@@ -242,18 +275,20 @@ void tiger::Loop(unsigned long n)
     auto fchMapped = getMapped(hitMain);
     auto [fchD, fchM] = fchMapped;
     auto charge = hitMain.charge(energyMode);
+    auto timeSinceStart = timeDifferenceFineNS(hitMain, hitFirst)  *  1E-9;
     if(ENERGY_CUTS){
-      if(fchD == 0){
-        if(fchM == 4){
-          if(energyMode == TigerEnergyMode::SampleAndHold)
-            if(charge < 870) // 590
-              continue;
-        }
-        else if(fchM == 5){
-          if(energyMode == TigerEnergyMode::SampleAndHold)
-            if(charge < 600)
-              continue;
-        }
+      if(fchD == 0 && fchM == 0){
+        if(energyMode == TigerEnergyMode::SampleAndHold)
+          if(charge < 640 && charge > 590) // May be, 674 and 590
+            continue;
+      } else if(fchD == 0 && fchM == 4){
+        if(energyMode == TigerEnergyMode::SampleAndHold)
+          if(charge < 870) // 590
+            continue;
+      } else if(fchD == 0 && fchM == 5){
+        if(energyMode == TigerEnergyMode::SampleAndHold)
+          if(charge < 600)
+            continue;
       }
     }
     { // per-tiger histograms
@@ -267,12 +302,14 @@ void tiger::Loop(unsigned long n)
       hTigereCoarse.at({hitMain.gemrocID, hitMain.tigerID})->Fill(hitMain.channelID, hitMain.eCoarse);
       hTigertFine.at({hitMain.gemrocID, hitMain.tigerID})->Fill(hitMain.channelID, hitMain.tFine);
       hTigereFine.at({hitMain.gemrocID, hitMain.tigerID})->Fill(hitMain.channelID, hitMain.eFine);
-      hTigerFullTime.at({hitMain.gemrocID, hitMain.tigerID})->Fill(hitMain.channelID, timeDifferenceFineNS(hitMain, hitFirst) * 1E-9);
-      hTigerChargePerTime.at({hitMain.gemrocID, hitMain.tigerID, hitMain.channelID})->Fill(timeDifferenceFineNS(hitMain, hitFirst) * 1E-9, hitMain.charge(energyMode));
-      hTigereFinePerTime.at({hitMain.gemrocID, hitMain.tigerID, hitMain.channelID})->Fill(timeDifferenceFineNS(hitMain, hitFirst) * 1E-9, hitMain.eFine);        
-      hTigerFullTimePerChannel.at({hitMain.gemrocID, hitMain.tigerID, hitMain.channelID})->Fill(timeDifferenceFineNS(hitMain, hitFirst) * 1E-9);
+      hTigerFullTime.at({hitMain.gemrocID, hitMain.tigerID})->Fill(hitMain.channelID, timeSinceStart);
+      hTigerFullTime1D.at({hitMain.gemrocID, hitMain.tigerID})->Fill(timeSinceStart);
+      hTigerChargePerTime.at({hitMain.gemrocID, hitMain.tigerID, hitMain.channelID})->Fill(timeSinceStart, hitMain.charge(energyMode));
+      hTigereFinePerTime.at({hitMain.gemrocID, hitMain.tigerID, hitMain.channelID})->Fill(timeSinceStart, hitMain.eFine);        
+      hTigerFullTimePerChannel.at({hitMain.gemrocID, hitMain.tigerID, hitMain.channelID})->Fill(timeSinceStart);
     }
-    if (fchD >=0 && fchD < nDetectorTypes){ // per-detector histograms
+    if (fchD < 0) continue; // unmapped channels
+    if (fchD < nDetectorTypes){ // per-detector histograms
       hprofile.at(fchD)->Fill(fchM);
       hChargeToT.at(fchD)->Fill(fchM, hitMain.chargeToT());
       hChargeSH.at(fchD)->Fill(fchM, hitMain.chargeSH());
@@ -282,10 +319,11 @@ void tiger::Loop(unsigned long n)
       htFine.at(fchD)->Fill(fchM, hitMain.tFine);
       heFine.at(fchD)->Fill(fchM, hitMain.eFine);
       htCoarse10bit.at(fchD)->Fill(fchM, hitMain.tCoarse%0x400);
-      hFullTime.at(fchD)->Fill(fchM, timeDifferenceFineNS(hitMain, hitFirst) * 1E-9);
-      hFullTimePerChannel.at(fchMapped)->Fill(timeDifferenceFineNS(hitMain, hitFirst) * 1E-9);
-      hChargePerTime.at(fchMapped)->Fill(timeDifferenceFineNS(hitMain, hitFirst) * 1E-9, hitMain.charge(energyMode));
-      heFinePerTime.at(fchMapped)->Fill(timeDifferenceFineNS(hitMain, hitFirst) * 1E-9, hitMain.eFine);        
+      hFullTime.at(fchD)->Fill(fchM, timeSinceStart);
+      hFullTime1D.at(fchD)->Fill(timeSinceStart);
+      hFullTimePerChannel.at(fchMapped)->Fill(timeSinceStart);
+      hChargePerTime.at(fchMapped)->Fill(timeSinceStart, hitMain.charge(energyMode));
+      heFinePerTime.at(fchMapped)->Fill(timeSinceStart, hitMain.eFine);        
       if(!prevHit.count(fchMapped)){
         if(fchD == 0 || fchD == 7){
           printf("First hit in detector %d, channel %d (time since start: %lld us) : ", fchD, fchM, static_cast<long long>(timeDifferenceFineNS(hitMain, hitFirst) * 1E-3));
@@ -304,11 +342,59 @@ void tiger::Loop(unsigned long n)
       }
     }
 
-    if(fchD == 0){ // Scintillator && clocks
-      if(fchM == 4){
-        if(prevHit.count({0, 5}))
-          DeltaTBetweenPulsers->Fill(timeDifferenceFineNS(hitMain, hitFirst) * 1E-9, timeDifferenceFineNS(hitMain, prevHit.at({0, 5})) * 1E-3);
+    if(fchD == 0 && fchM == 0){ // Scintillator
+      map<int, map<int, tigerHitTL>> closestHits;
+      for(Long64_t kentry = firstHitInWindow; kentry < nentries; kentry++){
+        if(kentry == jentry) continue;
+        fChain->GetEntry(kentry);
+        updateTigerHitTLCurrent(hitSecondary);
+        /* Checking that second hit in maximum time window */
+        auto timeDifference = timeDifferenceFineNS(hitMain, hitSecondary);
+        auto timeDifferenceAbs = fabs(timeDifference);
+        if(timeDifferenceAbs > timeWindowNS){
+          if(timeDifference > 0){
+            firstHitInWindow++;
+            continue;
+          } else
+            break;
+        }
+        auto [ffchD, ffchM] = getMapped(hitSecondary);
+        if(!closestHits.count(ffchD)) closestHits[ffchD] = {};
+
+        // Searct closest hits for all other channels
+        if(!closestHits.at(ffchD).count(ffchM) || timeDifferenceAbs < fabs(timeDifferenceFineNS(hitMain, closestHits.at(ffchD).at(ffchM))))
+          closestHits.at(ffchD)[ffchM] = hitSecondary;
+
       }
+      if(closestHits.count(6) && closestHits.at(6).count(0) &&
+         fabs(timeDifferenceFineNS(hitMain, closestHits.at(6).at(0))) < 1E3){
+        for(auto i = 0; i < 4; i++){
+          auto idet = i+2;
+          if(!closestHits.count(idet))
+            continue;
+          for(auto &h: closestHits.at(idet)){
+            if(fabs(timeDifferenceFineNS(hitMain, h.second)) > 1E3)
+              continue;
+            hShipRT.at(idet)->Fill(h.first, timeDifferenceFineNS(hitMain, closestHits.at(6).at(0)));
+          }
+        }
+      }
+      for(auto i = 1; i < 7; i++){
+        if(!closestHits.count(i))
+          continue;
+        if(hSciTimeToDet.count(i)){
+          for(auto &h: closestHits.at(i))
+            hSciTimeToDet.at(i)->Fill(timeDifferenceFineNS(hitMain, h.second));
+        }
+        if(hSciTimeToDet.count(i)){
+          for(auto &h: closestHits.at(i))
+            hSciTimeToDetCoarse.at(i)->Fill(timeDifferenceCoarsePS(hitMain, h.second));
+        }
+      }
+    }
+    else if(fchD == 0 && fchM == 4){ // 50us clocks
+      if(prevHit.count({0, 5}))
+        DeltaTBetweenPulsers->Fill(timeSinceStart, timeDifferenceFineNS(hitMain, prevHit.at({0, 5})) * 1E-3);      
     }
     // else if (fchD == 1){ // All straw ch
     //   /* Searching for secondary hit */
@@ -376,37 +462,69 @@ void tiger::Loop(unsigned long n)
     //     straw_vs_mm_spatial_corr.at(mm.first.first-2)->Fill(fchM, mm.first.second);
     //   }
     // }
-    // else if (fchD >= 2 && fchD <= 5){ // All MM ch
-    //   /* Searching for secondary hit */
-    //   /* TODO improve speed: maybe load hits to vector and work with vector in memory */
-    //   pair<Long64_t, tigerHitTL> closestSci0 = {-1, tigerHitTL()};
-    //   for(Long64_t kentry = firstHitInWindow; kentry < nentries; kentry++){
-    //     fChain->GetEntry(kentry);
-    //     updateTigerHitTLCurrent(hitSecondary);
-    //     /* Checking that second hit in maximum time window */
-    //     if(timeDifferenceFineNS(hitMain, hitSecondary) > timeWindowNS){
-    //       firstHitInWindow++;
-    //       continue;
-    //     } else if(timeDifferenceFineNS(hitSecondary, hitMain) > timeWindowNS){
-    //       break;
-    //     }
-    //     auto [ffchD, ffchM] = getMapped(hitSecondary);
-    //     auto timeDifferenceAbs = fabs(timeDifferenceFineNS(hitMain, hitSecondary));
-    //     if (ffchD == 1 && ffchM == fchM + 1){
-    //     } else if(ffchD >= 2 && ffchD <= 5){
-    //     } else if(ffchD == 0 && ffchM == 0){
-    //       if(closestSci0.first < 0 ||
-    //          timeDifferenceAbs < fabs(timeDifferenceFineNS(hitMain, closestSci0.second)))
-    //         closestSci0 = {kentry, hitSecondary};
-    //     } else if(ffchD == 0 && ffchM == 3){
-    //     } else if(ffchD == 0 && ffchM == 4){
-    //     }
-    //   }
-    //   /* Filling histograms */
-    //   if(closestSci0.first >= 0){
-    //     mm_vs_sci.at(fchD)->Fill(timeDifferenceFineNS(hitMain, closestSci0.second));
-    //   }
-    // }
+    else if (fchD >= 2 && fchD <= 5){ // All MM ch
+      /* Searching for secondary hit */
+      /* TODO improve speed: maybe load hits to vector and work with vector in memory */
+      optional<pair<Long64_t, tigerHitTL>> closestSci0 = nullopt;
+      optional<pair<Long64_t, tigerHitTL>> closestShipStraw = nullopt;
+      set<int> neighbors;
+      for(Long64_t kentry = firstHitInWindow; kentry < nentries; kentry++){
+        if(kentry == jentry) continue;
+        fChain->GetEntry(kentry);
+        updateTigerHitTLCurrent(hitSecondary);
+        /* Checking that second hit in maximum time window */
+        auto timeDifference = timeDifferenceFineNS(hitMain, hitSecondary);
+        auto timeDifferenceAbs = fabs(timeDifference);
+        if(timeDifferenceAbs > timeWindowNS){
+          if(timeDifference > 0){
+            firstHitInWindow++;
+            continue;
+          } else
+            break;
+        }
+        auto [ffchD, ffchM] = getMapped(hitSecondary);
+        if (ffchD == 1 && ffchM == fchM + 1){
+        } else if(ffchD == fchD){ // same MM
+          if(timeDifferenceAbs < 500)
+            neighbors.emplace(ffchM);
+        } else if(ffchD >= 2 && ffchD <= 5){ // other MM
+        } else if(ffchD == 0 && ffchM == 0){
+          if(!closestSci0 || timeDifferenceAbs < fabs(timeDifferenceFineNS(hitMain, closestSci0.value().second)))
+            closestSci0 = {kentry, hitSecondary};
+        } else if(ffchD == 0 && ffchM == 3){
+        } else if(ffchD == 0 && ffchM == 4){
+        } else if(ffchD == 0 && ffchM == 5){
+        } else if(ffchD == 6 && ffchM == 0){ // SHiP straw
+          if(!closestShipStraw || timeDifferenceAbs < fabs(timeDifferenceFineNS(hitMain, closestShipStraw.value().second)))
+            closestShipStraw = {kentry, hitSecondary};
+        }
+      }
+      /* Filling histograms */
+      if(closestSci0){
+        mm_vs_sci.at(fchD)->Fill(timeDifferenceFineNS(hitMain, closestSci0.value().second));
+        mm_vs_sciCoarse.at(fchD)->Fill(timeDifferenceCoarsePS(hitMain, closestSci0.value().second));
+      }
+      if(closestShipStraw && fabs(timeDifferenceFineNS(hitMain, closestShipStraw.value().second)) < 500){
+        heFineCorr.at(fchD)->Fill(fchM, hitMain.eFine);
+        heFinePerTimeCorr.at(fchMapped)->Fill(timeSinceStart, hitMain.eFine);
+      }
+      if(neighbors.size()){
+        int firstInClaster, lastInClaster;
+        for(auto j = fchM+1; j <= detMax.at(fchD); j++){
+          if(!neighbors.count(j) && !neighbors.count(j+1)){
+            lastInClaster = j-1;
+            break;
+          }
+        }
+        for(auto j = fchM-1; j >= detMin.at(fchD); j--){
+          if(!neighbors.count(j) && !neighbors.count(j-1)){
+            firstInClaster = j+1;
+            break;
+          }
+        }
+        hNeighborsPerTime.at(fchD)->Fill(timeSinceStart, lastInClaster - firstInClaster);
+      }
+    }
     // else if (fchD == 6){ // All straw ch
     //   /* Searching for secondary hit */
     //   /* TODO improve speed: maybe load hits to vector and work with vector in memory */
@@ -465,8 +583,8 @@ void tiger::Loop(unsigned long n)
         
     //   }
     //   for(auto &mm: closestMM){
-    //     straw_vs_mm.at(mm.first.first-2)->Fill(timeDifferenceFineNS(hitMain, mm.second.second));
-    //     straw_vs_mm_spatial_corr.at(mm.first.first-2)->Fill(fchM, mm.first.second);
+    //     straw_vs_mm.at(mm.first.first)->Fill(timeDifferenceFineNS(hitMain, mm.second.second));
+    //     straw_vs_mm_spatial_corr.at(mm.first.first)->Fill(fchM, mm.first.second);
     //   }
     // }
   }
