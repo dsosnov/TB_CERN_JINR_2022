@@ -42,6 +42,7 @@ for connector_type in ["l", "c", "r"]:
           channel = -1
         else:
           channel = params[0] + 64 + params[1] + 1 + (127-pin_num)/2
+        channel = int(channel)
         if channel >= 0:
           print(f'{feb}, {pin_num_feb3} :  MM{mm}, {channel}', file=f)
         else:
