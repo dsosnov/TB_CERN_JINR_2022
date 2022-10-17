@@ -1,4 +1,5 @@
-# connector, pin : detector, channel
+# tigers connected to central connector of MM0 with Bautin's board
+# connector (FEB), pin : detector, channel
 1, 10 :  NC, 0
 1, 12 : MM0, 150
 1, 14 : MM0, 151
@@ -64,11 +65,11 @@
 1, 134 : MM0, 211
 1, 136 : MM0, 212
 1, 138 : MM0, 213
-1,  5 : Scint, 3 # lemo 0
-1, 11 : AddStraw, 0 # lemo 1
-1, 17 : lemo, 1 # lemo 2
+1, 5 : lemo, 0 # lemo 0
+1, 11 : lemo, 1 # lemo 1
+1, 17 : lemo, 2 # lemo 2
 1, 23 : lemo, 3 # lemo 3
 1, 29 : lemo, 4 # lemo 4
 1, 35 : lemo, 5 # lemo 5
-1, 41 : Scint, 4 # lemo 6
-1, 47 : lemo, 7 # lemo7
+1, 41 : lemo, 6 # lemo 6
+1, 47 : lemo, 7 # lemo 7
