@@ -647,4 +647,5 @@ void tiger::Loop(unsigned long n)
   out->Write();
   out->Close();
 
+  printf("Finish\n");
 }
