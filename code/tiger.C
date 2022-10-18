@@ -105,7 +105,7 @@ void tiger::Loop(unsigned long n)
   for(int i = 0; i < 4; i++){
     straw_vs_mm.emplace(i+2, new TH1F(Form("straw_vs_mm%d", i), Form("%s: straw vs microMegas %d;#Deltat, ns", file.Data(), i), 1000, -500, 500));
     mm_vs_sci.emplace(i+2, new TH1F(Form("mm%d_vs_sci", i), Form("%s: microMegas %d vs scint;#Deltat, ns", file.Data(), i), 1000, -500, 500));
-    mm_vs_sciCoarse.emplace(i+2, new TH1F(Form("mm%d_vs_sci_coarse", i), Form("%s: microMegas %d vs scint (coarse time);#Deltat, ps", file.Data(), i), 1000, -500000, 500000));
+    mm_vs_sciCoarse.emplace(i+2, new TH1F(Form("mm%d_vs_sci_coarse", i), Form("%s: microMegas %d vs scint (coarse time);#DeltaT, ns", file.Data(), i), 160, -500, 500));
   }
 
   map<int, TH2F*> straw_vs_mm_spatial_corr;
@@ -241,7 +241,7 @@ void tiger::Loop(unsigned long n)
   map<int, TH1F*> hSciTimeToDet, hSciTimeToDetCoarse;
   for(int i = 1; i < 7; i++){
     hSciTimeToDet.emplace(i, new TH1F(Form("sci_vs_det%d", i), Form("%s: T_{scint} - T_{det %d};#Deltat, ns", file.Data(), i), 1000, -500, 500));
-    hSciTimeToDetCoarse.emplace(i, new TH1F(Form("sci_vs_det%d_coarse", i), Form("%s: T_{scint} - T_{det %d} (coarse time);#Deltat, ps", file.Data(), i), 1000, -500000, 500000));
+    hSciTimeToDetCoarse.emplace(i, new TH1F(Form("sci_vs_det%d_coarse", i), Form("%s: T_{scint} - T_{det %d} (coarse time);#DeltaT, ns", file.Data(), i), 160, -500, 500));
   }
   map<int, TH2F*> hShipRT;
   for(int i = 2; i <= 4; i++){
@@ -388,7 +388,7 @@ void tiger::Loop(unsigned long n)
         }
         if(hSciTimeToDet.count(i)){
           for(auto &h: closestHits.at(i))
-            hSciTimeToDetCoarse.at(i)->Fill(timeDifferenceCoarsePS(hitMain, h.second));
+            hSciTimeToDetCoarse.at(i)->Fill(timeDifferenceCoarsePS(hitMain, h.second)/1E3);
         }
       }
     }
@@ -502,7 +502,7 @@ void tiger::Loop(unsigned long n)
       /* Filling histograms */
       if(closestSci0){
         mm_vs_sci.at(fchD)->Fill(timeDifferenceFineNS(hitMain, closestSci0.value().second));
-        mm_vs_sciCoarse.at(fchD)->Fill(timeDifferenceCoarsePS(hitMain, closestSci0.value().second));
+        mm_vs_sciCoarse.at(fchD)->Fill(timeDifferenceCoarsePS(hitMain, closestSci0.value().second)/1E3);
       }
       if(closestShipStraw && fabs(timeDifferenceFineNS(hitMain, closestShipStraw.value().second)) < 500){
         heFineCorr.at(fchD)->Fill(fchM, hitMain.eFine);
