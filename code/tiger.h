@@ -103,6 +103,10 @@ public :
   // };
 
   int nDetectorTypes = 8;
+  map<long long, tigerHitTL> hitsMap;
+  tigerHitTL getHitFromTree(long long);
+  void getHitFromTree(long long entry, tigerHitTL &hit);
+  void freeHitMap(long long);
 };
 
 #endif
@@ -180,6 +184,36 @@ tigerHitTL tiger::getTigerHitTLCurrent() const{
   tigerHitTL hit;
   updateTigerHitTLCurrent(hit);
   return hit;
+}
+tigerHitTL tiger::getHitFromTree(long long entry){
+  if(!hitsMap.count(entry)){
+    fChain->GetEntry(entry);
+    hitsMap.emplace(entry, getTigerHitTLCurrent());
+  }
+  return hitsMap.at(entry);
+}
+void tiger::getHitFromTree(long long entry, tigerHitTL &hit){
+  if(!hitsMap.count(entry)){
+    fChain->GetEntry(entry);
+    hitsMap.emplace(entry, getTigerHitTLCurrent());
+  }
+  memcpy(static_cast<void*>(&hit), static_cast<void*>(&hitsMap[entry]), sizeof(tigerHitTL));
+}
+void tiger::freeHitMap(long long minEntry){
+  if(!hitsMap.size()) return;
+  auto it = hitsMap.lower_bound(minEntry);
+  hitsMap.erase(hitsMap.begin(), --it);
+  // auto it = hitsMap.begin();
+  // auto itEnd = hitsMap.end();
+  // for(; it != itEnd; ) {
+  //   if (it->first < minEntry) {
+  //     it = hitsMap.erase(it);
+  //   } else {
+  //     ++it;
+  //   }
+  // }
+// For those on C++20 there are built-in std::erase_if functions for map and unordered_map:
+// const auto count = std::erase_if(data, [](const auto& item) { auto const& [key, value] = item; return (key & 1) == 1;});
 }
 
 void tiger::Init()

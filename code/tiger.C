@@ -264,9 +264,10 @@ void tiger::Loop(unsigned long n)
     if (!(jentry % 100000)){
       std::cout << "Entry " << jentry << "\t of \t" << nentries << "\n";
       // if(jentry>0) break;
+      freeHitMap(firstHitInWindow);
     }
-    fChain->GetEntry(jentry);
-    updateTigerHitTLCurrent(hitMain);
+    // hitMain = getHitFromTree(jentry);
+    getHitFromTree(jentry, hitMain);
     if (!jentry){
       printf("First hit: ");
       hitMain.print();
@@ -346,8 +347,8 @@ void tiger::Loop(unsigned long n)
       map<int, map<int, tigerHitTL>> closestHits;
       for(Long64_t kentry = firstHitInWindow; kentry < nentries; kentry++){
         if(kentry == jentry) continue;
-        fChain->GetEntry(kentry);
-        updateTigerHitTLCurrent(hitSecondary);
+        // hitSecondary = getHitFromTree(kentry);
+        getHitFromTree(kentry, hitSecondary);
         /* Checking that second hit in maximum time window */
         auto timeDifference = timeDifferenceFineNS(hitMain, hitSecondary);
         auto timeDifferenceAbs = fabs(timeDifference);
@@ -404,8 +405,7 @@ void tiger::Loop(unsigned long n)
     //   pair<Long64_t, tigerHitTL> closestSci60 = {-1, tigerHitTL()};
     //   map<pair<int, int>, pair<Long64_t, tigerHitTL>> closestMM; // key: mapped detector-strip
     //   for(Long64_t kentry = firstHitInWindow; kentry < nentries; kentry++){
-    //     fChain->GetEntry(kentry);
-    //     updateTigerHitTLCurrent(hitSecondary);
+    //     hitSecondary = getHitFromTree(kentry);
     //     /* Checking that second hit in maximum time window */
     //     if(timeDifferenceFineNS(hitMain, hitSecondary) > timeWindowNS){
     //       firstHitInWindow++;
@@ -470,8 +470,8 @@ void tiger::Loop(unsigned long n)
       set<int> neighbors;
       for(Long64_t kentry = firstHitInWindow; kentry < nentries; kentry++){
         if(kentry == jentry) continue;
-        fChain->GetEntry(kentry);
-        updateTigerHitTLCurrent(hitSecondary);
+        // hitSecondary = getHitFromTree(kentry);
+        getHitFromTree(kentry, hitSecondary);
         /* Checking that second hit in maximum time window */
         auto timeDifference = timeDifferenceFineNS(hitMain, hitSecondary);
         auto timeDifferenceAbs = fabs(timeDifference);
@@ -533,8 +533,7 @@ void tiger::Loop(unsigned long n)
     //   pair<Long64_t, tigerHitTL> closestSci60 = {-1, tigerHitTL()};
     //   map<pair<int, int>, pair<Long64_t, tigerHitTL>> closestMM; // key: mapped detector-strip
     //   for(Long64_t kentry = firstHitInWindow; kentry < nentries; kentry++){
-    //     fChain->GetEntry(kentry);
-    //     updateTigerHitTLCurrent(hitSecondary);
+    //     hitSecondary = getHitFromTree(kentry);
     //     /* Checking that second hit in maximum time window */
     //     if(timeDifferenceFineNS(hitMain, hitSecondary) > timeWindowNS){
     //       firstHitInWindow++;
