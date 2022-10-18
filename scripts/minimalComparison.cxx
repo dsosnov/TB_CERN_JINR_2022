@@ -23,7 +23,7 @@ void compareBananas(TPad *pad, string filename1, string comment1, string filenam
   auto b1 = static_cast<TH2D*>(TFile::Open(filename1.c_str(),"read")->Get("straw31_vs_straw30_banana_ch0"));
   auto b2 = static_cast<TH2D*>(TFile::Open(filename2.c_str(),"read")->Get("straw31_vs_straw30_banana_ch0"));
   auto b3 = static_cast<TH2D*>(TFile::Open(filename3.c_str(),"read")->Get("straw31_vs_straw30_banana_ch0"));
-  
+
   pad->Divide(3);
   auto t1 = pad->cd(1);
   b1->SetTitle(comment1.c_str());
@@ -66,7 +66,7 @@ void strawvssci(TPad *pad, string title, string filename1, string comment1, stri
 
   for(auto &b: {b1,b2,b3})
     b->Scale(1.0 / b->Integral());
-  
+
   auto stack = new THStack("",(title+";#Deltat;").c_str()); // "Run 007: Straw 31 vs Sci0"
   stack->Add(b1);
   stack->Add(b2);
@@ -93,7 +93,7 @@ void strawvsstraw(TPad *pad, string title, string filename1, string comment1, st
 
   for(auto &b: {b1,b2,b3})
     b->Scale(1.0 / b->Integral());
-  
+
   auto stack = new THStack("",(title+";#Deltat;").c_str()); // "Run 007: Straw 31 vs Sci0"
   stack->Add(b1);
   stack->Add(b2);
@@ -128,14 +128,14 @@ void scivsmean(TPad *pad, string filename1, string comment1, string filename2, s
   for(auto &b: {b12, b22, b32}){
     b->SetLineColor(2);
   }
-  
+
   auto s1 = new THStack("s1",Form("%s: Sci vs mean (triple);#Deltat;", comment1.c_str()));
   s1->Add(b10); s1->Add(b11); s1->Add(b12);
   auto s2 = new THStack("s2",Form("%s: Sci vs mean (triple);#Deltat;", comment2.c_str()));
   s2->Add(b20); s2->Add(b21); s2->Add(b22);
   auto s3 = new THStack("s3",Form("%s: Sci vs mean (triple);#Deltat;", comment3.c_str()));
   s3->Add(b30); s3->Add(b31); s3->Add(b32);
-  
+
   pad->Divide(3);
   auto t1 = pad->cd(1);
   s1->Draw("nostack h");
@@ -145,7 +145,7 @@ void scivsmean(TPad *pad, string filename1, string comment1, string filename2, s
   auto t3 = pad->cd(3);
   s3->Draw("nostack h");
   pad->cd(0);
-  
+
   pad->Modified();
   pad->Update();
 }
@@ -177,14 +177,14 @@ void scivssci(TPad *pad, string filename1, string comment1, string filename2, st
     b->SetLineColor(2);
     b->SetTitle(comment3.c_str());
   }
-  
+
   auto s1 = new THStack("s1","sci0 vs sci1;#Deltat;");
   s1->Add(b10); s1->Add(b20); s1->Add(b30);
   auto s2 = new THStack("s2","sci0 vs sci2;#Deltat;");
   s2->Add(b11); s2->Add(b21); s2->Add(b31);
   auto s3 = new THStack("s3","sci1 vs sci2;#Deltat;");
   s3->Add(b12); s3->Add(b22); s3->Add(b32);
-  
+
   pad->Divide(3);
   auto t1 = pad->cd(1);
   s1->Draw("nostack h");
@@ -194,7 +194,7 @@ void scivssci(TPad *pad, string filename1, string comment1, string filename2, st
   auto t3 = pad->cd(3);
   s3->Draw("nostack h");
   pad->cd(0);
-  
+
   pad->Modified();
   pad->Update();
 }
@@ -209,7 +209,7 @@ void scivssci2(TPad *pad, string filename1, string comment1, string filename2, s
   auto b30 = static_cast<TH2D*>(TFile::Open(filename3.c_str(),"read")->Get("sci0_vs_sci1"));
   auto b31 = static_cast<TH2D*>(TFile::Open(filename3.c_str(),"read")->Get("sci0_vs_sci2"));
   auto b32 = static_cast<TH2D*>(TFile::Open(filename3.c_str(),"read")->Get("sci1_vs_sci2"));
-  
+
   for(auto &b: {b10, b20, b30, b11, b21, b31, b12, b22, b32}){
     b->SetLineWidth(2);
     b->Scale(1.0 / b->Integral());
@@ -230,7 +230,7 @@ void scivssci2(TPad *pad, string filename1, string comment1, string filename2, s
   s2->Add(b20); s2->Add(b21); s2->Add(b22);
   auto s3 = new THStack("s3",Form("%s: sci vs sci;#Deltat;", comment3.c_str()));
   s3->Add(b30); s3->Add(b31); s3->Add(b32);
-  
+
   pad->Divide(3);
   auto t1 = pad->cd(1);
   s1->Draw("nostack h");
@@ -240,7 +240,7 @@ void scivssci2(TPad *pad, string filename1, string comment1, string filename2, s
   auto t3 = pad->cd(3);
   s3->Draw("nostack h");
   pad->cd(0);
-  
+
   pad->Modified();
   pad->Update();
 }

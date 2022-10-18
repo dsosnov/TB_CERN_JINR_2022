@@ -117,7 +117,7 @@ int remapAPV(string filenameIn = "../data/apv/run103.root"){
   string filenameOut = "_test_out.root"; //string() + "_remapped" + filenameIn;
 
   auto fIn = TFile::Open(filenameIn.c_str(), "read");
-  
+
   auto tapvIn = static_cast<TTree*>(fIn->Get("apv_raw"));
   tapvIn->SetBranchStatus("*", true);
   tapvIn->SetBranchStatus("mmStrip", false);
@@ -132,7 +132,7 @@ int remapAPV(string filenameIn = "../data/apv/run103.root"){
   tapvPedIn->SetBranchStatus("mmLayer", false);
 
   auto fOut = TFile::Open(filenameOut.c_str(), "recreate");
-  
+
   auto tapvOut = tapvIn->CloneTree();
   tapvIn->SetBranchStatus("*", true);
   auto tapvPedOut = tapvPedIn->CloneTree();
@@ -247,13 +247,13 @@ int remapAPV(string filenameIn = "../data/apv/run103.root"){
       b_mmLayerOut->Fill();
     }
   }
-  
+
   tapvOut->Print();
   tapvPedOut->Print();
   tapvOut->Write("", TObject::kOverwrite);
   tapvPedOut->Write("", TObject::kOverwrite);
 
-  
+
   auto dir = fIn->GetDirectory("config");
   auto dirO = fOut->mkdir("config");
   for(const auto&& k: *dir->GetListOfKeys()){
@@ -265,7 +265,7 @@ int remapAPV(string filenameIn = "../data/apv/run103.root"){
     dirO->WriteTObject(obj, key->GetName());
   }
 
-  
+
   fOut->Write();
   fOut->Close();
 
