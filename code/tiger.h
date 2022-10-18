@@ -66,8 +66,11 @@ public :
    pair<int,int> getMapped(const int gemroc, const int tiger, const int channel) const{
      return getMapped(make_tuple(gemroc, tiger, channel));
    }
+   pair<int,int> getMapped(const tigerHitTL* hit) const{
+     return getMapped(hit->gemrocID, hit->tigerID, hit->channelID);
+   }
    pair<int,int> getMapped(const tigerHitTL hit) const{
-     return getMapped(hit.gemrocID, hit.tigerID, hit.channelID);
+     return getMapped(&hit);
    }
    int getMappedDetector(const tuple<int,int,int> channel) const{
      return getMapped(channel).first;
@@ -75,8 +78,11 @@ public :
    int getMappedDetector(const int gemroc, const int tiger, const int channel) const{
      return getMappedDetector(make_tuple(gemroc, tiger, channel));
    }
+   int getMappedDetector(const tigerHitTL* hit) const{
+     return getMappedDetector(hit->gemrocID, hit->tigerID, hit->channelID);
+   }
    int getMappedDetector(const tigerHitTL hit) const{
-     return getMappedDetector(hit.gemrocID, hit.tigerID, hit.channelID);
+     return getMappedDetector(&hit);
    }
    int getMappedChannel(const tuple<int,int,int> channel) const{
      return getMapped(channel).second;
@@ -84,8 +90,11 @@ public :
    int getMappedChannel(const int gemroc, const int tiger, const int channel) const{
      return getMappedChannel(make_tuple(gemroc, tiger, channel));
    }
+   int getMappedChannel(const tigerHitTL* hit) const{
+     return getMappedChannel(hit->gemrocID, hit->tigerID, hit->channelID);
+   }
    int getMappedChannel(const tigerHitTL hit) const{
-     return getMappedChannel(hit.gemrocID, hit.tigerID, hit.channelID);
+     return getMappedChannel(&hit);
    }
 
    tigerHitTL getTigerHitTLCurrent() const;
@@ -104,8 +113,7 @@ public :
 
   int nDetectorTypes = 8;
   map<long long, tigerHitTL> hitsMap;
-  tigerHitTL getHitFromTree(long long);
-  void getHitFromTree(long long entry, tigerHitTL &hit);
+  tigerHitTL* getHitFromTree(long long);
   void freeHitMap(long long);
 };
 
@@ -185,19 +193,12 @@ tigerHitTL tiger::getTigerHitTLCurrent() const{
   updateTigerHitTLCurrent(hit);
   return hit;
 }
-tigerHitTL tiger::getHitFromTree(long long entry){
+tigerHitTL* tiger::getHitFromTree(long long entry){
   if(!hitsMap.count(entry)){
     fChain->GetEntry(entry);
     hitsMap.emplace(entry, getTigerHitTLCurrent());
   }
-  return hitsMap.at(entry);
-}
-void tiger::getHitFromTree(long long entry, tigerHitTL &hit){
-  if(!hitsMap.count(entry)){
-    fChain->GetEntry(entry);
-    hitsMap.emplace(entry, getTigerHitTLCurrent());
-  }
-  memcpy(static_cast<void*>(&hit), static_cast<void*>(&hitsMap[entry]), sizeof(tigerHitTL));
+  return &hitsMap.at(entry);
 }
 void tiger::freeHitMap(long long minEntry){
   if(!hitsMap.size()) return;

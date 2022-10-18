@@ -258,7 +258,7 @@ void tiger::Loop(unsigned long n)
   // =============================== CORRELATION FINDING ===============================
   Long64_t timeWindowNS = 1E4; // ns
   Long64_t firstHitInWindow = 0;
-  tigerHitTL hitMain, hitSecondary, hitFirst;
+  tigerHitTL *hitMain, *hitSecondary, hitFirst;
   for (Long64_t jentry = 0; jentry < nentries; jentry++) // You can remove "/ 10" and use the whole dataset
   {
     if (!(jentry % 100000)){
@@ -266,17 +266,16 @@ void tiger::Loop(unsigned long n)
       // if(jentry>0) break;
       freeHitMap(firstHitInWindow);
     }
-    // hitMain = getHitFromTree(jentry);
-    getHitFromTree(jentry, hitMain);
+    hitMain = getHitFromTree(jentry);
     if (!jentry){
       printf("First hit: ");
-      hitMain.print();
-      hitFirst = hitMain;
+      hitMain->print();
+      hitFirst = *hitMain;
     }
     auto fchMapped = getMapped(hitMain);
     auto [fchD, fchM] = fchMapped;
-    auto charge = hitMain.charge(energyMode);
-    auto timeSinceStart = timeDifferenceFineNS(hitMain, hitFirst)  *  1E-9;
+    auto charge = hitMain->charge(energyMode);
+    auto timeSinceStart = timeDifferenceFineNS(hitMain, &hitFirst)  *  1E-9;
     if(ENERGY_CUTS){
       if(fchD == 0 && fchM == 0){
         if(energyMode == TigerEnergyMode::SampleAndHold)
@@ -293,62 +292,61 @@ void tiger::Loop(unsigned long n)
       }
     }
     { // per-tiger histograms
-      hTigerProfile.at({hitMain.gemrocID, hitMain.tigerID})->Fill(hitMain.channelID);
+      hTigerProfile.at({hitMain->gemrocID, hitMain->tigerID})->Fill(hitMain->channelID);
       if(fchD >=0)
-        hTigerProfileMapped.at({hitMain.gemrocID, hitMain.tigerID})->Fill(hitMain.channelID);
-      hTigerChargeToT.at({hitMain.gemrocID, hitMain.tigerID})->Fill(hitMain.channelID, hitMain.chargeToT());
-      hTigerChargeSH.at({hitMain.gemrocID, hitMain.tigerID})->Fill(hitMain.channelID, hitMain.chargeSH());
-      hTigerTimeFine.at({hitMain.gemrocID, hitMain.tigerID})->Fill(hitMain.channelID, hitMain.timeFine());
-      hTigertCoarse.at({hitMain.gemrocID, hitMain.tigerID})->Fill(hitMain.channelID, hitMain.tCoarse);
-      hTigereCoarse.at({hitMain.gemrocID, hitMain.tigerID})->Fill(hitMain.channelID, hitMain.eCoarse);
-      hTigertFine.at({hitMain.gemrocID, hitMain.tigerID})->Fill(hitMain.channelID, hitMain.tFine);
-      hTigereFine.at({hitMain.gemrocID, hitMain.tigerID})->Fill(hitMain.channelID, hitMain.eFine);
-      hTigerFullTime.at({hitMain.gemrocID, hitMain.tigerID})->Fill(hitMain.channelID, timeSinceStart);
-      hTigerFullTime1D.at({hitMain.gemrocID, hitMain.tigerID})->Fill(timeSinceStart);
-      hTigerChargePerTime.at({hitMain.gemrocID, hitMain.tigerID, hitMain.channelID})->Fill(timeSinceStart, hitMain.charge(energyMode));
-      hTigereFinePerTime.at({hitMain.gemrocID, hitMain.tigerID, hitMain.channelID})->Fill(timeSinceStart, hitMain.eFine);        
-      hTigerFullTimePerChannel.at({hitMain.gemrocID, hitMain.tigerID, hitMain.channelID})->Fill(timeSinceStart);
+        hTigerProfileMapped.at({hitMain->gemrocID, hitMain->tigerID})->Fill(hitMain->channelID);
+      hTigerChargeToT.at({hitMain->gemrocID, hitMain->tigerID})->Fill(hitMain->channelID, hitMain->chargeToT());
+      hTigerChargeSH.at({hitMain->gemrocID, hitMain->tigerID})->Fill(hitMain->channelID, hitMain->chargeSH());
+      hTigerTimeFine.at({hitMain->gemrocID, hitMain->tigerID})->Fill(hitMain->channelID, hitMain->timeFine());
+      hTigertCoarse.at({hitMain->gemrocID, hitMain->tigerID})->Fill(hitMain->channelID, hitMain->tCoarse);
+      hTigereCoarse.at({hitMain->gemrocID, hitMain->tigerID})->Fill(hitMain->channelID, hitMain->eCoarse);
+      hTigertFine.at({hitMain->gemrocID, hitMain->tigerID})->Fill(hitMain->channelID, hitMain->tFine);
+      hTigereFine.at({hitMain->gemrocID, hitMain->tigerID})->Fill(hitMain->channelID, hitMain->eFine);
+      hTigerFullTime.at({hitMain->gemrocID, hitMain->tigerID})->Fill(hitMain->channelID, timeSinceStart);
+      hTigerFullTime1D.at({hitMain->gemrocID, hitMain->tigerID})->Fill(timeSinceStart);
+      hTigerChargePerTime.at({hitMain->gemrocID, hitMain->tigerID, hitMain->channelID})->Fill(timeSinceStart, hitMain->charge(energyMode));
+      hTigereFinePerTime.at({hitMain->gemrocID, hitMain->tigerID, hitMain->channelID})->Fill(timeSinceStart, hitMain->eFine);        
+      hTigerFullTimePerChannel.at({hitMain->gemrocID, hitMain->tigerID, hitMain->channelID})->Fill(timeSinceStart);
     }
     if (fchD < 0) continue; // unmapped channels
     if (fchD < nDetectorTypes){ // per-detector histograms
       hprofile.at(fchD)->Fill(fchM);
-      hChargeToT.at(fchD)->Fill(fchM, hitMain.chargeToT());
-      hChargeSH.at(fchD)->Fill(fchM, hitMain.chargeSH());
-      hTimeFine.at(fchD)->Fill(fchM, hitMain.timeFine());
-      htCoarse.at(fchD)->Fill(fchM, hitMain.tCoarse);
-      heCoarse.at(fchD)->Fill(fchM, hitMain.eCoarse);
-      htFine.at(fchD)->Fill(fchM, hitMain.tFine);
-      heFine.at(fchD)->Fill(fchM, hitMain.eFine);
-      htCoarse10bit.at(fchD)->Fill(fchM, hitMain.tCoarse%0x400);
+      hChargeToT.at(fchD)->Fill(fchM, hitMain->chargeToT());
+      hChargeSH.at(fchD)->Fill(fchM, hitMain->chargeSH());
+      hTimeFine.at(fchD)->Fill(fchM, hitMain->timeFine());
+      htCoarse.at(fchD)->Fill(fchM, hitMain->tCoarse);
+      heCoarse.at(fchD)->Fill(fchM, hitMain->eCoarse);
+      htFine.at(fchD)->Fill(fchM, hitMain->tFine);
+      heFine.at(fchD)->Fill(fchM, hitMain->eFine);
+      htCoarse10bit.at(fchD)->Fill(fchM, hitMain->tCoarse%0x400);
       hFullTime.at(fchD)->Fill(fchM, timeSinceStart);
       hFullTime1D.at(fchD)->Fill(timeSinceStart);
       hFullTimePerChannel.at(fchMapped)->Fill(timeSinceStart);
-      hChargePerTime.at(fchMapped)->Fill(timeSinceStart, hitMain.charge(energyMode));
-      heFinePerTime.at(fchMapped)->Fill(timeSinceStart, hitMain.eFine);        
+      hChargePerTime.at(fchMapped)->Fill(timeSinceStart, hitMain->charge(energyMode));
+      heFinePerTime.at(fchMapped)->Fill(timeSinceStart, hitMain->eFine);        
       if(!prevHit.count(fchMapped)){
         if(fchD == 0 || fchD == 7){
-          printf("First hit in detector %d, channel %d (time since start: %lld us) : ", fchD, fchM, static_cast<long long>(timeDifferenceFineNS(hitMain, hitFirst) * 1E-3));
-          hitMain.print();
+          printf("First hit in detector %d, channel %d (time since start: %lld us) : ", fchD, fchM, static_cast<long long>(timeDifferenceFineNS(hitMain, &hitFirst) * 1E-3));
+          hitMain->print();
         }
-        prevHit.emplace(fchMapped, hitMain);
+        prevHit.emplace(fchMapped, *hitMain);
       }
       else{
         // if(fchD == 0)
-        //   printf("D %d, ch %d, Diff to previous: %g\n", fchD, fchM, timeDifferenceFineNS(hitMain, prevHit.at(fchMapped)));
+        //   printf("D %d, ch %d, Diff to previous: %g\n", fchD, fchM, timeDifferenceFineNS(*hitMain, prevHit.at(fchMapped)));
         if(hDeltaTPrev.count(fchD))
-          hDeltaTPrev.at(fchD)->Fill(fchM, timeDifferenceFineNS(hitMain, prevHit.at(fchMapped)) * 1E-3);
+          hDeltaTPrev.at(fchD)->Fill(fchM, timeDifferenceFineNS(hitMain, &prevHit.at(fchMapped)) * 1E-3);
         if(hDeltaTPrevPerCharge.count(fchMapped))
-          hDeltaTPrevPerCharge.at(fchMapped)->Fill(timeDifferenceFineNS(hitMain, prevHit.at(fchMapped)) * 1E-3, hitMain.charge(energyMode));
-        prevHit[fchMapped] = hitMain;
+          hDeltaTPrevPerCharge.at(fchMapped)->Fill(timeDifferenceFineNS(hitMain, &prevHit.at(fchMapped)) * 1E-3, hitMain->charge(energyMode));
+        prevHit[fchMapped] = *hitMain;
       }
     }
 
     if(fchD == 0 && fchM == 0){ // Scintillator
-      map<int, map<int, tigerHitTL>> closestHits;
+      map<int, map<int, tigerHitTL*>> closestHits;
       for(Long64_t kentry = firstHitInWindow; kentry < nentries; kentry++){
         if(kentry == jentry) continue;
-        // hitSecondary = getHitFromTree(kentry);
-        getHitFromTree(kentry, hitSecondary);
+        hitSecondary = getHitFromTree(kentry);
         /* Checking that second hit in maximum time window */
         auto timeDifference = timeDifferenceFineNS(hitMain, hitSecondary);
         auto timeDifferenceAbs = fabs(timeDifference);
@@ -395,19 +393,19 @@ void tiger::Loop(unsigned long n)
     }
     else if(fchD == 0 && fchM == 4){ // 50us clocks
       if(prevHit.count({0, 5}))
-        DeltaTBetweenPulsers->Fill(timeSinceStart, timeDifferenceFineNS(hitMain, prevHit.at({0, 5})) * 1E-3);      
+        DeltaTBetweenPulsers->Fill(timeSinceStart, timeDifferenceFineNS(hitMain, &prevHit.at({0, 5})) * 1E-3);      
     }
     // else if (fchD == 1){ // All straw ch
     //   /* Searching for secondary hit */
     //   /* TODO improve speed: maybe load hits to vector and work with vector in memory */
-    //   pair<Long64_t, tigerHitTL> closestNeighbor = {-1, tigerHitTL()};
-    //   pair<Long64_t, tigerHitTL> closestSci0 = {-1, tigerHitTL()};
-    //   pair<Long64_t, tigerHitTL> closestSci60 = {-1, tigerHitTL()};
+    //   pair<Long64_t, tigerHitTL*> closestNeighbor = {-1, tigerHitTL()};
+    //   pair<Long64_t, tigerHitTL*> closestSci0 = {-1, tigerHitTL()};
+    //   pair<Long64_t, tigerHitTL*> closestSci60 = {-1, tigerHitTL()};
     //   map<pair<int, int>, pair<Long64_t, tigerHitTL>> closestMM; // key: mapped detector-strip
     //   for(Long64_t kentry = firstHitInWindow; kentry < nentries; kentry++){
     //     hitSecondary = getHitFromTree(kentry);
     //     /* Checking that second hit in maximum time window */
-    //     if(timeDifferenceFineNS(hitMain, hitSecondary) > timeWindowNS){
+    //     if(timeDifferenceFineNS(*hitMain, hitSecondary) > timeWindowNS){
     //       firstHitInWindow++;
     //       continue;
     //     } else if(timeDifferenceFineNS(hitSecondary, hitMain) > timeWindowNS){
@@ -437,7 +435,7 @@ void tiger::Loop(unsigned long n)
     //   }
     //   /* Filling histograms */
     //   if(closestSci0.first >= 0){
-    //     straw_vs_sci->Fill(timeDifferenceFineNS(hitMain, closestSci0.second));
+    //     straw_vs_sci->Fill(timeDifferenceFineNS(*hitMain, closestSci0.second));
     //     straw_deltat_0.at(fchM)->Fill(timeDifferenceFineNS(hitMain, closestSci0.second));
     //   }
     //   if(closestSci60.first >= 0){
@@ -465,13 +463,12 @@ void tiger::Loop(unsigned long n)
     else if (fchD >= 2 && fchD <= 5){ // All MM ch
       /* Searching for secondary hit */
       /* TODO improve speed: maybe load hits to vector and work with vector in memory */
-      optional<pair<Long64_t, tigerHitTL>> closestSci0 = nullopt;
-      optional<pair<Long64_t, tigerHitTL>> closestShipStraw = nullopt;
+      optional<pair<Long64_t, tigerHitTL*>> closestSci0 = nullopt;
+      optional<pair<Long64_t, tigerHitTL*>> closestShipStraw = nullopt;
       set<int> neighbors;
       for(Long64_t kentry = firstHitInWindow; kentry < nentries; kentry++){
         if(kentry == jentry) continue;
-        // hitSecondary = getHitFromTree(kentry);
-        getHitFromTree(kentry, hitSecondary);
+        hitSecondary = getHitFromTree(kentry);
         /* Checking that second hit in maximum time window */
         auto timeDifference = timeDifferenceFineNS(hitMain, hitSecondary);
         auto timeDifferenceAbs = fabs(timeDifference);
@@ -505,8 +502,8 @@ void tiger::Loop(unsigned long n)
         mm_vs_sciCoarse.at(fchD)->Fill(timeDifferenceCoarsePS(hitMain, closestSci0.value().second)/1E3);
       }
       if(closestShipStraw && fabs(timeDifferenceFineNS(hitMain, closestShipStraw.value().second)) < 500){
-        heFineCorr.at(fchD)->Fill(fchM, hitMain.eFine);
-        heFinePerTimeCorr.at(fchMapped)->Fill(timeSinceStart, hitMain.eFine);
+        heFineCorr.at(fchD)->Fill(fchM, hitMain->eFine);
+        heFinePerTimeCorr.at(fchMapped)->Fill(timeSinceStart, hitMain->eFine);
       }
       if(neighbors.size()){
         int firstInClaster, lastInClaster;
@@ -528,9 +525,9 @@ void tiger::Loop(unsigned long n)
     // else if (fchD == 6){ // All straw ch
     //   /* Searching for secondary hit */
     //   /* TODO improve speed: maybe load hits to vector and work with vector in memory */
-    //   pair<Long64_t, tigerHitTL> closestNeighbor = {-1, tigerHitTL()};
-    //   pair<Long64_t, tigerHitTL> closestSci0 = {-1, tigerHitTL()};
-    //   pair<Long64_t, tigerHitTL> closestSci60 = {-1, tigerHitTL()};
+    //   pair<Long64_t, tigerHitTL*> closestNeighbor = {-1, tigerHitTL()};
+    //   pair<Long64_t, tigerHitTL*> closestSci0 = {-1, tigerHitTL()};
+    //   pair<Long64_t, tigerHitTL*> closestSci60 = {-1, tigerHitTL()};
     //   map<pair<int, int>, pair<Long64_t, tigerHitTL>> closestMM; // key: mapped detector-strip
     //   for(Long64_t kentry = firstHitInWindow; kentry < nentries; kentry++){
     //     hitSecondary = getHitFromTree(kentry);
