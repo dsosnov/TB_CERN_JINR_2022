@@ -270,6 +270,7 @@ double estimatePositionInLayer(pair<double, double> trackAB, int layer){
 map<pair<string, string>, pair<int, int>> firstPulserMap = {
     {{"run_0087", "run43"}, {99638, 143}}, //July
     {{"run_0091", "run47"}, {207153, 7147}}, //July
+    {{"run_0093", "run49"}, {235343, 4103}}, //July
     {{"run_0832", "run423"}, {180059, 7042}}, // First APV vs VMM dt = 23209318 or 2320 pulses
     {{"run_0832_cut", "run423_cut"}, {180059, 7042}}, // First APV vs VMM dt = 23209318 or 2320 pulses
     {{"run_0832_cut10m", "run423_cut10m"}, {180059, 7042}}, // First APV vs VMM dt = 23209318 or 2320 pulses
@@ -346,7 +347,7 @@ constexpr bool saveTemporaryParameters = true;
 constexpr bool reloopVMMFile = false;
 
 // AlternativeStart -- first VMM selected as first good VMM pulser in case the difference between first good APV and VMM is about 33ms
-void hitsMapper(bool tight = false, bool fixSRSTime = true, int nAll = 5, int n = 0, string runVMM="0091", string runAPV = "47", bool alternativeStart = false, int mergeTimeWindow = 1000)
+void hitsMapper(bool tight = false, bool fixSRSTime = true, int nAll = 50, int n = 0, string runVMM="0093", string runAPV = "49", bool alternativeStart = false, int mergeTimeWindow = 1000)
 {
     pair<string, string> run_pair = {Form("run_%s", runVMM.c_str()), Form("run%s", runAPV.c_str())};
     if(!firstPulserMap.count(run_pair))
@@ -766,7 +767,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = true, int nAll = 5, int n 
                             diff = (currEvent->bcid - prevSyncBcid > 0) ? currEvent->bcid - prevSyncBcid : currEvent->bcid + 4096 - prevSyncBcid;
                             diffDiff = (currEvent->bcid - prevPrevSyncBcid > 0) ? currEvent->bcid - prevPrevSyncBcid: currEvent->bcid + 4096 - prevPrevSyncBcid;
                             
-                            nPeriodsAdd = calculateVMMNPulsers(diff, 1, 86);
+                            nPeriodsAdd = calculateVMMNPulsers(diff, 1, 90);
 
                             diffTvmm = T_vmm-T_vmm_pulse_prev;
 

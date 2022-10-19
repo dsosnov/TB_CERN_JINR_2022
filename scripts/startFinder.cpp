@@ -121,8 +121,8 @@ void startFinder()
             // VMM Pulse event 395025 N = 161217        T = 8.57976     from last pulse dT (DAQ) = 186613 | dT (BCID) = 50      N of hits inside 5873
             // DAQ vs BCID dt = 187010  delta BCID = 2000
 
-            if (npulsers < 0 || hit_vmm.pdo != 1012)
-                continue;
+            // if (npulsers < 0 || hit_vmm.pdo != 1012)
+            //     continue;
 
             // if ((T_vmm - first_pulse_T_vmm)/1e6 > 0)
             if (true) 
