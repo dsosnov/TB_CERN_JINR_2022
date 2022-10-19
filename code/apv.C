@@ -420,7 +420,7 @@ void apv::Loop(unsigned long n)
       map<int, int> layer_strip_map;
       
       for (int j = 0; j < max_q->size(); j++){
-        printf("Record inside entry: %d\n", j);
+        // printf("Record inside entry: %d\n", j);
         auto chip = srsChip->at(j);
         auto chan = srsChan->at(j);
         if(chip == pulserAPV) channelsAPVPulser.emplace(chan);
