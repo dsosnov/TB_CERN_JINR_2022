@@ -239,9 +239,11 @@ void tiger::Loop(unsigned long n)
   out->cd();
 
   map<int, TH1F*> hSciTimeToDet, hSciTimeToDetCoarse;
+  map<int, TH2F*> hSciTimeToDetCoarsePerTime;
   for(int i = 1; i < 7; i++){
     hSciTimeToDet.emplace(i, new TH1F(Form("sci_vs_det%d", i), Form("%s: T_{scint} - T_{det %d};#Deltat, ns", file.Data(), i), 1000, -500, 500));
     hSciTimeToDetCoarse.emplace(i, new TH1F(Form("sci_vs_det%d_coarse", i), Form("%s: T_{scint} - T_{det %d} (coarse time);#DeltaT, ns", file.Data(), i), 160, -500, 500));
+    hSciTimeToDetCoarsePerTime.emplace(i, new TH2F(Form("sci_vs_det%d_coarse_per_time", i), Form("%s: T_{scint} - T_{det %d} (coarse time);time, s; #DeltaT, ns", file.Data(), i), 600, 0, 60, 160, -500, 500));
   }
   map<int, TH2F*> hShipRT;
   for(int i = 2; i <= 4; i++){
@@ -386,8 +388,10 @@ void tiger::Loop(unsigned long n)
             hSciTimeToDet.at(i)->Fill(timeDifferenceFineNS(hitMain, h.second));
         }
         if(hSciTimeToDet.count(i)){
-          for(auto &h: closestHits.at(i))
+          for(auto &h: closestHits.at(i)){
             hSciTimeToDetCoarse.at(i)->Fill(timeDifferenceCoarsePS(hitMain, h.second)/1E3);
+            hSciTimeToDetCoarsePerTime.at(i)->Fill(timeSinceStart, timeDifferenceCoarsePS(hitMain, h.second)/1E3);
+          }
         }
       }
     }
