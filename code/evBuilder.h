@@ -39,7 +39,7 @@ public :
    evBuilder(vector<TString> filenames, TString runType_ = "g1_p25_s100-0&60", TString mapFile_ = "map-20220523.txt");
    evBuilder(TChain *tree = nullptr, TString runType_ = "g1_p25_s100-0&60", TString mapFile_ = "map-20220523.txt");
    virtual ~evBuilder();
-   // virtual void     Init() override;
+   virtual void     Init() override;
    virtual void     Loop(unsigned long n = 0) override;
    virtual map<unsigned long, mm2CenterHitParameters> GetCentralHits(unsigned long long fromSec = 0, unsigned long long toSec = 0, bool saveOnly = false) override;
    virtual mm2CenterHitParameters GetCentralHitsData(unsigned long event) override;
@@ -72,7 +72,7 @@ public :
 
   virtual vector<hitParam> getHits(unsigned long) override;
 
-  unsigned int mmDoubleReadout = 4; // 2  
+  unsigned int mmDoubleReadout;
 };
 
 evBuilder::evBuilder(TString filename, TString runType_, TString mapFile_) : vmm(filename, runType_, mapFile_)
@@ -89,6 +89,23 @@ evBuilder::evBuilder(TChain *tree, TString runType_, TString mapFile_) : vmm(tre
 evBuilder::~evBuilder()
 {
 }
+
+void evBuilder::Init(){
+  switch(testbeamType){
+    case analysisGeneral::TestBeams::TB22_October:
+    case analysisGeneral::TestBeams::TB22_August:
+    case analysisGeneral::TestBeams::TB22_July:
+      mmDoubleReadout = 2;
+      break;
+    case analysisGeneral::TestBeams::TB22_April:
+      mmDoubleReadout = 4;
+      break;
+    default:
+      break;
+  };
+  vmm::Init();
+}
+
 
 #endif
 #ifndef evBuilder_cxx
