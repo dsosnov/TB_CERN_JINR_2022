@@ -839,7 +839,7 @@ void evBuilder::Loop(unsigned long n)
   long long prevbcid63 = -1, prevbcid63diff = -1, prevbcid63Good = -1;
 
   // =============================== CORRELATION FINDING ===============================
-  for (Long64_t jentry = 0; jentry < nentries/100; jentry++) // You can remove "/ 10" and use the whole dataset
+  for (Long64_t jentry = 0; jentry < nentries; jentry++) // You can remove "/ 10" and use the whole dataset
   {
     if (jentry % 10000 == 0)
     {
