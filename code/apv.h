@@ -138,6 +138,7 @@ public :
   unsigned int YLayerNumber = 3;
   unsigned int pulserAPV = 2; // 10
   unsigned int layerDoubleReadout = 2; // 0
+  unsigned int PulserLayerNumber = 4;
 };
 
 tuple<double,double,double> apv::getHitsForTrack(apvTrack track){
