@@ -138,6 +138,7 @@ public :
   unsigned int YLayerNumber = 3;
   unsigned int pulserAPV = 2; // 10
   unsigned int layerDoubleReadout = 2; // 0
+  unsigned int PulserLayerNumber = 4;
 };
 
 tuple<double,double,double> apv::getHitsForTrack(apvTrack track){
@@ -334,7 +335,8 @@ void apv::constructClusters(){
   clusters.clear();
   std::sort(hits.begin(), hits.end(), [](auto h1, auto h2){return h1.strip < h2.strip;});
   for(auto &hit: hits)
-    addHitToClusters(hit);
+    if(hit.layer != PulserLayerNumber)
+      addHitToClusters(hit);
 
   /* Remove small clusters or clusters with small energy for the first layers only */
   clusters.erase(std::remove_if(clusters.begin(), 

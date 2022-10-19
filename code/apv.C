@@ -290,8 +290,16 @@ void apv::Loop(unsigned long n)
   auto hClusterShiftBetweenLayers01 = make_shared<TH1F>("hClusterShiftBetweenLayers01", Form("Run %s: hClusterShiftBetweenLayers01", file.Data()), 200, -100, 100);
   auto hClusterShiftBetweenLayers02 = make_shared<TH1F>("hClusterShiftBetweenLayers02", Form("Run %s: hClusterShiftBetweenLayers02", file.Data()), 200, -100, 100);
   auto hClusterShiftBetweenLayers12 = make_shared<TH1F>("hClusterShiftBetweenLayers12", Form("Run %s: hClusterShiftBetweenLayers12", file.Data()), 200, -100, 100);
-  
-  auto hProfile2D = make_shared<TH2F>("2D beam profile", Form("Run %s: 2D beam profile", file.Data()), 361, 0, 361, 361, 0, 361);
+
+  map<int, shared_ptr<TH2F>> hProfile2D;
+  for(auto i = 0; i < nAPVLayers; i++){
+    if(i == YLayerNumber) continue;
+    dirs.at(i)->cd();
+    hProfile2D.emplace(i, make_shared<TH2F>(Form("l%d_beam_profile_2D", i),
+                                            Form("Run %s: 2D beam profile for layer %d; strip (x axis); strip (y axis)", file.Data(), i),
+                                            361, 0, 361, 361, 0, 361));
+    out->cd();
+  }
 
   auto hNtracksVSTime = make_shared<TH1F>("hNtracksVSTime", Form("Run %s: hNtracksVSTime; time, s; N tracks", file.Data()), 600, 0, 600);
 
@@ -408,11 +416,11 @@ void apv::Loop(unsigned long n)
       hits.clear();
       channelsAPVPulser.clear();
 
-      int layerMult[5] = {};
+      vector<int> layerMult(nAPVLayers, 0);
       map<int, int> layer_strip_map;
       
       for (int j = 0; j < max_q->size(); j++){
-        printf("Record inside entry: %d\n", j);
+        // printf("Record inside entry: %d\n", j);
         auto chip = srsChip->at(j);
         auto chan = srsChan->at(j);
         if(chip == pulserAPV) channelsAPVPulser.emplace(chan);
@@ -424,7 +432,7 @@ void apv::Loop(unsigned long n)
         auto strip = mmStrip->at(j);
         hProfile.at(layer)->Fill(strip);
         layer_strip_map.insert(make_pair(layer, strip));
-        layerMult[layer] += 1;
+        layerMult.at(layer) += 1;
           
         auto maxQ = max_q->at(j);
         hMaxQ.at(layer)->Fill(maxQ);
@@ -459,7 +467,7 @@ void apv::Loop(unsigned long n)
       hapvPulserMultiplicityVSTime->Fill(static_cast<double>(currentTimestamp - firstEventTime) / 1E6, channelsAPVPulser.size());
       
       for(auto l = 0; l < nAPVLayers; l++){
-        hmultiplicityVSTime.at(l)->Fill(static_cast<double>(currentTimestamp - firstEventTime) / 1E6, layerMult[l]);
+        hmultiplicityVSTime.at(l)->Fill(static_cast<double>(currentTimestamp - firstEventTime) / 1E6, layerMult.at(l));
       }
 
       for(const auto &p : layer_strip_map)
@@ -469,7 +477,7 @@ void apv::Loop(unsigned long n)
           for(const auto &q : layer_strip_map)
           {
             if(q.first != YLayerNumber)
-              hProfile2D->Fill(q.second, p.second);
+              hProfile2D.at(q.first)->Fill(q.second, p.second);
           }
         }
       }
@@ -495,11 +503,11 @@ void apv::Loop(unsigned long n)
       {
         vector<unsigned long> clustersY;
         for(unsigned long i = 0; i < clusters.size(); i++){
-          if(clusters.at(i).getLayer() == 3)
+          if(clusters.at(i).getLayer() == YLayerNumber)
             clustersY.push_back(i);
         }
         for(auto &c:clusters){
-          if(c.getLayer() == 3)
+          if(c.getLayer() == YLayerNumber)
             continue;
           vector<unsigned long> clustersY_selected;
           for(auto &i: clustersY){
@@ -529,7 +537,7 @@ void apv::Loop(unsigned long n)
         hClusterPositionVSSize.at(c.getLayer())->Fill(c.center(), c.nHits());
       }
 
-      if(clusters.size() == 3){
+      if(clusters.size() == YLayerNumber){
         if(clusters.at(0).getLayer() == 0 &&
            clusters.at(1).getLayer() == 1 &&
            clusters.at(2).getLayer() == 2 &&
