@@ -57,53 +57,6 @@ int apv_time_from_SRS(int srs1, int srs2, bool fixSRSTime = false)
     return round(apvTimeTimeSRSTimestamp(diff, fixSRSTime));
 }
 
-int vmmRemoveFirstNPuslers(vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>> &hits_vmm_v, int nRemoved = 637){
-    int firstSyncBcid = 0;
-    int index = -nRemoved; // 650; 665
-
-    unsigned long j = 0;
-    for (j = 0; j < hits_vmm_v.size() && index < 0; j++)
-    {
-        if (hits_vmm_v.at(j).second.sync)
-            index++;
-    }
-    hits_vmm_v.erase(hits_vmm_v.begin(), hits_vmm_v.begin() + j-1); // remove first j elements: from 0 to j-1
-    if (index == 0) // check if arways?
-    {
-        firstSyncBcid = hits_vmm_v.at(0).second.bcid;
-        hits_vmm_v.erase(hits_vmm_v.begin(), hits_vmm_v.begin()); // remove first elements
-    }
-    else if(index < 0)
-    {
-        cout << "Removed all VMM events due to incorrect index value" << endl;
-    }
-    return firstSyncBcid;
-}
-pair<int, int> vmmRemoveFirstNPuslers(TTree* hits_vmm_t, pair<unsigned long, analysisGeneral::mm2CenterHitParameters> *hits_vmm_event, int nRemoved = 637){
-    int firstSyncBcid = 0;
-    int index = -nRemoved; // 650; 665
-
-    unsigned long j = 0;
-    for (j = 0; j < hits_vmm_t->GetEntries() && index < 0; j++)
-    {
-        hits_vmm_t->GetEntry(j);
-        if (hits_vmm_event->second.sync)
-            index++;
-    }
-    if (index == 0) // check if arways?
-    {
-        hits_vmm_t->GetEntry(j);
-        firstSyncBcid = hits_vmm_event->second.bcid;
-        j++;
-        printf("First VMM sync-signal: %lu\n", hits_vmm_event->first);
-    }
-    else if(index < 0)
-    {
-        cout << "Removed all VMM events due to incorrect index value" << endl;
-    }
-    return make_pair(j, firstSyncBcid);
-}
-
 bool freeMemory(map<long long, vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>>> &hits_vmm_events_map, long long firstElement)
 {
     bool released = false;
@@ -118,37 +71,6 @@ bool freeMemory(map<long long, vector<pair<unsigned long, analysisGeneral::mm2Ce
     return released;
 }
 
-long long loadNextVMM(long long firstElement, map<long long, vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>>> &hits_vmm_events_map,
-                 TTree* hits_vmm_t, pair<unsigned long, analysisGeneral::mm2CenterHitParameters> *hits_vmm_event,
-                 long long nElements = 100000){
-    // printf("loadNextVMM(%lld, %p, %p, %p, %lld)\n", firstElement, &hits_vmm_events_map, hits_vmm_t, hits_vmm_event, nElements);
-    if(hits_vmm_events_map.count(firstElement))
-        return hits_vmm_events_map.at(firstElement).size();
-  
-    vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>> elementVector;
-    hits_vmm_t->GetEntry(firstElement);
-    if(!(hits_vmm_event->second.sync)){ // Not a sync event, it seems a problem!
-        printf("First loaded event not the sync!\n");
-        hits_vmm_t->GetEntry(firstElement-1);
-        if(hits_vmm_event->second.sync)
-            printf("First before First loaded is sync!\n");
-        hits_vmm_events_map.emplace(firstElement, elementVector);
-        return 0;
-    };
-    // hits_vmm_event->second.print();
-    long long lastSyncIndex = 0;
-    auto maxEntries = hits_vmm_t->GetEntries() - firstElement;
-    for(auto i = 0; i < maxEntries && lastSyncIndex < nElements; i++){
-        hits_vmm_t->GetEntry(firstElement + i);
-        elementVector.push_back(make_pair(hits_vmm_event->first, hits_vmm_event->second));
-        if(hits_vmm_event->second.sync)
-            lastSyncIndex = i;
-    }
-    // remove last sync and all after
-    elementVector.erase(elementVector.begin() + lastSyncIndex, elementVector.end());
-    hits_vmm_events_map.emplace(firstElement, elementVector);
-    return elementVector.size(); // next start index
-}
 long long loadNextVMM(long long firstElement,
                       map<long long, vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>>> &hits_vmm_events_map,
                       evBuilder* vmman,
