@@ -5,6 +5,10 @@
 #include <TH1.h>
 #include <TF1.h>
 #include <limits>
+#include <map>
+
+using std::map;
+using std::pair, std::make_pair;
 
 apv::doubleReadoutHits apv::GetCentralHits2ROnlyData(unsigned long long event){
     Long64_t ientry = LoadTree(event);
@@ -357,7 +361,7 @@ void apv::Loop(unsigned long n)
   unsigned long nEventsWHitsTwoLayers = 0, nEventsWHitsThreeLayers = 0;
   /* Cluster histograms */
   // =============================== TDO & distributions ===============================
-  int layerMult[5] = {};
+  
   // printf("Chain tree: %p\n", fChain);
   if(isChain()){
     printf("Chain n events: %lld\n", fChain->GetEntries());
@@ -403,6 +407,9 @@ void apv::Loop(unsigned long n)
       /* Per-channel */
       hits.clear();
       channelsAPVPulser.clear();
+
+      int layerMult[5] = {};
+      map<int, int> layer_strip_map;
       
       for (int j = 0; j < max_q->size(); j++){
         printf("Record inside entry: %d\n", j);
@@ -416,9 +423,9 @@ void apv::Loop(unsigned long n)
         auto layer = mmLayer->at(j);
         auto strip = mmStrip->at(j);
         hProfile.at(layer)->Fill(strip);
+        layer_strip_map.insert(make_pair(layer, strip));
         layerMult[layer] += 1;
-        // if (???) don't understand how to call two layers together ti fill the hist. Maybe it should be in anothe code section
-        //   hProfile2D->Fill();
+          
         auto maxQ = max_q->at(j);
         hMaxQ.at(layer)->Fill(maxQ);
       
@@ -453,6 +460,18 @@ void apv::Loop(unsigned long n)
       
       for(auto l = 0; l < nAPVLayers; l++){
         hmultiplicityVSTime.at(l)->Fill(static_cast<double>(currentTimestamp - firstEventTime) / 1E6, layerMult[l]);
+      }
+
+      for(const auto &p : layer_strip_map)
+      {
+        if(p.first == YLayerNumber)
+        {
+          for(const auto &q : layer_strip_map)
+          {
+            if(q.first != YLayerNumber)
+              hProfile2D->Fill(q.second, p.second);
+          }
+        }
       }
       /* Constructing clusters */
       constructClusters();

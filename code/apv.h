@@ -135,6 +135,7 @@ public :
   vector<apvTrack> constructTracks(vector<apvCluster> clusters);
 
   unsigned int nAPVLayers = 5;
+  unsigned int YLayerNumber = 3;
   unsigned int pulserAPV = 2; // 10
   unsigned int layerDoubleReadout = 2; // 0
 };
