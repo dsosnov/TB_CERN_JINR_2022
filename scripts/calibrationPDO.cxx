@@ -30,7 +30,7 @@ int calibrationPDO(){
     auto calData = findCalibrationForChannels(fileChain.second, fileChain.first, nChannels, channelsExclude, channelsDelete, thr);
     vectorData.push_back(calData);
   }
-  
+
   outfile->Write();
   auto pdoCorrections = fitPDO(vectorData);
 
@@ -48,13 +48,13 @@ int calibrationPDO(){
     prevCh = correction.nChannel;
   }
   fclose(f);
-  
+
   for(auto &fileChain: calibrationPDOf){
     applyPDOCorrections(fileChain.second, fileChain.first, pdoCorrections);
   }
 
   outfile->Write();
   outfile->Close();
-  
+
   return 0;
 }
