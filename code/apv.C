@@ -416,7 +416,7 @@ void apv::Loop(unsigned long n)
       hits.clear();
       channelsAPVPulser.clear();
 
-      int layerMult[5] = {};
+      vector<int> layerMult(nAPVLayers, 0);
       map<int, int> layer_strip_map;
       
       for (int j = 0; j < max_q->size(); j++){
@@ -432,7 +432,7 @@ void apv::Loop(unsigned long n)
         auto strip = mmStrip->at(j);
         hProfile.at(layer)->Fill(strip);
         layer_strip_map.insert(make_pair(layer, strip));
-        layerMult[layer] += 1;
+        layerMult.at(layer) += 1;
           
         auto maxQ = max_q->at(j);
         hMaxQ.at(layer)->Fill(maxQ);
@@ -467,7 +467,7 @@ void apv::Loop(unsigned long n)
       hapvPulserMultiplicityVSTime->Fill(static_cast<double>(currentTimestamp - firstEventTime) / 1E6, channelsAPVPulser.size());
       
       for(auto l = 0; l < nAPVLayers; l++){
-        hmultiplicityVSTime.at(l)->Fill(static_cast<double>(currentTimestamp - firstEventTime) / 1E6, layerMult[l]);
+        hmultiplicityVSTime.at(l)->Fill(static_cast<double>(currentTimestamp - firstEventTime) / 1E6, layerMult.at(l));
       }
 
       for(const auto &p : layer_strip_map)
