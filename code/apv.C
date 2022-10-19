@@ -287,6 +287,10 @@ void apv::Loop(unsigned long n)
   auto hClusterShiftBetweenLayers02 = make_shared<TH1F>("hClusterShiftBetweenLayers02", Form("Run %s: hClusterShiftBetweenLayers02", file.Data()), 200, -100, 100);
   auto hClusterShiftBetweenLayers12 = make_shared<TH1F>("hClusterShiftBetweenLayers12", Form("Run %s: hClusterShiftBetweenLayers12", file.Data()), 200, -100, 100);
   
+  auto hProfile2D = make_shared<TH2F>("2D beam profile", Form("Run %s: 2D beam profile", file.Data()), 361, 0, 361, 361, 0, 361);
+
+  auto hNtracksVSTime = make_shared<TH1F>("hNtracksVSTime", Form("Run %s: hNtracksVSTime; time, s; N tracks", file.Data()), 600, 0, 600);
+
   vector<shared_ptr<TH1F>> hMaxQ, hMaxQTime, hProfile /*, hTriggerShiftByMaxQ*/;
   vector<shared_ptr<TH2F>> hPositionVSMaxQ, hPositionVSMaxQTime /*, hTriggerShiftByMaxQ*/;
   for(auto i = 0; i < nAPVLayers; i++){
@@ -341,11 +345,19 @@ void apv::Loop(unsigned long n)
   }
 
   auto hapvPulserMultiplicity = make_shared<TH1F>("hapvPulserMultiplicity", Form("Run %s: hapvPulserMultiplicity", file.Data()), 129, 0, 129);
+  auto hapvPulserMultiplicityVSTime = make_shared<TH2F>("hapvPulserMultiplicityVSTime", Form("Run %s: hapvPulserMultiplicityTime; time, s, #mus; N hits", file.Data()), 600, 0, 600, 129, 0, 129);
+
+  vector<shared_ptr<TH2F>> hmultiplicityVSTime;
+  for(auto i = 0; i < nAPVLayers; i++){
+    dirs.at(i)->cd();
+    hmultiplicityVSTime.push_back(make_shared<TH2F>(Form("l%d_hmultiplicityVSTime", i), Form("Run %s: hmultiplicityVSTime;  time, s; N hits", file.Data()), 600, 0, 600, 129, 0, 129));
+    out->cd();
+  }
 
   unsigned long nEventsWHitsTwoLayers = 0, nEventsWHitsThreeLayers = 0;
   /* Cluster histograms */
   // =============================== TDO & distributions ===============================
-
+  int layerMult[5] = {};
   // printf("Chain tree: %p\n", fChain);
   if(isChain()){
     printf("Chain n events: %lld\n", fChain->GetEntries());
@@ -391,8 +403,9 @@ void apv::Loop(unsigned long n)
       /* Per-channel */
       hits.clear();
       channelsAPVPulser.clear();
+      
       for (int j = 0; j < max_q->size(); j++){
-        // printf("Record inside entry: %d\n", j);
+        printf("Record inside entry: %d\n", j);
         auto chip = srsChip->at(j);
         auto chan = srsChan->at(j);
         if(chip == pulserAPV) channelsAPVPulser.emplace(chan);
@@ -403,6 +416,9 @@ void apv::Loop(unsigned long n)
         auto layer = mmLayer->at(j);
         auto strip = mmStrip->at(j);
         hProfile.at(layer)->Fill(strip);
+        layerMult[layer] += 1;
+        // if (???) don't understand how to call two layers together ti fill the hist. Maybe it should be in anothe code section
+        //   hProfile2D->Fill();
         auto maxQ = max_q->at(j);
         hMaxQ.at(layer)->Fill(maxQ);
       
@@ -433,7 +449,11 @@ void apv::Loop(unsigned long n)
       }
       // printf("\n");
       hapvPulserMultiplicity->Fill(channelsAPVPulser.size());
-
+      hapvPulserMultiplicityVSTime->Fill(static_cast<double>(currentTimestamp - firstEventTime) / 1E6, channelsAPVPulser.size());
+      
+      for(auto l = 0; l < nAPVLayers; l++){
+        hmultiplicityVSTime.at(l)->Fill(static_cast<double>(currentTimestamp - firstEventTime) / 1E6, layerMult[l]);
+      }
       /* Constructing clusters */
       constructClusters();
     
@@ -450,6 +470,7 @@ void apv::Loop(unsigned long n)
         nEventsWHitsTwoLayers++;
         if(clusterInRange2)
           nEventsWHitsThreeLayers++;
+        hNtracksVSTime->Fill(static_cast<double>(currentTimestamp - firstEventTime) / 1E6);
       }
 
       {
