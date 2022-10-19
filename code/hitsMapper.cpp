@@ -36,7 +36,7 @@ optional<int> calculateVMMNPulsers(int bcidDiff, int maxDiff = 2, int maxNPulser
 // IMPORTANT change: fixSRSTime
 // return: time, us
 double apvTimeTimeSRSTimestamp(int diff, bool fixSRSTime = false){
-    return diff * 25.0 * (fixSRSTime ? 400000.0/400037.0 : 1.0) / 1000.0;
+    return diff * 25.0 * (fixSRSTime ? 400000.0/400037.0 : 1.0) / 1000.0;  // TODO add dependency on testbeam
 }
 
 int apv_time_from_SRS(int srs1, int srs2, bool fixSRSTime = false)
@@ -198,23 +198,48 @@ double weightedMean(vector<pair<int, int>> hits){
 }
 
 /*
- * positions:
+ * positions (april measurements):
  * L0 - L1: 285
  * L1 - L2: 345
  * L2 - Straw: 523
+ *
+ * Some distances (July measurements):
+ * 183 - mm0-straw (layer -1 now)
+ * 434 - mm0-mm1 - mm layer 3 (y) was connected to mm layer 1
+ * 325 - mm3-mm2
+ *
  * return: position in mm, from Layer 0
  */
-int getLayerPosition(int layer){
+int getLayerPosition(int layer, bool aprilTB = false){ // TODO do normally
   int y = 0;
-  switch(layer){
-    case 3:
-      y += 523;
-    case 2:
-      y += 345;
-    case 1:
-      y += 285;
-    case 0:
-      y += 0;
+  if(aprilTB){
+    switch(layer){
+      case -1:
+        y = -183;
+        break;
+      case 2:
+        y += 325;
+      case 3:
+      case 1:
+        y += 434;
+      case 0:
+        y += 0;
+        break;
+      default:
+        y += 0;
+        break;
+    }
+  }else{
+    switch(layer){
+      case 3:
+        y += 523;
+      case 2:
+        y += 345;
+      case 1:
+        y += 285;
+      case 0:
+        y += 0;
+    }
   }
   return y;
 }
@@ -640,21 +665,21 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                 // out_APV << "------- APV Period " << nPeriodsAPV << " -------- \n";
                 for (auto &h : hit_apv.hitsPerLayer.at(0))
                 {
-                    strip = h.first;
+                    strip = h.first; // TODO add dependency on testbeam
                     pdo = h.second;
                     if (strip > 118 && strip < 172)
                         apv_hits_vec_l0.push_back(make_pair(strip, pdo));
                 }
                 for (auto &h : hit_apv.hitsPerLayer.at(1))
                 {
-                    strip = h.first * (1 - 2.29e-3) - 2.412 / 0.25;
+                    strip = h.first * (1 - 2.29e-3) - 2.412 / 0.25; // TODO add dependency on testbeam
                     pdo = h.second;
                     if (strip > 118 && strip < 172)
                         apv_hits_vec_l1.push_back(make_pair(strip, pdo));
                 }
                 for (auto &h : hit_apv.hitsPerLayer.at(2))
                 {
-                    strip = h.first * (1 - 8e-3) - 8.46 / 0.25;
+                    strip = h.first * (1 - 8e-3) - 8.46 / 0.25;// TODO add dependency on testbeam
                     pdo = h.second;
                     if (strip > 118 && strip < 172)
                         apv_hits_vec.push_back(make_pair(strip, pdo));
@@ -667,7 +692,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                     continue;
 
 
-                map<int, double> means = {{0, weightedMean(apv_hits_vec_l0)}, {1, weightedMean(apv_hits_vec_l1)}};
+                map<int, double> means = {{0, weightedMean(apv_hits_vec_l0)}, {1, weightedMean(apv_hits_vec_l1)}}; // TODO add dependency on testbeam
                 auto tr = getEstimatedTrack(means);
                 int propogated = static_cast<int>(round(estimatePositionInLayer(tr, 2)));
 
@@ -717,7 +742,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                             diff = (currEvent->bcid - prevSyncBcid > 0) ? currEvent->bcid - prevSyncBcid : currEvent->bcid + 4096 - prevSyncBcid;
                             diffDiff = (currEvent->bcid - prevPrevSyncBcid > 0) ? currEvent->bcid - prevPrevSyncBcid: currEvent->bcid + 4096 - prevPrevSyncBcid;
 
-                            nPeriodsAdd = calculateVMMNPulsers(diff, 3, 4);
+                            nPeriodsAdd = calculateVMMNPulsers(diff, 3, 4); // TODO add dependency on testbeam
                             
                             diffTvmm = T_vmm-T_vmm_pulse_prev;
 
@@ -777,7 +802,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
 
                     for (auto it = currEvent->hitsX.begin(); it != currEvent->hitsX.end(); ++it)
                     {
-                        strip = it->first * (1 - 8e-3) - 8.46 / 0.25;
+                        strip = it->first * (1 - 8e-3) - 8.46 / 0.25; // TODO add dependency on testbeam
                         pdo = it->second;
                         if (pdo < thrPerStrip(it->first))
                             continue;

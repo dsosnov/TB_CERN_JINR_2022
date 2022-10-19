@@ -20,6 +20,7 @@
 #include <set>
 
 #include <algorithm> // max_element, sort
+#include <functional> // std::function
 
 using std::vector;
 using std::map;
@@ -73,6 +74,7 @@ public :
   virtual vector<hitParam> getHits(unsigned long) override;
 
   unsigned int mmDoubleReadout;
+  std::function<bool(int)> pulserPdoAccepted;
 };
 
 evBuilder::evBuilder(TString filename, TString runType_, TString mapFile_) : vmm(filename, runType_, mapFile_)
@@ -96,11 +98,14 @@ void evBuilder::Init(){
     case analysisGeneral::TestBeams::TB22_August:
     case analysisGeneral::TestBeams::TB22_July:
       mmDoubleReadout = 2;
+      pulserPdoAccepted = [](auto pdo){return pdo == 1012;};
       break;
     case analysisGeneral::TestBeams::TB22_April:
       mmDoubleReadout = 4;
+      pulserPdoAccepted = [](auto pdo){return pdo == 948 || pdo == 965;};
       break;
     default:
+      pulserPdoAccepted = [](auto pdo){return pdo > 650;};
       break;
   };
   vmm::Init();
