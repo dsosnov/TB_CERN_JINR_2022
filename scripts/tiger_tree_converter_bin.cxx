@@ -237,8 +237,25 @@ void convertTL(ifstream* fIn, Char_t gemroc){
   delete tree;
 }
 
-void tiger_tree_converter_tl(string folderName){
-
+void tiger_tree_converter_tl_file(string fileName, string folderName){
+  int gemroc = static_cast<TObjString*>(TString(fileName).Tokenize("_")->At(3))->String().Atoi();
+  auto fIn = new ifstream((folderName+"/"+fileName).c_str(), std::ios::binary);
+  if(!fIn->is_open()){
+    delete fIn;
+    return;
+  }
+  auto tfn = TString(fileName.c_str());
+  auto n = tfn.Length();
+  tfn.Replace(n-4, 4, ".root");
+  printf("fout: %s\n", tfn.Data());
+  auto fOut = TFile::Open(TString(Form("%s/",folderName.c_str()))+tfn, "recreate");
+  convertTL(fIn, gemroc);
+  fIn->close();
+  delete fIn;
+  fOut->Close();
+  delete fOut;
+}
+void tiger_tree_converter_tl_directory(string folderName){
   auto dir = new TSystemDirectory(folderName.c_str(), folderName.c_str());
   auto files = dir->GetListOfFiles();
   if(!files){
@@ -258,27 +275,18 @@ void tiger_tree_converter_tl(string folderName){
   }
 
   for(auto &fn: datoutFiles){
-    int gemroc = static_cast<TObjString*>(TString(fn).Tokenize("_")->At(3))->String().Atoi();
-    auto fIn = new ifstream((folderName+"/"+fn).c_str(), std::ios::binary);
-    if(!fIn->is_open()){
-      delete fIn;
-      continue;
-    }
-    auto tfn = TString(fn.c_str());
-    auto n = tfn.Length();
-    tfn.Replace(n-4, 4, ".root");
-    printf("fout: %s\n", tfn.Data());
-    auto fOut = TFile::Open(TString(Form("%s/",folderName.c_str()))+tfn, "recreate");
-    convertTL(fIn, gemroc);
-    fIn->close();
-    delete fIn;
-    fOut->Close();
-    delete fOut;
+    tiger_tree_converter_tl_file(fn, folderName);
   }
 
 }
 
 void tiger_tree_converter_bin(string folderName){
   printf("trigger_tree_converter_bin\n");
-  tiger_tree_converter_tl(folderName);
+    tiger_tree_converter_tl_directory(folderName);
+}
+void tiger_tree_converter_bin(string fileName, string folderName){
+  printf("trigger_tree_converter_bin\n");
+  TString fn = fileName;
+  if(fn.EndsWith("_TL.dat"))
+    tiger_tree_converter_tl_file(fileName, folderName);
 }
