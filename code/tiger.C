@@ -11,6 +11,28 @@ map<pair<int, int>, string> detectorNames = {
   {{6, 0}, "SHiP straw"},
 };
 
+// output: ns
+int maxTimeDiff(int det1 = -1, int det2 = -1){
+  auto detMin = det1 > det2 ? det2 : det1;
+  auto detMax = detMin == det2 ? det1 : det2;
+  int maxDifference = 1000;
+  if(detMin == -1 && detMax == -1) // maximal value
+    maxDifference = 1000;
+  else if(detMin == 0 && detMax == 0) // scint-scint
+    maxDifference = 500;
+  else if(detMin == 0 && detMax > 0) // scint - anything
+    maxDifference = 1000;
+  else if(detMin == 1 && detMax == 1) // straw-straw
+    maxDifference = 500;
+  else if(detMin == 1 && detMax >= 2 && detMax <= 5) // straw-MM
+    maxDifference = 500;
+  else if(detMin >= 2 && detMin <= 5 && detMax >= 2 && detMax <= 5) // MM-MM
+    maxDifference = 500;
+  else // anything else
+    maxDifference = 1000;
+  return maxDifference;
+}
+
 constexpr bool ENERGY_CUTS = false;
 void tiger::Loop(unsigned long n)
 {
@@ -251,6 +273,20 @@ void tiger::Loop(unsigned long n)
                                 detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i), 2000, -1000, 1000));
   }
 
+  map<pair<int,int>, TH2F*> mmCorrellations;
+  out->mkdir("mm_corellations")->cd();
+  for(auto i = 2; i <= 5; i++){
+    for(auto j = 2; j <= 5; j++){
+      if(i == j)
+        continue;
+      mmCorrellations[{i, j}] = new TH2F(Form("mmCorrellations_det%d-%d", i, j),
+                                         Form("%s: N corellations between detectors %d and %d;strip (det %d); strip (det %d)", file.Data(), i, j, i, j),
+                                         detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1,
+                                         detMax.at(j) - detMin.at(j) + 1, detMin.at(j), detMax.at(j) + 1);
+    }
+  }
+  out->cd();
+
   
   
   Long64_t nentries = fChain->GetEntries();
@@ -258,7 +294,7 @@ void tiger::Loop(unsigned long n)
     nentries = n;
   
   // =============================== CORRELATION FINDING ===============================
-  Long64_t timeWindowNS = 1E4; // ns
+  Long64_t timeWindowNS = maxTimeDiff(); // ns
   Long64_t firstHitInWindow = 0;
   tigerHitTL *hitMain, *hitSecondary, hitFirst;
   for (Long64_t jentry = 0; jentry < nentries; jentry++) // You can remove "/ 10" and use the whole dataset
@@ -278,21 +314,6 @@ void tiger::Loop(unsigned long n)
     auto [fchD, fchM] = fchMapped;
     auto charge = hitMain->charge(energyMode);
     auto timeSinceStart = timeDifferenceFineNS(hitMain, &hitFirst)  *  1E-9;
-    if(ENERGY_CUTS){
-      if(fchD == 0 && fchM == 0){
-        if(energyMode == TigerEnergyMode::SampleAndHold)
-          if(charge < 640 && charge > 590) // May be, 674 and 590
-            continue;
-      } else if(fchD == 0 && fchM == 4){
-        if(energyMode == TigerEnergyMode::SampleAndHold)
-          if(charge < 870) // 590
-            continue;
-      } else if(fchD == 0 && fchM == 5){
-        if(energyMode == TigerEnergyMode::SampleAndHold)
-          if(charge < 600)
-            continue;
-      }
-    }
     { // per-tiger histograms
       hTigerProfile.at({hitMain->gemrocID, hitMain->tigerID})->Fill(hitMain->channelID);
       if(fchD >=0)
@@ -311,6 +332,21 @@ void tiger::Loop(unsigned long n)
       hTigerFullTimePerChannel.at({hitMain->gemrocID, hitMain->tigerID, hitMain->channelID})->Fill(timeSinceStart);
     }
     if (fchD < 0) continue; // unmapped channels
+    if(ENERGY_CUTS){
+      if(fchD == 0 && fchM == 0){
+        if(energyMode == TigerEnergyMode::SampleAndHold)
+          if(charge < 640 && charge > 590) // May be, 674 and 590
+            continue;
+      } else if(fchD == 0 && fchM == 4){
+        if(energyMode == TigerEnergyMode::SampleAndHold)
+          if(charge < 870) // 590
+            continue;
+      } else if(fchD == 0 && fchM == 5){
+        if(energyMode == TigerEnergyMode::SampleAndHold)
+          if(charge < 600)
+            continue;
+      }
+    }
     if (fchD < nDetectorTypes){ // per-detector histograms
       hprofile.at(fchD)->Fill(fchM);
       hChargeToT.at(fchD)->Fill(fchM, hitMain->chargeToT());
@@ -344,8 +380,10 @@ void tiger::Loop(unsigned long n)
       }
     }
 
+    map<int, map<int, tigerHitTL*>> closestHitsInLayer;
+
     if(fchD == 0 && fchM == 0){ // Scintillator
-      map<int, map<int, tigerHitTL*>> closestHits;
+      closestHitsInLayer.clear();
       for(Long64_t kentry = firstHitInWindow; kentry < nentries; kentry++){
         if(kentry == jentry) continue;
         hitSecondary = getHitFromTree(kentry);
@@ -360,35 +398,35 @@ void tiger::Loop(unsigned long n)
             break;
         }
         auto [ffchD, ffchM] = getMapped(hitSecondary);
-        if(!closestHits.count(ffchD)) closestHits[ffchD] = {};
+        if(!closestHitsInLayer.count(ffchD)) closestHitsInLayer[ffchD] = {};
 
-        // Searct closest hits for all other channels
-        if(!closestHits.at(ffchD).count(ffchM) || timeDifferenceAbs < fabs(timeDifferenceFineNS(hitMain, closestHits.at(ffchD).at(ffchM))))
-          closestHits.at(ffchD)[ffchM] = hitSecondary;
+        // Search closest hits for all other channels
+        if(!closestHitsInLayer.at(ffchD).count(ffchM) || timeDifferenceAbs < fabs(timeDifferenceFineNS(hitMain, closestHitsInLayer.at(ffchD).at(ffchM))))
+          (closestHitsInLayer.at(ffchD))[ffchM] = hitSecondary;
 
       }
-      if(closestHits.count(6) && closestHits.at(6).count(0) &&
-         fabs(timeDifferenceFineNS(hitMain, closestHits.at(6).at(0))) < 1E3){
+      if(closestHitsInLayer.count(6) && closestHitsInLayer.at(6).count(0) &&
+         fabs(timeDifferenceFineNS(hitMain, closestHitsInLayer.at(6).at(0))) < maxTimeDiff(fchD, 6)){
         for(auto i = 0; i < 4; i++){
           auto idet = i+2;
-          if(!closestHits.count(idet))
+          if(!closestHitsInLayer.count(idet))
             continue;
-          for(auto &h: closestHits.at(idet)){
-            if(fabs(timeDifferenceFineNS(hitMain, h.second)) > 1E3)
+          for(auto &h: closestHitsInLayer.at(idet)){
+            if(fabs(timeDifferenceFineNS(hitMain, h.second)) > maxTimeDiff(fchD, 6))
               continue;
-            hShipRT.at(idet)->Fill(h.first, timeDifferenceFineNS(hitMain, closestHits.at(6).at(0)));
+            hShipRT.at(idet)->Fill(h.first, timeDifferenceFineNS(hitMain, closestHitsInLayer.at(6).at(0)));
           }
         }
       }
       for(auto i = 1; i < 7; i++){
-        if(!closestHits.count(i))
+        if(!closestHitsInLayer.count(i))
           continue;
         if(hSciTimeToDet.count(i)){
-          for(auto &h: closestHits.at(i))
+          for(auto &h: closestHitsInLayer.at(i))
             hSciTimeToDet.at(i)->Fill(timeDifferenceFineNS(hitMain, h.second));
         }
         if(hSciTimeToDet.count(i)){
-          for(auto &h: closestHits.at(i)){
+          for(auto &h: closestHitsInLayer.at(i)){
             hSciTimeToDetCoarse.at(i)->Fill(timeDifferenceCoarsePS(hitMain, h.second)/1E3);
             hSciTimeToDetCoarsePerTime.at(i)->Fill(timeSinceStart, timeDifferenceCoarsePS(hitMain, h.second)/1E3);
           }
@@ -399,77 +437,11 @@ void tiger::Loop(unsigned long n)
       if(prevHit.count({0, 5}))
         DeltaTBetweenPulsers->Fill(timeSinceStart, timeDifferenceFineNS(hitMain, &prevHit.at({0, 5})) * 1E-3);      
     }
-    // else if (fchD == 1){ // All straw ch
-    //   /* Searching for secondary hit */
-    //   /* TODO improve speed: maybe load hits to vector and work with vector in memory */
-    //   pair<Long64_t, tigerHitTL*> closestNeighbor = {-1, tigerHitTL()};
-    //   pair<Long64_t, tigerHitTL*> closestSci0 = {-1, tigerHitTL()};
-    //   pair<Long64_t, tigerHitTL*> closestSci60 = {-1, tigerHitTL()};
-    //   map<pair<int, int>, pair<Long64_t, tigerHitTL>> closestMM; // key: mapped detector-strip
-    //   for(Long64_t kentry = firstHitInWindow; kentry < nentries; kentry++){
-    //     hitSecondary = getHitFromTree(kentry);
-    //     /* Checking that second hit in maximum time window */
-    //     if(timeDifferenceFineNS(*hitMain, hitSecondary) > timeWindowNS){
-    //       firstHitInWindow++;
-    //       continue;
-    //     } else if(timeDifferenceFineNS(hitSecondary, hitMain) > timeWindowNS){
-    //       break;
-    //     }
-    //     auto [ffchD, ffchM] = getMapped(hitSecondary);
-    //     auto timeDifferenceAbs = fabs(timeDifferenceFineNS(hitMain, hitSecondary));
-    //     if (ffchD == 1 && ffchM == fchM + 1){
-    //       if(closestNeighbor.first < 0 ||
-    //          timeDifferenceAbs < fabs(timeDifferenceFineNS(hitMain, closestNeighbor.second)))
-    //         closestNeighbor = {kentry, hitSecondary};
-    //     } else if(ffchD >= 2 && ffchD <= 5){
-    //       if(!closestMM.count({ffchD, ffchM}))
-    //         closestMM.emplace(make_pair(ffchD, ffchM), make_pair(kentry, hitSecondary));
-    //       else if(timeDifferenceAbs < fabs(timeDifferenceFineNS(hitMain, closestMM.at({ffchD, ffchM}).second)))
-    //         closestMM[make_pair(ffchD, ffchM)] = make_pair(kentry, hitSecondary);
-    //     } else if(ffchD == 0 && ffchM == 0){
-    //       if(closestSci0.first < 0 ||
-    //          timeDifferenceAbs < fabs(timeDifferenceFineNS(hitMain, closestSci0.second)))
-    //         closestSci0 = {kentry, hitSecondary};
-    //     } else if(ffchD == 0 && ffchM == 3){
-    //       if(closestSci60.first < 0 ||
-    //          timeDifferenceAbs < fabs(timeDifferenceFineNS(hitMain, closestSci60.second)))
-    //         closestSci60 = {kentry, hitSecondary};
-    //     } else if(ffchD == 0 && ffchM == 4){
-    //     }
-    //   }
-    //   /* Filling histograms */
-    //   if(closestSci0.first >= 0){
-    //     straw_vs_sci->Fill(timeDifferenceFineNS(*hitMain, closestSci0.second));
-    //     straw_deltat_0.at(fchM)->Fill(timeDifferenceFineNS(hitMain, closestSci0.second));
-    //   }
-    //   if(closestSci60.first >= 0){
-    //     straw_deltat.at(fchM)->Fill(timeDifferenceFineNS(hitMain, closestSci60.second));
-    //   }
-    //   if(closestNeighbor.first >= 0){
-    //     straw_straw.at(fchM)->Fill(timeDifferenceFineNS(hitMain, closestNeighbor.second));
-    //     if(closestSci0.first >= 0)
-    //       straw_banana_0.at(fchM)->Fill(timeDifferenceFineNS(hitMain,
-    //                                                          closestSci0.second),
-    //                                     timeDifferenceFineNS(closestNeighbor.second,
-    //                                                          closestSci0.second));
-    //     if(closestSci60.first >= 0)
-    //       straw_banana.at(fchM)->Fill(timeDifferenceFineNS(hitMain,
-    //                                                        closestSci60.second),
-    //                                   timeDifferenceFineNS(closestNeighbor.second,
-    //                                                        closestSci60.second));
-        
-    //   }
-    //   for(auto &mm: closestMM){
-    //     straw_vs_mm.at(mm.first.first-2)->Fill(timeDifferenceFineNS(hitMain, mm.second.second));
-    //     straw_vs_mm_spatial_corr.at(mm.first.first-2)->Fill(fchM, mm.first.second);
-    //   }
-    // }
+    else if (fchD == 1){ // All straw ch
+    }
     else if (fchD >= 2 && fchD <= 5){ // All MM ch
       /* Searching for secondary hit */
-      /* TODO improve speed: maybe load hits to vector and work with vector in memory */
-      optional<pair<Long64_t, tigerHitTL*>> closestSci0 = nullopt;
-      optional<pair<Long64_t, tigerHitTL*>> closestShipStraw = nullopt;
-      set<int> neighbors;
+      closestHitsInLayer.clear();
       for(Long64_t kentry = firstHitInWindow; kentry < nentries; kentry++){
         if(kentry == jentry) continue;
         hitSecondary = getHitFromTree(kentry);
@@ -484,157 +456,68 @@ void tiger::Loop(unsigned long n)
             break;
         }
         auto [ffchD, ffchM] = getMapped(hitSecondary);
-        if (ffchD == 1 && ffchM == fchM + 1){
+        if(!closestHitsInLayer.count(ffchD)) closestHitsInLayer[ffchD] = {};
+        if (ffchD == 1){ // Straw
+        } else if(ffchD == fchD && ffchM == fchM){ // same channel
         } else if(ffchD == fchD){ // same MM
-          if(timeDifferenceAbs < 500)
-            neighbors.emplace(ffchM);
+          if(!closestHitsInLayer.at(ffchD).count(ffchM) || timeDifferenceAbs < fabs(timeDifferenceFineNS(hitMain, closestHitsInLayer.at(ffchD).at(ffchM))))
+            if(timeDifferenceAbs < maxTimeDiff(fchD, ffchD))
+              (closestHitsInLayer.at(ffchD))[ffchM] = hitSecondary;
         } else if(ffchD >= 2 && ffchD <= 5){ // other MM
-        } else if(ffchD == 0 && ffchM == 0){
-          if(!closestSci0 || timeDifferenceAbs < fabs(timeDifferenceFineNS(hitMain, closestSci0.value().second)))
-            closestSci0 = {kentry, hitSecondary};
+          if(!closestHitsInLayer.at(ffchD).count(ffchM) || timeDifferenceAbs < fabs(timeDifferenceFineNS(hitMain, closestHitsInLayer.at(ffchD).at(ffchM))))
+            if(timeDifferenceAbs < maxTimeDiff(fchD, ffchD))
+              (closestHitsInLayer.at(ffchD))[ffchM] = hitSecondary;
+        } else if(ffchD == 0 && ffchM == 0){ // Scint. coinc.
+          if(!closestHitsInLayer.at(ffchD).count(ffchM) || timeDifferenceAbs < fabs(timeDifferenceFineNS(hitMain, closestHitsInLayer.at(ffchD).at(ffchM))))
+            if(timeDifferenceAbs < maxTimeDiff(fchD, ffchD))
+              (closestHitsInLayer.at(ffchD))[ffchM] = hitSecondary;
         } else if(ffchD == 0 && ffchM == 3){
         } else if(ffchD == 0 && ffchM == 4){
         } else if(ffchD == 0 && ffchM == 5){
         } else if(ffchD == 6 && ffchM == 0){ // SHiP straw
-          if(!closestShipStraw || timeDifferenceAbs < fabs(timeDifferenceFineNS(hitMain, closestShipStraw.value().second)))
-            closestShipStraw = {kentry, hitSecondary};
+          if(!closestHitsInLayer.at(ffchD).count(ffchM) || timeDifferenceAbs < fabs(timeDifferenceFineNS(hitMain, closestHitsInLayer.at(ffchD).at(ffchM))))
+            if(timeDifferenceAbs < maxTimeDiff(fchD, ffchD))
+              (closestHitsInLayer.at(ffchD))[ffchM] = hitSecondary;
         }
       }
       /* Filling histograms */
-      if(closestSci0){
-        mm_vs_sci.at(fchD)->Fill(timeDifferenceFineNS(hitMain, closestSci0.value().second));
-        mm_vs_sciCoarse.at(fchD)->Fill(timeDifferenceCoarsePS(hitMain, closestSci0.value().second)/1E3);
+      if(closestHitsInLayer.count(0) && closestHitsInLayer.at(0).count(0)){
+        mm_vs_sci.at(fchD)->Fill(timeDifferenceFineNS(hitMain, closestHitsInLayer.at(0).at(0)));
+        mm_vs_sciCoarse.at(fchD)->Fill(timeDifferenceCoarsePS(hitMain, closestHitsInLayer.at(0).at(0))/1E3);
       }
-      if(closestShipStraw && fabs(timeDifferenceFineNS(hitMain, closestShipStraw.value().second)) < 500){
+      if(closestHitsInLayer.count(6) && closestHitsInLayer.at(6).count(0)){
         heFineCorr.at(fchD)->Fill(fchM, hitMain->eFine);
         heFinePerTimeCorr.at(fchMapped)->Fill(timeSinceStart, hitMain->eFine);
       }
-      if(neighbors.size()){
+      // calculating number of hits in the same 
+      if(closestHitsInLayer.count(fchM) && closestHitsInLayer.at(fchM).size()){
         int firstInClaster, lastInClaster;
         for(auto j = fchM+1; j <= detMax.at(fchD); j++){
-          if(!neighbors.count(j) && !neighbors.count(j+1)){
+          if(!closestHitsInLayer.at(fchM).count(j) && !closestHitsInLayer.at(fchM).count(j+1)){
             lastInClaster = j-1;
             break;
           }
         }
         for(auto j = fchM-1; j >= detMin.at(fchD); j--){
-          if(!neighbors.count(j) && !neighbors.count(j-1)){
+          if(!closestHitsInLayer.at(fchM).count(j) && !closestHitsInLayer.at(fchM).count(j-1)){
             firstInClaster = j+1;
             break;
           }
         }
         hNeighborsPerTime.at(fchD)->Fill(timeSinceStart, lastInClaster - firstInClaster);
       }
+
+      for(auto i = 2; i <= 5; i++){
+        if(fchD == i) continue;
+        if(!mmCorrellations.count({fchD, i})) continue;
+        if(!closestHitsInLayer.count(i)) continue;
+        for(auto &v: closestHitsInLayer.at(i))
+          mmCorrellations.at({fchD, i})->Fill(fchM, v.first);
+      }
     }
     // else if (fchD == 6){ // All straw ch
-    //   /* Searching for secondary hit */
-    //   /* TODO improve speed: maybe load hits to vector and work with vector in memory */
-    //   pair<Long64_t, tigerHitTL*> closestNeighbor = {-1, tigerHitTL()};
-    //   pair<Long64_t, tigerHitTL*> closestSci0 = {-1, tigerHitTL()};
-    //   pair<Long64_t, tigerHitTL*> closestSci60 = {-1, tigerHitTL()};
-    //   map<pair<int, int>, pair<Long64_t, tigerHitTL>> closestMM; // key: mapped detector-strip
-    //   for(Long64_t kentry = firstHitInWindow; kentry < nentries; kentry++){
-    //     hitSecondary = getHitFromTree(kentry);
-    //     /* Checking that second hit in maximum time window */
-    //     if(timeDifferenceFineNS(hitMain, hitSecondary) > timeWindowNS){
-    //       firstHitInWindow++;
-    //       continue;
-    //     } else if(timeDifferenceFineNS(hitSecondary, hitMain) > timeWindowNS){
-    //       break;
-    //     }
-    //     auto [ffchD, ffchM] = getMapped(hitSecondary);
-    //     auto timeDifferenceAbs = fabs(timeDifferenceFineNS(hitMain, hitSecondary));
-    //     if(ffchD >= 2 && ffchD <= 5){
-    //       if(!closestMM.count({ffchD, ffchM}))
-    //         closestMM.emplace(make_pair(ffchD, ffchM), make_pair(kentry, hitSecondary));
-    //       else if(timeDifferenceAbs < fabs(timeDifferenceFineNS(hitMain, closestMM.at({ffchD, ffchM}).second)))
-    //         closestMM[make_pair(ffchD, ffchM)] = make_pair(kentry, hitSecondary);
-    //     } else if(ffchD == 0 && ffchM == 0){
-    //       if(closestSci0.first < 0 ||
-    //          timeDifferenceAbs < fabs(timeDifferenceFineNS(hitMain, closestSci0.second)))
-    //         closestSci0 = {kentry, hitSecondary};
-    //     } else if(ffchD == 0 && ffchM == 3){
-    //       if(closestSci60.first < 0 ||
-    //          timeDifferenceAbs < fabs(timeDifferenceFineNS(hitMain, closestSci60.second)))
-    //         closestSci60 = {kentry, hitSecondary};
-    //     } else if(ffchD == 0 && ffchM == 4){
-    //     }
-    //   }
-    //   /* Filling histograms */
-    //   if(closestSci0.first >= 0){
-    //     straw_vs_sci->Fill(timeDifferenceFineNS(hitMain, closestSci0.second));
-    //     straw_deltat_0.at(fchM)->Fill(timeDifferenceFineNS(hitMain, closestSci0.second));
-    //   }
-    //   if(closestSci60.first >= 0){
-    //     straw_deltat.at(fchM)->Fill(timeDifferenceFineNS(hitMain, closestSci60.second));
-    //   }
-    //   if(closestNeighbor.first >= 0){
-    //     straw_straw.at(fchM)->Fill(timeDifferenceFineNS(hitMain, closestNeighbor.second));
-    //     if(closestSci0.first >= 0)
-    //       straw_banana_0.at(fchM)->Fill(timeDifferenceFineNS(hitMain,
-    //                                                          closestSci0.second),
-    //                                     timeDifferenceFineNS(closestNeighbor.second,
-    //                                                          closestSci0.second));
-    //     if(closestSci60.first >= 0)
-    //       straw_banana.at(fchM)->Fill(timeDifferenceFineNS(hitMain,
-    //                                                        closestSci60.second),
-    //                                   timeDifferenceFineNS(closestNeighbor.second,
-    //                                                        closestSci60.second));
-        
-    //   }
-    //   for(auto &mm: closestMM){
-    //     straw_vs_mm.at(mm.first.first)->Fill(timeDifferenceFineNS(hitMain, mm.second.second));
-    //     straw_vs_mm_spatial_corr.at(mm.first.first)->Fill(fchM, mm.first.second);
-    //   }
     // }
   }
-
-  // auto straw_rt_normed_dir = out->mkdir("straw_rt_normed");
-  // straw_rt_normed_dir->cd();
-  // map<int, TH2F*> straw_rt_normed, straw_rt_0_normed ;
-  // for(auto &h: straw_rt){
-  //   auto hnew = static_cast<TH2F*>(h.second->Clone(Form("straw%d_rt_normed", h.first)));
-  //   for(auto i = 1; i <= hnew->GetNbinsX(); i++){
-  //     auto integ = hnew->Integral(i, i, 1, hnew->GetNbinsY());
-  //     if(!integ) continue;
-  //     for(auto j = 1; j <= hnew->GetNbinsY(); j++){
-  //       auto c = hnew->GetBinContent(i, j);
-  //       auto e = hnew->GetBinError(i, j);
-  //       hnew->SetBinContent(i, j, static_cast<float>(c) / static_cast<float>(integ));
-  //       hnew->SetBinError(i, j, static_cast<float>(e) / static_cast<float>(integ));
-  //     }
-  //   }
-  //   straw_rt_normed.emplace(h.first, hnew);
-  // }
-  // for(auto &h: straw_rt_0){
-  //   auto hnew = static_cast<TH2F*>(h.second->Clone(Form("straw%d_rt_0_normed", h.first)));
-  //   for(auto i = 1; i <= hnew->GetNbinsX(); i++){
-  //     auto integ = hnew->Integral(i, i, 1, hnew->GetNbinsY());
-  //     if(!integ) continue;
-  //     for(auto j = 1; j <= hnew->GetNbinsY(); j++){
-  //       auto c = hnew->GetBinContent(i, j);
-  //       auto e = hnew->GetBinError(i, j);
-  //       hnew->SetBinContent(i, j, static_cast<float>(c) / static_cast<float>(integ));
-  //       hnew->SetBinError(i, j, static_cast<float>(e) / static_cast<float>(integ));
-  //     }
-  //   }
-  //   straw_rt_0_normed.emplace(h.first, hnew);
-  // }
-  // out->cd();
-
-
-  // auto straw_vs_mm_spatial_corr_normed = static_cast<TH2F*>(straw_vs_mm_spatial_corr->Clone("straw_vs_mm_spatial_corr_normed"));
-  // straw_vs_mm_spatial_corr_normed->SetTitle(Form("%s: microMegas vs straw spatial correaltion (normed);straw ch;MM ch", file.Data()));
-  // for(auto i = 1; i <= straw_vs_mm_spatial_corr_normed->GetNbinsX(); i++){
-  //   auto integ = straw_vs_mm_spatial_corr_normed->Integral(i, i, 1, straw_vs_mm_spatial_corr_normed->GetNbinsY());
-  //   if(!integ) continue;
-  //   for(auto j = 1; j <= straw_vs_mm_spatial_corr_normed->GetNbinsY(); j++){
-  //     auto c = straw_vs_mm_spatial_corr_normed->GetBinContent(i, j);
-  //     auto e = straw_vs_mm_spatial_corr_normed->GetBinError(i, j);
-  //     straw_vs_mm_spatial_corr_normed->SetBinContent(i, j, static_cast<float>(c) / static_cast<float>(integ));
-  //     straw_vs_mm_spatial_corr_normed->SetBinError(i, j, static_cast<float>(e) / static_cast<float>(integ));
-  //   }
-  // }
 
   for(auto &i: {0, 7})
     for(auto j = detMin.at(i); j <= detMax.at(i); j++){
