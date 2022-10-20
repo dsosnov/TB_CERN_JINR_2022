@@ -124,14 +124,16 @@ void tiger::Loop(unsigned long n)
 
   auto straw_vs_sci = new TH1F("straw_vs_sci", Form("%s: straw vs scint;#Deltat, ns", file.Data()), 1000, -500, 500);
   map<int, TH1F*> straw_vs_mm, mm_vs_sci, mm_vs_sciCoarse;
-  for(int i = 0; i < 4; i++){
+  for(int i = 0; i <= 4; i++){
+    if(i+2 == mmLayerY) continue;
     straw_vs_mm.emplace(i+2, new TH1F(Form("straw_vs_mm%d", i), Form("%s: straw vs microMegas %d;#Deltat, ns", file.Data(), i), 1000, -500, 500));
     mm_vs_sci.emplace(i+2, new TH1F(Form("mm%d_vs_sci", i), Form("%s: microMegas %d vs scint;#Deltat, ns", file.Data(), i), 1000, -500, 500));
     mm_vs_sciCoarse.emplace(i+2, new TH1F(Form("mm%d_vs_sci_coarse", i), Form("%s: microMegas %d vs scint (coarse time);#DeltaT, ns", file.Data(), i), 160, -500, 500));
   }
 
   map<int, TH2F*> straw_vs_mm_spatial_corr;
-  for(int i = 0; i < 4; i++){
+  for(int i = 0; i <= 4; i++){
+    if(i+2 == mmLayerY) continue;
     straw_vs_mm_spatial_corr.emplace(i+2, new TH2F(Form("straw_vs_mm%d_spatial_corr", i), Form("%s: microMegas %d vs straw spatial correaltion;straw ch;MM ch", file.Data(), i),
                                                    detMax.at(1) - detMin.at(1) + 1, detMin.at(1), detMax.at(1) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
   }
@@ -264,7 +266,7 @@ void tiger::Loop(unsigned long n)
   
   map<int, TH1F*> hSciTimeToDet, hSciTimeToDetCoarse;
   map<int, TH2F*> hSciTimeToDetCoarsePerTime;
-  for(int i = 1; i <= 7; i++){
+  for(int i = 1; i <= nDetectorTypes; i++){
     hSciTimeToDet.emplace(i, new TH1F(Form("sci_vs_det%d", i), Form("%s: T_{scint} - T_{det %d};#Deltat, ns", file.Data(), i), 1000, -500, 500));
     hSciTimeToDetCoarse.emplace(i, new TH1F(Form("sci_vs_det%d_coarse", i), Form("%s: T_{scint} - T_{det %d} (coarse time);#DeltaT, ns", file.Data(), i), 160, -500, 500));
     hSciTimeToDetCoarsePerTime.emplace(i, new TH2F(Form("sci_vs_det%d_coarse_per_time", i), Form("%s: T_{scint} - T_{det %d} (coarse time);time, s; #DeltaT, ns", file.Data(), i), 600, 0, 60, 160, -500, 500));
@@ -426,8 +428,9 @@ void tiger::Loop(unsigned long n)
       // RT for Ship straw
       if(closestHitsInLayer.count(6) && closestHitsInLayer.at(6).count(0) &&
          fabs(timeDifferenceFineNS(hitMain, closestHitsInLayer.at(6).at(0))) < maxTimeDiff(fchD, 6)){
-        for(auto i = 0; i < 4; i++){
+        for(auto i = 0; i <= 4; i++){
           auto idet = i+2;
+          if(idet == mmLayerY) continue;
           if(!closestHitsInLayer.count(idet))
             continue;
           for(auto &h: closestHitsInLayer.at(idet)){
@@ -442,7 +445,7 @@ void tiger::Loop(unsigned long n)
         for(auto &straw: closestHitsInLayer.at(1)){
           if(fabs(timeDifferenceFineNS(hitMain, straw.second)) > maxTimeDiff(fchD, 1))
             continue;
-          for(auto i = 0; i < 4; i++){
+          for(auto i = 0; i <= 4; i++){
             auto idet = i+2;
             if(idet == mmLayerY) continue;
             if(!closestHitsInLayer.count(idet)) continue;
