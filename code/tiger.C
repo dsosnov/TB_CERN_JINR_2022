@@ -224,7 +224,7 @@ void tiger::Loop(unsigned long n)
   map<int, TH2F*> heFineCorr, hNeighborsPerTime;
   map<pair<int,int>, TH2F*> heFinePerTimeCorr;
   out->mkdir("plots_corr_6")->cd();
-  for(auto i = 2; i < 5; i++){
+  for(auto i = 2; i <= 5; i++){
     hNeighborsPerTime.emplace(i, new TH2F(Form("hNeighborsPerTime_det%d", i), Form("%s: N neighbors per time for detector %d;full time, s; N neighbors", file.Data(), i),
                                           600, 0, 60, detMax.at(i) - detMin.at(i) + 1, 0, detMax.at(i) - detMin.at(i) + 1));
     heFineCorr.emplace(i, new TH2F(Form("eFine_det%d_corr", i), Form("%s: eFine for detector %d corellated with ship straw;channel;eFine", file.Data(), i),
@@ -237,10 +237,10 @@ void tiger::Loop(unsigned long n)
     }
   }
   out->cd();
-
+  
   map<int, TH1F*> hSciTimeToDet, hSciTimeToDetCoarse;
   map<int, TH2F*> hSciTimeToDetCoarsePerTime;
-  for(int i = 1; i < 7; i++){
+  for(int i = 1; i <= 7; i++){
     hSciTimeToDet.emplace(i, new TH1F(Form("sci_vs_det%d", i), Form("%s: T_{scint} - T_{det %d};#Deltat, ns", file.Data(), i), 1000, -500, 500));
     hSciTimeToDetCoarse.emplace(i, new TH1F(Form("sci_vs_det%d_coarse", i), Form("%s: T_{scint} - T_{det %d} (coarse time);#DeltaT, ns", file.Data(), i), 160, -500, 500));
     hSciTimeToDetCoarsePerTime.emplace(i, new TH2F(Form("sci_vs_det%d_coarse_per_time", i), Form("%s: T_{scint} - T_{det %d} (coarse time);time, s; #DeltaT, ns", file.Data(), i), 600, 0, 60, 160, -500, 500));
