@@ -73,7 +73,7 @@ void tiger::Loop(unsigned long n)
     printf("\n");
   }
 
-  TFile *out = new TFile("../out/out_tiger" + ((runFolder == "") ? "" : runFolder + "-") + file + ending, "RECREATE"); // PATH where to save out_*.root file
+  TFile *out = new TFile("../out/out_tiger_" + ((runFolder == "") ? "" : runFolder + "-") + file + ending, "RECREATE"); // PATH where to save out_*.root file
 
   map<pair<int, int>, TH1F*> hTigerProfile, hTigerProfileMapped;
   out->mkdir("tiger_profiles")->cd();
