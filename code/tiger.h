@@ -36,6 +36,7 @@ public :
    TString runFolder = "";
    TString mapFile = "map-tiger-empty.txt";
    TString efineFile = "";
+   TString tfineFile = "";
    enum TigerEnergyMode : bool {SampleAndHold = 0, TimeOverThreshold = 1};
    TigerEnergyMode energyMode = TigerEnergyMode::SampleAndHold;
 
@@ -54,7 +55,8 @@ public :
    Long64_t frameCountLoops; //                "L" == Long64_t == int64_t
    Int_t    counterWord;     // 24 bit data -- "I" == Int_t    == int32_t
 
-   tiger(TString, TString runFolder_ = "", TString mapFile_ = "map-tiger-empty.txt", TString eFineFile_ = "", short energyMode_ = 0);
+   tiger(TString, TString runFolder_, TString mapFile_, TString eFineFile_, TString tFineFile_, short energyMode_ = 0);
+   tiger(TString, TString runFolder_ = "", TString mapFile_ = "map-tiger-empty.txt", TString calibration = "", short energyMode_ = 0);
    tiger(vector<TString>, TString runFolder_ = "", TString mapFile_ = "map-tiger-empty.txt", TString eFineFile_ = "", short energyMode_ = 0);
    tiger(TChain *tree = nullptr, TString mapFile_ = "map-tiger-empty.txt", TString eFineFile_ = "", short energyMode_ = 0);
    virtual ~tiger();
@@ -99,7 +101,9 @@ public :
    }
 
    map<tuple<int,int,int>, pair<int, int>> eFineMap;
-  void addCalibrationEFine(TString filename, bool verbose = false);
+   void addCalibrationEFine(TString filename, bool verbose = false);
+   map<tuple<int,int,int>, pair<int, int>> tFineMap;
+   void addCalibrationTFine(TString filename, bool verbose = false);
 
    tigerHitTL getTigerHitTLCurrent() const;
    void updateTigerHitTLCurrent(tigerHitTL &hit) const;
@@ -124,8 +128,17 @@ public :
 
 #endif
 
-tiger::tiger(TString filename, TString runFolder_, TString mapFile_, TString eFineFile_, short energyMode_) : runFolder(runFolder_), mapFile(mapFile_), efineFile(eFineFile_), energyMode(static_cast<TigerEnergyMode>(energyMode_))
+tiger::tiger(TString filename, TString runFolder_, TString mapFile_, TString eFineFile_, TString tFineFile_, short energyMode_) : runFolder(runFolder_), mapFile(mapFile_), efineFile(eFineFile_), tfineFile(tFineFile_), energyMode(static_cast<TigerEnergyMode>(energyMode_))
 {
+  file = filename;
+  folder = "../data/tiger/" + runFolder + "/";
+  fChain = GetTree(filename, "tigerTL");
+  Init();
+}
+tiger::tiger(TString filename, TString runFolder_, TString mapFile_, TString calibration, short energyMode_) : runFolder(runFolder_), mapFile(mapFile_),
+                                                                                                               efineFile((calibration != "") ? (Form("tiger_efine_calibration-%s", calibration.Data())): ""),
+                                                                                                               tfineFile((calibration != "") ? (Form("tiger_tfine_calibration-%s", calibration.Data())): ""),
+                                                                                                               energyMode(static_cast<TigerEnergyMode>(energyMode_)){
   file = filename;
   folder = "../data/tiger/" + runFolder + "/";
   fChain = GetTree(filename, "tigerTL");
@@ -156,6 +169,12 @@ tiger::~tiger()
 void tiger::addMap(TString filename, bool verbose){
    if(filename == "") return;
    ifstream infile(Form("../configs/%s", filename.Data()));
+   if(infile.fail()){
+      auto fn2 = TString("map-tiger-") + filename;
+      printf("No map file %s found. Try to find file \"%s\"\n", filename.Data(), fn2.Data());
+      addMap(fn2, verbose);
+      return;
+   }
    std::string line;
    int gr, t, ch, d, dch;
    while (std::getline(infile, line))
@@ -179,6 +198,8 @@ pair<int,int> tiger::getMapped(const tuple<int,int,int> channel) const{
 void tiger::addCalibrationEFine(TString filename, bool verbose){
    if(filename == "") return;
    ifstream infile(Form("../configs/%s", filename.Data()));
+   if(infile.fail())
+      return;
    std::string line;
    int gr, t, ch, min, max;
    while (std::getline(infile, line))
@@ -191,6 +212,25 @@ void tiger::addCalibrationEFine(TString filename, bool verbose){
      if(verbose)
        printf("efine calibration: %d %d: %d: %d - %i\n", gr, t, ch, min, max);
      eFineMap.emplace(make_tuple(gr,t, ch), make_pair(min, max));
+   }
+}
+void tiger::addCalibrationTFine(TString filename, bool verbose){
+   if(filename == "") return;
+   ifstream infile(Form("../configs/%s", filename.Data()));
+   if(infile.fail())
+      return;
+   std::string line;
+   int gr, t, ch, min, max;
+   while (std::getline(infile, line))
+   {
+     std::istringstream iss(line);
+     if(iss.str().substr(0, 1) == string("#")) // in c++20 there is starts_with("#")
+       continue;
+     if (!(iss >> gr >> t >> ch >> min >> max))
+       break; // error
+     if(verbose)
+       printf("efine calibration: %d %d: %d: %d - %i\n", gr, t, ch, min, max);
+     tFineMap.emplace(make_tuple(gr,t, ch), make_pair(min, max));
    }
 }
 
@@ -212,6 +252,8 @@ void tiger::updateTigerHitTLCurrent(tigerHitTL &hit) const{
   hit.frameCountLoops = frameCountLoops;
 
   hit.counterWord = counterWord;
+  hit.tFineLimits = (tFineMap.count({gemrocID, tigerID, channelID})) ?
+     tFineMap.at({gemrocID, tigerID, channelID}) : make_pair(0, 1023);
 }
 tigerHitTL tiger::getTigerHitTLCurrent() const{
   tigerHitTL hit;
@@ -270,6 +312,9 @@ void tiger::Init()
    if(efineFile!="" && !efineFile.EndsWith(".txt"))
      efineFile.Append(".txt");
    addCalibrationEFine(efineFile.Data());
+   if(tfineFile!="" && !tfineFile.EndsWith(".txt"))
+     tfineFile.Append(".txt");
+   addCalibrationTFine(tfineFile.Data());
 }
 
 #ifndef tiger_cxx
