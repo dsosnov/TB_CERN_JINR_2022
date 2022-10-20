@@ -245,20 +245,22 @@ void tiger::Loop(unsigned long n)
   TH2F* DeltaTBetweenPulsers = new TH2F("DeltaTBetweenPulsers", Form("%s: DeltaTBetweenPulsers;time, s;T^{scint}_{50#mus} - T^{scint}_{10ms}, #mus", file.Data()), 600, 0, 60, 10000, 0, 100000);
   map<int, TH2F*> heFineCorr, hNeighborsPerTime;
   map<pair<int,int>, TH2F*> heFinePerTimeCorr;
-  out->mkdir("plots_corr_6")->cd();
-  for(auto i = 2; i <= 5; i++){
-    hNeighborsPerTime.emplace(i, new TH2F(Form("hNeighborsPerTime_det%d", i), Form("%s: N neighbors per time for detector %d;full time, s; N neighbors", file.Data(), i),
-                                          600, 0, 60, detMax.at(i) - detMin.at(i) + 1, 0, detMax.at(i) - detMin.at(i) + 1));
-    heFineCorr.emplace(i, new TH2F(Form("eFine_det%d_corr", i), Form("%s: eFine for detector %d corellated with ship straw;channel;eFine", file.Data(), i),
+  if(detMax.at(6) > 0){
+    out->mkdir("plots_corr_6")->cd();
+    for(auto i = 2; i <= 5; i++){
+      hNeighborsPerTime.emplace(i, new TH2F(Form("hNeighborsPerTime_det%d", i), Form("%s: N neighbors per time for detector %d;full time, s; N neighbors", file.Data(), i),
+                                            600, 0, 60, detMax.at(i) - detMin.at(i) + 1, 0, detMax.at(i) - detMin.at(i) + 1));
+      heFineCorr.emplace(i, new TH2F(Form("eFine_det%d_corr", i), Form("%s: eFine for detector %d corellated with ship straw;channel;eFine", file.Data(), i),
                                      detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 512, 0, 1024));
-    for(auto j = detMin.at(i); j <= detMax.at(i); j++){
-      heFinePerTimeCorr.emplace(make_pair(i, j),
-                                new TH2F(Form("eFinePerTime_corr_det%d_ch%d", i, j), Form("%s: eFine for detector %d, channel %d%s correllated with ship straw;full time, s; eFine", file.Data(), i, j,
-                                                                                     (detectorNames.count({i,j}) ? (string() + " (" + detectorNames.at({i,j}) + ")").c_str() : "")),
-                                         60, 0, 60, 512, 0, 1024));
+      for(auto j = detMin.at(i); j <= detMax.at(i); j++){
+        heFinePerTimeCorr.emplace(make_pair(i, j),
+                                  new TH2F(Form("eFinePerTime_corr_det%d_ch%d", i, j), Form("%s: eFine for detector %d, channel %d%s correllated with ship straw;full time, s; eFine", file.Data(), i, j,
+                                                                                            (detectorNames.count({i,j}) ? (string() + " (" + detectorNames.at({i,j}) + ")").c_str() : "")),
+                                           60, 0, 60, 512, 0, 1024));
+      }
     }
+    out->cd();
   }
-  out->cd();
   
   map<int, TH1F*> hSciTimeToDet, hSciTimeToDetCoarse;
   map<int, TH2F*> hSciTimeToDetCoarsePerTime;
@@ -268,9 +270,11 @@ void tiger::Loop(unsigned long n)
     hSciTimeToDetCoarsePerTime.emplace(i, new TH2F(Form("sci_vs_det%d_coarse_per_time", i), Form("%s: T_{scint} - T_{det %d} (coarse time);time, s; #DeltaT, ns", file.Data(), i), 600, 0, 60, 160, -500, 500));
   }
   map<int, TH2F*> hShipRT;
-  for(int i = 2; i <= 4; i++){
-    hShipRT.emplace(i, new TH2F(Form("ship_rt_vs_mm%d", i-2), Form("%s: RT for SHiP straw and MM %d;strip;#DeltaT, ns", file.Data(), i-2),
-                                detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i), 2000, -1000, 1000));
+  if(detMax.at(6) > 0){
+    for(int i = 2; i <= 4; i++){
+      hShipRT.emplace(i, new TH2F(Form("ship_rt_vs_mm%d", i-2), Form("%s: RT for SHiP straw and MM %d;strip;#DeltaT, ns", file.Data(), i-2),
+                                  detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i), 2000, -1000, 1000));
+    }
   }
 
   map<pair<int,int>, TH2F*> mmCorrellations;
@@ -287,6 +291,15 @@ void tiger::Loop(unsigned long n)
   }
   out->cd();
 
+  map<int, TH2F*> hStrawRT, hStrawRTCoarse;
+  if(detMax.at(1) > 0){
+    for(int i = 2; i <= 4; i++){
+      hStrawRT.emplace(i, new TH2F(Form("straw_rt_vs_mm%d", i-2), Form("%s: RT for straws and MM %d;strip;#DeltaT, ns", file.Data(), i-2),
+                                  detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i), 2000, -1000, 1000));
+      hStrawRTCoarse.emplace(i, new TH2F(Form("straw_rt_vs_mm%d_coarse", i-2), Form("%s: RT for straws and MM %d (coarse time);strip;#DeltaT (coarse), ns", file.Data(), i-2),
+                                  detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i), 320, -1000, 1000));
+    }
+  }
   
   
   Long64_t nentries = fChain->GetEntries();
@@ -405,6 +418,7 @@ void tiger::Loop(unsigned long n)
           (closestHitsInLayer.at(ffchD))[ffchM] = hitSecondary;
 
       }
+      // RT for Ship straw
       if(closestHitsInLayer.count(6) && closestHitsInLayer.at(6).count(0) &&
          fabs(timeDifferenceFineNS(hitMain, closestHitsInLayer.at(6).at(0))) < maxTimeDiff(fchD, 6)){
         for(auto i = 0; i < 4; i++){
@@ -412,9 +426,26 @@ void tiger::Loop(unsigned long n)
           if(!closestHitsInLayer.count(idet))
             continue;
           for(auto &h: closestHitsInLayer.at(idet)){
-            if(fabs(timeDifferenceFineNS(hitMain, h.second)) > maxTimeDiff(fchD, 6))
+            if(fabs(timeDifferenceFineNS(hitMain, h.second)) > maxTimeDiff(fchD, idet))
               continue;
             hShipRT.at(idet)->Fill(h.first, timeDifferenceFineNS(hitMain, closestHitsInLayer.at(6).at(0)));
+          }
+        }
+      }
+      // RT for normal straws
+      if(closestHitsInLayer.count(1)){
+        for(auto &straw: closestHitsInLayer.at(1)){
+          if(fabs(timeDifferenceFineNS(hitMain, straw.second)) > maxTimeDiff(fchD, 1))
+            continue;
+          for(auto i = 0; i < 4; i++){
+            auto idet = i+2;
+            if(!closestHitsInLayer.count(idet)) continue;
+            for(auto &h: closestHitsInLayer.at(idet)){
+              if(fabs(timeDifferenceFineNS(hitMain, h.second)) > maxTimeDiff(fchD, idet))
+                continue;
+              hStrawRT.at(idet)->Fill(h.first, timeDifferenceFineNS(hitMain, straw.second));
+              hStrawRTCoarse.at(idet)->Fill(h.first, timeDifferenceCoarsePS(hitMain, straw.second) / 1E3);
+            }
           }
         }
       }
