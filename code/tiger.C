@@ -33,7 +33,7 @@ int maxTimeDiff(int det1 = -1, int det2 = -1){
   return maxDifference;
 }
 
-constexpr bool ENERGY_CUTS = false;
+constexpr bool ENERGY_CUTS = true;
 void tiger::Loop(unsigned long n)
 {
   printf("tiger::Loop()\n");
@@ -293,7 +293,8 @@ void tiger::Loop(unsigned long n)
 
   map<int, TH2F*> hStrawRT, hStrawRTCoarse;
   if(detMax.at(1) > 0){
-    for(int i = 2; i <= 4; i++){
+    for(int i = 2; i <= 5; i++){
+      if(i == mmLayerY) continue;
       hStrawRT.emplace(i, new TH2F(Form("straw_rt_vs_mm%d", i-2), Form("%s: RT for straws and MM %d;strip;#DeltaT, ns", file.Data(), i-2),
                                   detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i), 2000, -1000, 1000));
       hStrawRTCoarse.emplace(i, new TH2F(Form("straw_rt_vs_mm%d_coarse", i-2), Form("%s: RT for straws and MM %d (coarse time);strip;#DeltaT (coarse), ns", file.Data(), i-2),
@@ -346,19 +347,23 @@ void tiger::Loop(unsigned long n)
     }
     if (fchD < 0) continue; // unmapped channels
     if(ENERGY_CUTS){
-      if(fchD == 0 && fchM == 0){
-        if(energyMode == TigerEnergyMode::SampleAndHold)
-          if(charge < 640 && charge > 590) // May be, 674 and 590
-            continue;
-      } else if(fchD == 0 && fchM == 4){
-        if(energyMode == TigerEnergyMode::SampleAndHold)
-          if(charge < 870) // 590
-            continue;
-      } else if(fchD == 0 && fchM == 5){
-        if(energyMode == TigerEnergyMode::SampleAndHold)
-          if(charge < 600)
-            continue;
-      }
+      if(eFineMap.count({hitMain->gemrocID, hitMain->tigerID, hitMain->channelID}))
+        if(hitMain->eFine >= eFineMap.at({hitMain->gemrocID, hitMain->tigerID, hitMain->channelID}).first &&
+           hitMain->eFine <= eFineMap.at({hitMain->gemrocID, hitMain->tigerID, hitMain->channelID}).second)
+          continue;
+      // if(fchD == 0 && fchM == 0){
+      //   if(energyMode == TigerEnergyMode::SampleAndHold)
+      //     if(charge < 640 && charge > 590) // May be, 674 and 590
+      //       continue;
+      // } else if(fchD == 0 && fchM == 4){
+      //   if(energyMode == TigerEnergyMode::SampleAndHold)
+      //     if(charge < 870) // 590
+      //       continue;
+      // } else if(fchD == 0 && fchM == 5){
+      //   if(energyMode == TigerEnergyMode::SampleAndHold)
+      //     if(charge < 600)
+      //       continue;
+      // }
     }
     if (fchD < nDetectorTypes){ // per-detector histograms
       hprofile.at(fchD)->Fill(fchM);
@@ -439,6 +444,7 @@ void tiger::Loop(unsigned long n)
             continue;
           for(auto i = 0; i < 4; i++){
             auto idet = i+2;
+            if(idet == mmLayerY) continue;
             if(!closestHitsInLayer.count(idet)) continue;
             for(auto &h: closestHitsInLayer.at(idet)){
               if(fabs(timeDifferenceFineNS(hitMain, h.second)) > maxTimeDiff(fchD, idet))
