@@ -135,9 +135,7 @@ tiger::tiger(TString filename, TString runFolder_, TString mapFile_, TString eFi
   fChain = GetTree(filename, "tigerTL");
   Init();
 }
-tiger::tiger(TString filename, TString runFolder_, TString mapFile_, TString calibration, short energyMode_) : runFolder(runFolder_), mapFile(mapFile_),
-                                                                                                               efineFile((calibration != "") ? (Form("tiger_efine_calibration-%s", calibration.Data())): ""),
-                                                                                                               tfineFile((calibration != "") ? (Form("tiger_tfine_calibration-%s", calibration.Data())): ""),
+tiger::tiger(TString filename, TString runFolder_, TString mapFile_, TString calibration, short energyMode_) : runFolder(runFolder_), mapFile(mapFile_), efineFile(calibration), tfineFile(calibration),
                                                                                                                energyMode(static_cast<TigerEnergyMode>(energyMode_)){
   file = filename;
   folder = "../data/tiger/" + runFolder + "/";
@@ -170,9 +168,11 @@ void tiger::addMap(TString filename, bool verbose){
    if(filename == "") return;
    ifstream infile(Form("../configs/%s", filename.Data()));
    if(infile.fail()){
-      auto fn2 = TString("map-tiger-") + filename;
-      printf("No map file %s found. Try to find file \"%s\"\n", filename.Data(), fn2.Data());
-      addMap(fn2, verbose);
+      if(!filename.BeginsWith("map-tiger-")){
+         auto fn2 = TString("map-tiger-") + filename;
+         printf("No map file %s found. Try to find file \"%s\"\n", filename.Data(), fn2.Data());
+         addMap(fn2, verbose);
+      }
       return;
    }
    std::string line;
@@ -198,8 +198,14 @@ pair<int,int> tiger::getMapped(const tuple<int,int,int> channel) const{
 void tiger::addCalibrationEFine(TString filename, bool verbose){
    if(filename == "") return;
    ifstream infile(Form("../configs/%s", filename.Data()));
-   if(infile.fail())
+   if(infile.fail()){
+      if(!filename.BeginsWith("tiger_efine_calibration-")){
+         auto fn2 = TString("tiger_efine_calibration-") + filename;
+         printf("No eFine calibration file %s found. Try to find file \"%s\"\n", filename.Data(), fn2.Data());
+         addCalibrationEFine(fn2, verbose);
+      }
       return;
+   }
    std::string line;
    int gr, t, ch, min, max;
    while (std::getline(infile, line))
@@ -217,8 +223,14 @@ void tiger::addCalibrationEFine(TString filename, bool verbose){
 void tiger::addCalibrationTFine(TString filename, bool verbose){
    if(filename == "") return;
    ifstream infile(Form("../configs/%s", filename.Data()));
-   if(infile.fail())
+   if(infile.fail()){
+      if(!filename.BeginsWith("tiger_tfine_calibration-")){
+         auto fn2 = TString("tiger_tfine_calibration-") + filename;
+         printf("No tFine calibration file %s found. Try to find file \"%s\"\n", filename.Data(), fn2.Data());
+         addCalibrationEFine(fn2, verbose);
+      }
       return;
+   }
    std::string line;
    int gr, t, ch, min, max;
    while (std::getline(infile, line))
