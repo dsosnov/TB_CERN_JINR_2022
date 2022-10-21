@@ -56,23 +56,39 @@ or, as oneliner:
 root -b -q -e 'gROOT->ProcessLine(".L link.C"); gROOT->ProcessLine(".L apv.C"); gROOT->ProcessLine("(new apv(\"run418\"))->Loop()")'
 `
 ### Working with TIGER
-1. Copy or link RUN directories to data/tiger folder:
+1. Convert .dat files to root in RUN folder:
+`
+root -b -q tiger_tree_converter_bin.cxx'("SubRUN_10_GEMROC_0_TL.dat", "RUN_1")'
+`
+or
+`
+root -b -q tiger_tree_converter_bin.cxx'("RUN_1")'
+`
+2. Copy or link RUN directories to data/tiger folder:
 `
 ln -s /mnt/data-1/rd51-straw/TestBeam-2022-October/data-tiger/RUN_* data/tiger/
 `
-2. Move to "code" directory:
+3. Move to "code" directory:
 `
 cd code
 `
-3. Run "Loop" script on file:
+4. Run "Loop" script on file:
 ```c++
 root l
 .L tiger.C
-t = new tiger("SubRUN_25_GEMROC_0_TL", "RUN_21", "map-tiger-20221013-2")
+t = new tiger("SubRUN_1_GEMROC_0_TL", "RUN_1", "20221020", "20221019")
 t->Loop()
 .q
 ```
 or, as oneliner:
 `
-root -b -q -e 'gROOT->ProcessLine(".L tiger.C"); gROOT->ProcessLine("(new tiger(\"SubRUN_25_GEMROC_0_TL\", \"RUN_21\", \"map-tiger-20221013-2\"))->Loop()")'
+root -b -q -e 'gROOT->ProcessLine(".L tiger.C"); gROOT->ProcessLine("(new tiger(\"SubRUN_1_GEMROC_0_TL\", \"RUN_1\", \"20221020\", \"20221020\"))->Loop()")'
 `
+Options:
+1. File name without ".root" ending
+2. Directory name. If empty, files searched in data/tiger directory itself
+3. Mapping file (txt). Can be set as "map-tiger-20221019.txt", "map-tiger-20221019" or even "20221019"
+4. Calibration files (txt). Can be set as "20221019" for two files:
+   - "../configs/tiger_efine_calibration-20221019.txt"
+   - "../configs/tiger_tfine_calibration-20221019.txt"
+Or they can be set separately
