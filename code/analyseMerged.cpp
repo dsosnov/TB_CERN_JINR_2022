@@ -20,16 +20,16 @@ optional<pair<double, double>> getMeanPosition(map<int, int> hitsPerLayer, int l
     long long pdo = h.second;
     if(!vmmHits && (h.first <= 118 || h.first >= 172))
       continue; // TODO check why
-    // shifts from Stefano
+    // shifts from Stefano // TODO add dependency on testbeam
     switch(layer){
       case 0:
-        strip = h.first;
+        strip = h.first; // TODO add dependency on testbeam
         break;
       case 1:
-        strip = h.first * (1 - 2.29e-3) - 2.412 / 0.25;
+        strip = h.first * (1 - 2.29e-3) - 2.412 / 0.25; // TODO add dependency on testbeam
         break;        
       case 2:
-        strip = h.first * (1 - 8e-3) - 8.46 / 0.25;
+        strip = h.first * (1 - 8e-3) - 8.46 / 0.25; // TODO add dependency on testbeam
         break;
       default:
         strip = h.first;
@@ -59,7 +59,7 @@ optional<pair<double, double>> getMeanPosition(map<int, int> hitsPerLayer, int l
  * L2 - Straw: 523
  * return: position in mm, from Layer 0
  */
-int getLayerPosition(int layer){
+int getLayerPosition(int layer){ // TODO move to header; merge with hitsmapper
   int y = 0;
   switch(layer){
     case 3:
@@ -74,7 +74,7 @@ int getLayerPosition(int layer){
   return y;
 }
 
-pair<double, double> getEstimatedTrack(map<int, pair<double, double>> positions){
+pair<double, double> getEstimatedTrack(map<int, pair<double, double>> positions){ // TODO
   int n = 0;
   double sumWXY = 0, sumWX = 0, sumWY = 0, sumWX2 = 0, sumY2 = 0, sumW = 0;
   double y, x, w, yE; // x: horizontal, y - vertical coordinate
@@ -202,10 +202,10 @@ void analyseMerged(string runVMM = "0832", string runAPV = "423", bool tight = f
       continue;
     for(auto i = 0; i < 3; i++){
       auto layerData = dataAPV.hitsPerLayer.at(i);
-      auto meanPos = getMeanPosition(layerData, i);
+      auto meanPos = getMeanPosition(layerData, i); // TODO add dependency on testbeam
       if(!meanPos)
         continue;
-      if(i < 2 || !drLayerFromVMM)
+      if(i < 2 || !drLayerFromVMM) // TODO add dependency on testbeam
         positions.emplace(i, meanPos.value());
       // printf("Event %d, position for layer %d: %g\n", event, i, meanPos.value());
       TH2F* hist = nullptr;
@@ -253,7 +253,7 @@ void analyseMerged(string runVMM = "0832", string runAPV = "423", bool tight = f
     }
 
     auto trackParam = getEstimatedTrack(positions);
-    auto estimatedCoord = estimatePositionInLayer(trackParam, 3);
+    auto estimatedCoord = estimatePositionInLayer(trackParam, 3); // TODO add dependency on testbeam
     printf("Event %d -- estimated: %g\n", event, estimatedCoord);
     for(auto h: dataVMM){
       if(h.detector != 1)
