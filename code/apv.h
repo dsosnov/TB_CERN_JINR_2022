@@ -134,11 +134,9 @@ public :
   tuple<double,double,double> getHitsForTrack(apvTrack track);
   vector<apvTrack> constructTracks(vector<apvCluster> clusters);
 
-  unsigned int nAPVLayers = 5;
-  unsigned int YLayerNumber = 3;
-  unsigned int pulserAPV = 2; // 10
-  unsigned int layerDoubleReadout = 2; // 0
-  unsigned int PulserLayerNumber = 4;
+  unsigned int nAPVLayers;
+  unsigned int pulserAPV, layerDoubleReadout;
+  unsigned int YLayerNumber, PulserLayerNumber;
 };
 
 tuple<double,double,double> apv::getHitsForTrack(apvTrack track){
@@ -252,6 +250,28 @@ apv::~apv(){
 }
 
 void apv::Init(){
+  enum class TestBeams { TB22_April, TB22_July, TB22_August, TB22_October };
+  switch(testbeamType){
+    case analysisGeneral::TestBeams::TB22_October:
+    case analysisGeneral::TestBeams::TB22_August:
+    case analysisGeneral::TestBeams::TB22_July:
+      nAPVLayers = 5;
+      YLayerNumber = 3;
+      pulserAPV = 10;
+      layerDoubleReadout = 0;
+      PulserLayerNumber = 4;
+      break;
+    case analysisGeneral::TestBeams::TB22_April:
+      nAPVLayers = 5;
+      YLayerNumber = 3;
+      pulserAPV = 2;
+      layerDoubleReadout = 2;
+      PulserLayerNumber = 4;
+      break;
+    default:
+      break;
+  };
+
   printf("Init:: File: %s, tree %p, treePed %p\n", file.Data(), fChain, fChainPedestal);
   fCurrent = -1;
   // Signal
