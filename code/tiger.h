@@ -119,11 +119,10 @@ public :
   //   {{6, 1}, 180}, // Netron Straw
   // };
 
-  int nDetectorTypes = 8;
+  int nDetectorTypes, mmLayerY ;
   map<long long, tigerHitTL> hitsMap;
   tigerHitTL* getHitFromTree(long long);
   void freeHitMap(long long);
-  int mmLayerY = 5;
 };
 
 #endif
@@ -298,6 +297,23 @@ void tiger::freeHitMap(long long minEntry){
 
 void tiger::Init()
 {
+  switch(testbeamType){
+    case analysisGeneral::TestBeams::TB22_October:
+      nDetectorTypes = 8;
+      mmLayerY = 4;
+      break;
+    case analysisGeneral::TestBeams::TB22_August:
+      nDetectorTypes = 8;
+      mmLayerY = 5;
+      break;
+    case analysisGeneral::TestBeams::TB22_July:
+    case analysisGeneral::TestBeams::TB22_April:
+    default:
+      nDetectorTypes = 8;
+      mmLayerY = 5;
+      break;
+  };
+
    // Set branch addresses and branch pointers
    if (!fChain) return;
    printf("tiger::Init()\n");
