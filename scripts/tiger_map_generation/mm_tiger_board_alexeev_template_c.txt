@@ -1,11 +1,11 @@
 # tigers connected to central connector of MM0 with gem-tiger board
 # connector (FEB), pin (on FEB3_pinout scheme) : detector, channel
-1, 144 :  MM0, 149
-1, 142 :  MM0, 148
+1, 138 :  MM0, 149
+1, 140 :  MM0, 148
 1, 128 :  MM0, 150
-1, 140 :  MM0, 147
+1, 142 :  MM0, 147
 1, 126 :  MM0, 151
-1, 138 :  MM0, 146
+1, 144 :  MM0, 146
 1, 124 :  MM0, 152
 1, 136 :  MM0, 145
 1, 122 :  MM0, 153
