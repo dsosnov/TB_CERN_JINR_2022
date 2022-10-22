@@ -37,6 +37,7 @@ public :
   TString mapFile = "map-tiger-empty.txt";
   TString efineFile = "";
   TString tfineFile = "";
+  bool useEnergyCut = true;
   enum TigerEnergyMode : bool {SampleAndHold = 0, TimeOverThreshold = 1};
   TigerEnergyMode energyMode = TigerEnergyMode::SampleAndHold;
 
@@ -62,6 +63,8 @@ public :
   virtual ~tiger();
   virtual void     Init() override;
   virtual void     Loop(unsigned long n = 0) override;
+
+  bool energyCut(tigerHitTL* hit);
 
   map<tuple<int,int,int>, pair<int, int>> channelMap;
   void addMap(TString filename, bool verbose = false);
@@ -120,8 +123,9 @@ public :
   // };
 
   int nDetectorTypes, mmLayerY ;
-  map<long long, tigerHitTL> hitsMap;
-  tigerHitTL* getHitFromTree(long long);
+  map<long long, pair<tigerHitTL, bool>> hitsMap;
+  tigerHitTL* getHitFromTree(long long, bool force = false);
+  bool isGoodHit(long long entry);
   void freeHitMap(long long);
 };
 
@@ -173,6 +177,8 @@ void tiger::addMap(TString filename, bool verbose){
       addMap(fn2, verbose);
     }
     return;
+  }else{
+    printf("Map file: \"%s\"\n", filename.Data());
   }
   std::string line;
   int gr, t, ch, d, dch;
@@ -204,6 +210,8 @@ void tiger::addCalibrationEFine(TString filename, bool verbose){
       addCalibrationEFine(fn2, verbose);
     }
     return;
+  }else{
+    printf("eFine calibration file: \"%s\"\n", filename.Data());
   }
   std::string line;
   int gr, t, ch, min, max;
@@ -229,6 +237,8 @@ void tiger::addCalibrationTFine(TString filename, bool verbose){
       addCalibrationEFine(fn2, verbose);
     }
     return;
+  }else{
+    printf("tFine calibration file: \"%s\"\n", filename.Data());
   }
   std::string line;
   int gr, t, ch, min, max;
@@ -240,7 +250,7 @@ void tiger::addCalibrationTFine(TString filename, bool verbose){
     if (!(iss >> gr >> t >> ch >> min >> max))
       break; // error
     if(verbose)
-      printf("efine calibration: %d %d: %d: %d - %i\n", gr, t, ch, min, max);
+      printf("tFine calibration: %d %d: %d: %d - %i\n", gr, t, ch, min, max);
     tFineMap.emplace(make_tuple(gr,t, ch), make_pair(min, max));
   }
 }
@@ -271,13 +281,23 @@ tigerHitTL tiger::getTigerHitTLCurrent() const{
   updateTigerHitTLCurrent(hit);
   return hit;
 }
-tigerHitTL* tiger::getHitFromTree(long long entry){
+tigerHitTL* tiger::getHitFromTree(long long entry, bool force){
   if(!hitsMap.count(entry)){
     fChain->GetEntry(entry);
-    hitsMap.emplace(entry, getTigerHitTLCurrent());
+    auto hit = getTigerHitTLCurrent();
+    bool goodHit = energyCut(&hit); // useEnergyCut ? energyCut(&hit) : true;
+    hitsMap.emplace(entry, make_pair(hit, goodHit));
   }
-  return &hitsMap.at(entry);
+  if(force || !useEnergyCut || hitsMap.at(entry).second)
+    return &hitsMap.at(entry).first;
+  return nullptr;
 }
+bool tiger::isGoodHit(long long entry){
+  if(!hitsMap.count(entry))
+    getHitFromTree(entry);
+  return hitsMap.at(entry).second;
+}
+
 void tiger::freeHitMap(long long minEntry){
   if(!hitsMap.size()) return;
   auto it = hitsMap.lower_bound(minEntry);
@@ -293,6 +313,18 @@ void tiger::freeHitMap(long long minEntry){
   // }
 // For those on C++20 there are built-in std::erase_if functions for map and unordered_map:
 // const auto count = std::erase_if(data, [](const auto& item) { auto const& [key, value] = item; return (key & 1) == 1;});
+}
+
+bool tiger::energyCut(tigerHitTL* hit){
+  static constexpr bool untillSatulation = true;
+  if(!eFineMap.count({hit->gemrocID, hit->tigerID, hit->channelID}))
+    return true;
+  if(hit->eFine < eFineMap.at({hit->gemrocID, hit->tigerID, hit->channelID}).first)
+    return true;
+  auto upperLevel = untillSatulation ? 1007 : eFineMap.at({hit->gemrocID, hit->tigerID, hit->channelID}).second;
+  if(hit->eFine > upperLevel)
+    return true;
+  return false;
 }
 
 void tiger::Init()

@@ -33,7 +33,6 @@ int maxTimeDiff(int det1 = -1, int det2 = -1){
   return maxDifference;
 }
 
-constexpr bool ENERGY_CUTS = true;
 void tiger::Loop(unsigned long n)
 {
   printf("tiger::Loop()\n");
@@ -320,7 +319,7 @@ void tiger::Loop(unsigned long n)
       // if(jentry>0) break;
       freeHitMap(firstHitInWindow);
     }
-    hitMain = getHitFromTree(jentry);
+    hitMain = getHitFromTree(jentry, true);
     if (!jentry){
       printf("First hit: ");
       hitMain->print();
@@ -348,25 +347,8 @@ void tiger::Loop(unsigned long n)
       hTigerFullTimePerChannel.at({hitMain->gemrocID, hitMain->tigerID, hitMain->channelID})->Fill(timeSinceStart);
     }
     if (fchD < 0) continue; // unmapped channels
-    if(ENERGY_CUTS){
-      if(eFineMap.count({hitMain->gemrocID, hitMain->tigerID, hitMain->channelID}))
-        if(hitMain->eFine >= eFineMap.at({hitMain->gemrocID, hitMain->tigerID, hitMain->channelID}).first &&
-           hitMain->eFine <= eFineMap.at({hitMain->gemrocID, hitMain->tigerID, hitMain->channelID}).second)
-          continue;
-      // if(fchD == 0 && fchM == 0){
-      //   if(energyMode == TigerEnergyMode::SampleAndHold)
-      //     if(charge < 640 && charge > 590) // May be, 674 and 590
-      //       continue;
-      // } else if(fchD == 0 && fchM == 4){
-      //   if(energyMode == TigerEnergyMode::SampleAndHold)
-      //     if(charge < 870) // 590
-      //       continue;
-      // } else if(fchD == 0 && fchM == 5){
-      //   if(energyMode == TigerEnergyMode::SampleAndHold)
-      //     if(charge < 600)
-      //       continue;
-      // }
-    }
+    if(!isGoodHit(jentry))
+      continue;
     if (fchD < nDetectorTypes){ // per-detector histograms
       hprofile.at(fchD)->Fill(fchM);
       hChargeToT.at(fchD)->Fill(fchM, hitMain->chargeToT());
@@ -407,6 +389,7 @@ void tiger::Loop(unsigned long n)
       for(Long64_t kentry = firstHitInWindow; kentry < nentries; kentry++){
         if(kentry == jentry) continue;
         hitSecondary = getHitFromTree(kentry);
+        if(!hitSecondary) continue;
         /* Checking that second hit in maximum time window */
         auto timeDifference = timeDifferenceFineNS(hitMain, hitSecondary);
         auto timeDifferenceAbs = fabs(timeDifference);
@@ -485,6 +468,7 @@ void tiger::Loop(unsigned long n)
       for(Long64_t kentry = firstHitInWindow; kentry < nentries; kentry++){
         if(kentry == jentry) continue;
         hitSecondary = getHitFromTree(kentry);
+        if(!hitSecondary) continue;
         /* Checking that second hit in maximum time window */
         auto timeDifference = timeDifferenceFineNS(hitMain, hitSecondary);
         auto timeDifferenceAbs = fabs(timeDifference);
