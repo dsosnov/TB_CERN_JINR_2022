@@ -311,7 +311,7 @@ void tiger::Loop(unsigned long n)
   Long64_t timeWindowNS = maxTimeDiff(); // ns
   Long64_t firstHitInWindow = 0;
   tigerHitTL *hitMain, *hitSecondary, hitFirst;
-  for (Long64_t jentry = 0; jentry < nentries; jentry++) // You can remove "/ 10" and use the whole dataset
+  for (Long64_t jentry = 0; jentry < nentries; jentry++)
   {
     if (!(jentry % 100000)){
       std::cout << "Entry " << jentry << "\t of \t" << nentries << "\n";
