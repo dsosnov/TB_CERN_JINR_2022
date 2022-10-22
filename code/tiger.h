@@ -33,80 +33,80 @@ using std::ifstream;
 
 class tiger : public analysisGeneral {
 public :
-   TString runFolder = "";
-   TString mapFile = "map-tiger-empty.txt";
-   TString efineFile = "";
-   TString tfineFile = "";
-   enum TigerEnergyMode : bool {SampleAndHold = 0, TimeOverThreshold = 1};
-   TigerEnergyMode energyMode = TigerEnergyMode::SampleAndHold;
+  TString runFolder = "";
+  TString mapFile = "map-tiger-empty.txt";
+  TString efineFile = "";
+  TString tfineFile = "";
+  enum TigerEnergyMode : bool {SampleAndHold = 0, TimeOverThreshold = 1};
+  TigerEnergyMode energyMode = TigerEnergyMode::SampleAndHold;
 
-   Char_t   gemrocID;        //                "B" == Char_t   ==  int8_t
-   Short_t  tigerID;         //  8 bit data -- "S" == Short_t  == int16_t
-   Char_t   chipID;          //  2 bit data -- "B" == Char_t   ==  int8_t
-   Char_t   channelID;       //  6 bit data -- "B" == Char_t   ==  int8_t
-   /* 4 TAC per shaper for event de-randomization */
-   Char_t   tacID;           //  2 bit data -- "B" == Char_t   ==  int8_t
-   Int_t    tCoarse;         // 16 bit data -- "I" == Int_t    == int32_t
-   Short_t  eCoarse;         // 10 bit data -- "S" == Short_t  == int16_t
-   Short_t  tFine;           // 10 bit data -- "S" == Short_t  == int16_t
-   Short_t  eFine;           // 10 bit data -- "S" == Short_t  == int16_t
-   Int_t    frameCount;      // 16 bit data -- "I" == Int_t    == int32_t
-   Int_t    seu;             // 16 bit data -- "I" == Int_t    == int32_t
-   Long64_t frameCountLoops; //                "L" == Long64_t == int64_t
-   Int_t    counterWord;     // 24 bit data -- "I" == Int_t    == int32_t
+  Char_t   gemrocID;        //                "B" == Char_t   ==  int8_t
+  Short_t  tigerID;         //  8 bit data -- "S" == Short_t  == int16_t
+  Char_t   chipID;          //  2 bit data -- "B" == Char_t   ==  int8_t
+  Char_t   channelID;       //  6 bit data -- "B" == Char_t   ==  int8_t
+  /* 4 TAC per shaper for event de-randomization */
+  Char_t   tacID;           //  2 bit data -- "B" == Char_t   ==  int8_t
+  Int_t    tCoarse;         // 16 bit data -- "I" == Int_t    == int32_t
+  Short_t  eCoarse;         // 10 bit data -- "S" == Short_t  == int16_t
+  Short_t  tFine;           // 10 bit data -- "S" == Short_t  == int16_t
+  Short_t  eFine;           // 10 bit data -- "S" == Short_t  == int16_t
+  Int_t    frameCount;      // 16 bit data -- "I" == Int_t    == int32_t
+  Int_t    seu;             // 16 bit data -- "I" == Int_t    == int32_t
+  Long64_t frameCountLoops; //                "L" == Long64_t == int64_t
+  Int_t    counterWord;     // 24 bit data -- "I" == Int_t    == int32_t
 
-   tiger(TString, TString runFolder_, TString mapFile_, TString eFineFile_, TString tFineFile_, short energyMode_ = 0);
-   tiger(TString, TString runFolder_ = "", TString mapFile_ = "map-tiger-empty.txt", TString calibration = "", short energyMode_ = 0);
-   tiger(vector<TString>, TString runFolder_ = "", TString mapFile_ = "map-tiger-empty.txt", TString eFineFile_ = "", short energyMode_ = 0);
-   tiger(TChain *tree = nullptr, TString mapFile_ = "map-tiger-empty.txt", TString eFineFile_ = "", short energyMode_ = 0);
-   virtual ~tiger();
-   virtual void     Init() override;
-   virtual void     Loop(unsigned long n = 0) override;
+  tiger(TString, TString runFolder_, TString mapFile_, TString eFineFile_, TString tFineFile_, short energyMode_ = 0);
+  tiger(TString, TString runFolder_ = "", TString mapFile_ = "map-tiger-empty.txt", TString calibration = "", short energyMode_ = 0);
+  tiger(vector<TString>, TString runFolder_ = "", TString mapFile_ = "map-tiger-empty.txt", TString eFineFile_ = "", short energyMode_ = 0);
+  tiger(TChain *tree = nullptr, TString mapFile_ = "map-tiger-empty.txt", TString eFineFile_ = "", short energyMode_ = 0);
+  virtual ~tiger();
+  virtual void     Init() override;
+  virtual void     Loop(unsigned long n = 0) override;
 
-   map<tuple<int,int,int>, pair<int, int>> channelMap;
-   void addMap(TString filename, bool verbose = false);
-   pair<int,int> getMapped(const tuple<int,int,int> channel) const;
-   pair<int,int> getMapped(const int gemroc, const int tiger, const int channel) const{
-     return getMapped(make_tuple(gemroc, tiger, channel));
-   }
-   pair<int,int> getMapped(const tigerHitTL* hit) const{
-     return getMapped(hit->gemrocID, hit->tigerID, hit->channelID);
-   }
-   pair<int,int> getMapped(const tigerHitTL hit) const{
-     return getMapped(&hit);
-   }
-   int getMappedDetector(const tuple<int,int,int> channel) const{
-     return getMapped(channel).first;
-   }
-   int getMappedDetector(const int gemroc, const int tiger, const int channel) const{
-     return getMappedDetector(make_tuple(gemroc, tiger, channel));
-   }
-   int getMappedDetector(const tigerHitTL* hit) const{
-     return getMappedDetector(hit->gemrocID, hit->tigerID, hit->channelID);
-   }
-   int getMappedDetector(const tigerHitTL hit) const{
-     return getMappedDetector(&hit);
-   }
-   int getMappedChannel(const tuple<int,int,int> channel) const{
-     return getMapped(channel).second;
-   }
-   int getMappedChannel(const int gemroc, const int tiger, const int channel) const{
-     return getMappedChannel(make_tuple(gemroc, tiger, channel));
-   }
-   int getMappedChannel(const tigerHitTL* hit) const{
-     return getMappedChannel(hit->gemrocID, hit->tigerID, hit->channelID);
-   }
-   int getMappedChannel(const tigerHitTL hit) const{
-     return getMappedChannel(&hit);
-   }
+  map<tuple<int,int,int>, pair<int, int>> channelMap;
+  void addMap(TString filename, bool verbose = false);
+  pair<int,int> getMapped(const tuple<int,int,int> channel) const;
+  pair<int,int> getMapped(const int gemroc, const int tiger, const int channel) const{
+    return getMapped(make_tuple(gemroc, tiger, channel));
+  }
+  pair<int,int> getMapped(const tigerHitTL* hit) const{
+    return getMapped(hit->gemrocID, hit->tigerID, hit->channelID);
+  }
+  pair<int,int> getMapped(const tigerHitTL hit) const{
+    return getMapped(&hit);
+  }
+  int getMappedDetector(const tuple<int,int,int> channel) const{
+    return getMapped(channel).first;
+  }
+  int getMappedDetector(const int gemroc, const int tiger, const int channel) const{
+    return getMappedDetector(make_tuple(gemroc, tiger, channel));
+  }
+  int getMappedDetector(const tigerHitTL* hit) const{
+    return getMappedDetector(hit->gemrocID, hit->tigerID, hit->channelID);
+  }
+  int getMappedDetector(const tigerHitTL hit) const{
+    return getMappedDetector(&hit);
+  }
+  int getMappedChannel(const tuple<int,int,int> channel) const{
+    return getMapped(channel).second;
+  }
+  int getMappedChannel(const int gemroc, const int tiger, const int channel) const{
+    return getMappedChannel(make_tuple(gemroc, tiger, channel));
+  }
+  int getMappedChannel(const tigerHitTL* hit) const{
+    return getMappedChannel(hit->gemrocID, hit->tigerID, hit->channelID);
+  }
+  int getMappedChannel(const tigerHitTL hit) const{
+    return getMappedChannel(&hit);
+  }
 
-   map<tuple<int,int,int>, pair<int, int>> eFineMap;
-   void addCalibrationEFine(TString filename, bool verbose = false);
-   map<tuple<int,int,int>, pair<int, int>> tFineMap;
-   void addCalibrationTFine(TString filename, bool verbose = false);
+  map<tuple<int,int,int>, pair<int, int>> eFineMap;
+  void addCalibrationEFine(TString filename, bool verbose = false);
+  map<tuple<int,int,int>, pair<int, int>> tFineMap;
+  void addCalibrationTFine(TString filename, bool verbose = false);
 
-   tigerHitTL getTigerHitTLCurrent() const;
-   void updateTigerHitTLCurrent(tigerHitTL &hit) const;
+  tigerHitTL getTigerHitTLCurrent() const;
+  void updateTigerHitTLCurrent(tigerHitTL &hit) const;
 
   // map<pair<int, int>, float> strawCenterMM = {
   //   {{1,24}, 156}, // 213 - 21 - 24/1.0 - 12
@@ -164,29 +164,29 @@ tiger::~tiger()
 }
 
 void tiger::addMap(TString filename, bool verbose){
-   if(filename == "") return;
-   ifstream infile(Form("../configs/%s", filename.Data()));
-   if(infile.fail()){
-      if(!filename.BeginsWith("map-tiger-")){
-         auto fn2 = TString("map-tiger-") + filename;
-         printf("No map file %s found. Try to find file \"%s\"\n", filename.Data(), fn2.Data());
-         addMap(fn2, verbose);
-      }
-      return;
-   }
-   std::string line;
-   int gr, t, ch, d, dch;
-   while (std::getline(infile, line))
-   {
-     std::istringstream iss(line);
-     if(iss.str().substr(0, 1) == string("#")) // in c++20 there is starts_with("#")
-       continue;
-     if (!(iss >> gr >> t >> ch >> d >> dch))
-       break; // error
-     if(verbose)
-       printf("Map: %d: %d - %d\n", ch, d, dch);
-     channelMap.emplace(make_tuple(gr,t, ch), make_pair(d, dch));
-   }
+  if(filename == "") return;
+  ifstream infile(Form("../configs/%s", filename.Data()));
+  if(infile.fail()){
+    if(!filename.BeginsWith("map-tiger-")){
+      auto fn2 = TString("map-tiger-") + filename;
+      printf("No map file %s found. Try to find file \"%s\"\n", filename.Data(), fn2.Data());
+      addMap(fn2, verbose);
+    }
+    return;
+  }
+  std::string line;
+  int gr, t, ch, d, dch;
+  while (std::getline(infile, line))
+  {
+    std::istringstream iss(line);
+    if(iss.str().substr(0, 1) == string("#")) // in c++20 there is starts_with("#")
+      continue;
+    if (!(iss >> gr >> t >> ch >> d >> dch))
+      break; // error
+    if(verbose)
+      printf("Map: %d: %d - %d\n", ch, d, dch);
+    channelMap.emplace(make_tuple(gr,t, ch), make_pair(d, dch));
+  }
 }
 pair<int,int> tiger::getMapped(const tuple<int,int,int> channel) const{
   if(!channelMap.count(channel))
@@ -195,54 +195,54 @@ pair<int,int> tiger::getMapped(const tuple<int,int,int> channel) const{
 }
 
 void tiger::addCalibrationEFine(TString filename, bool verbose){
-   if(filename == "") return;
-   ifstream infile(Form("../configs/%s", filename.Data()));
-   if(infile.fail()){
-      if(!filename.BeginsWith("tiger_efine_calibration-")){
-         auto fn2 = TString("tiger_efine_calibration-") + filename;
-         printf("No eFine calibration file %s found. Try to find file \"%s\"\n", filename.Data(), fn2.Data());
-         addCalibrationEFine(fn2, verbose);
-      }
-      return;
-   }
-   std::string line;
-   int gr, t, ch, min, max;
-   while (std::getline(infile, line))
-   {
-     std::istringstream iss(line);
-     if(iss.str().substr(0, 1) == string("#")) // in c++20 there is starts_with("#")
-       continue;
-     if (!(iss >> gr >> t >> ch >> min >> max))
-       break; // error
-     if(verbose)
-       printf("efine calibration: %d %d: %d: %d - %i\n", gr, t, ch, min, max);
-     eFineMap.emplace(make_tuple(gr,t, ch), make_pair(min, max));
-   }
+  if(filename == "") return;
+  ifstream infile(Form("../configs/%s", filename.Data()));
+  if(infile.fail()){
+    if(!filename.BeginsWith("tiger_efine_calibration-")){
+      auto fn2 = TString("tiger_efine_calibration-") + filename;
+      printf("No eFine calibration file %s found. Try to find file \"%s\"\n", filename.Data(), fn2.Data());
+      addCalibrationEFine(fn2, verbose);
+    }
+    return;
+  }
+  std::string line;
+  int gr, t, ch, min, max;
+  while (std::getline(infile, line))
+  {
+    std::istringstream iss(line);
+    if(iss.str().substr(0, 1) == string("#")) // in c++20 there is starts_with("#")
+      continue;
+    if (!(iss >> gr >> t >> ch >> min >> max))
+      break; // error
+    if(verbose)
+      printf("efine calibration: %d %d: %d: %d - %i\n", gr, t, ch, min, max);
+    eFineMap.emplace(make_tuple(gr,t, ch), make_pair(min, max));
+  }
 }
 void tiger::addCalibrationTFine(TString filename, bool verbose){
-   if(filename == "") return;
-   ifstream infile(Form("../configs/%s", filename.Data()));
-   if(infile.fail()){
-      if(!filename.BeginsWith("tiger_tfine_calibration-")){
-         auto fn2 = TString("tiger_tfine_calibration-") + filename;
-         printf("No tFine calibration file %s found. Try to find file \"%s\"\n", filename.Data(), fn2.Data());
-         addCalibrationEFine(fn2, verbose);
-      }
-      return;
-   }
-   std::string line;
-   int gr, t, ch, min, max;
-   while (std::getline(infile, line))
-   {
-     std::istringstream iss(line);
-     if(iss.str().substr(0, 1) == string("#")) // in c++20 there is starts_with("#")
-       continue;
-     if (!(iss >> gr >> t >> ch >> min >> max))
-       break; // error
-     if(verbose)
-       printf("efine calibration: %d %d: %d: %d - %i\n", gr, t, ch, min, max);
-     tFineMap.emplace(make_tuple(gr,t, ch), make_pair(min, max));
-   }
+  if(filename == "") return;
+  ifstream infile(Form("../configs/%s", filename.Data()));
+  if(infile.fail()){
+    if(!filename.BeginsWith("tiger_tfine_calibration-")){
+      auto fn2 = TString("tiger_tfine_calibration-") + filename;
+      printf("No tFine calibration file %s found. Try to find file \"%s\"\n", filename.Data(), fn2.Data());
+      addCalibrationEFine(fn2, verbose);
+    }
+    return;
+  }
+  std::string line;
+  int gr, t, ch, min, max;
+  while (std::getline(infile, line))
+  {
+    std::istringstream iss(line);
+    if(iss.str().substr(0, 1) == string("#")) // in c++20 there is starts_with("#")
+      continue;
+    if (!(iss >> gr >> t >> ch >> min >> max))
+      break; // error
+    if(verbose)
+      printf("efine calibration: %d %d: %d: %d - %i\n", gr, t, ch, min, max);
+    tFineMap.emplace(make_tuple(gr,t, ch), make_pair(min, max));
+  }
 }
 
 
@@ -264,7 +264,7 @@ void tiger::updateTigerHitTLCurrent(tigerHitTL &hit) const{
 
   hit.counterWord = counterWord;
   hit.tFineLimits = (tFineMap.count({gemrocID, tigerID, channelID})) ?
-     tFineMap.at({gemrocID, tigerID, channelID}) : make_pair(0, 1023);
+    tFineMap.at({gemrocID, tigerID, channelID}) : make_pair(0, 1023);
 }
 tigerHitTL tiger::getTigerHitTLCurrent() const{
   tigerHitTL hit;
@@ -314,35 +314,35 @@ void tiger::Init()
       break;
   };
 
-   // Set branch addresses and branch pointers
-   if (!fChain) return;
-   printf("tiger::Init()\n");
-   fCurrent = -1;
-   fChain->SetMakeClass(1);
-   fChain->SetBranchAddress("gemrocID", &gemrocID);
-   fChain->SetBranchAddress("tigerID", &tigerID);
-   fChain->SetBranchAddress("chipID", &chipID);
-   fChain->SetBranchAddress("channelID", &channelID);
-   /* 4 TAC per shaper for event de-randomization */
-   fChain->SetBranchAddress("tacID", &tacID);
-   fChain->SetBranchAddress("tCoarse", &tCoarse);
-   fChain->SetBranchAddress("eCoarse", &eCoarse);
-   fChain->SetBranchAddress("tFine", &tFine);
-   fChain->SetBranchAddress("eFine", &eFine);
-   fChain->SetBranchAddress("frameCount", &frameCount);
-   fChain->SetBranchAddress("seu", &seu);
-   fChain->SetBranchAddress("frameCountLoops", &frameCountLoops);
-   fChain->SetBranchAddress("counterWord", &counterWord);
+  // Set branch addresses and branch pointers
+  if (!fChain) return;
+  printf("tiger::Init()\n");
+  fCurrent = -1;
+  fChain->SetMakeClass(1);
+  fChain->SetBranchAddress("gemrocID", &gemrocID);
+  fChain->SetBranchAddress("tigerID", &tigerID);
+  fChain->SetBranchAddress("chipID", &chipID);
+  fChain->SetBranchAddress("channelID", &channelID);
+  /* 4 TAC per shaper for event de-randomization */
+  fChain->SetBranchAddress("tacID", &tacID);
+  fChain->SetBranchAddress("tCoarse", &tCoarse);
+  fChain->SetBranchAddress("eCoarse", &eCoarse);
+  fChain->SetBranchAddress("tFine", &tFine);
+  fChain->SetBranchAddress("eFine", &eFine);
+  fChain->SetBranchAddress("frameCount", &frameCount);
+  fChain->SetBranchAddress("seu", &seu);
+  fChain->SetBranchAddress("frameCountLoops", &frameCountLoops);
+  fChain->SetBranchAddress("counterWord", &counterWord);
 
-   if(mapFile!="" && !mapFile.EndsWith(".txt"))
-     mapFile.Append(".txt");
-   addMap(mapFile.Data());
-   if(efineFile!="" && !efineFile.EndsWith(".txt"))
-     efineFile.Append(".txt");
-   addCalibrationEFine(efineFile.Data());
-   if(tfineFile!="" && !tfineFile.EndsWith(".txt"))
-     tfineFile.Append(".txt");
-   addCalibrationTFine(tfineFile.Data());
+  if(mapFile!="" && !mapFile.EndsWith(".txt"))
+    mapFile.Append(".txt");
+  addMap(mapFile.Data());
+  if(efineFile!="" && !efineFile.EndsWith(".txt"))
+    efineFile.Append(".txt");
+  addCalibrationEFine(efineFile.Data());
+  if(tfineFile!="" && !tfineFile.EndsWith(".txt"))
+    tfineFile.Append(".txt");
+  addCalibrationTFine(tfineFile.Data());
 }
 
 #ifndef tiger_cxx

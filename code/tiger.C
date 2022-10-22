@@ -97,9 +97,9 @@ void tiger::Loop(unsigned long n)
       grD->mkdir(Form("tiger_%d", t))->cd();
       pair<int, int> m = {gr, t};
       hTigerChargeToT.emplace(m, make_shared<TH2F>(Form("charge_tot_gr%d_t%d", gr, t), Form("%s: charge (Time over Threshold mode) for gemroc %d tiger %d;channel;charge", file.Data(), gr, t),
-                                          64, 0, 64, 1025, 0, 1025));
+                                                   64, 0, 64, 1025, 0, 1025));
       hTigerChargeSH.emplace(m, make_shared<TH2F>(Form("charge_sh_gr%d_t%d", gr, t), Form("%s: charge (Sample and Hold mode) for gemroc %d tiger %d;channel;charge", file.Data(), gr, t),
-                                         64, 0, 64, 1025, 0, 1025));
+                                                  64, 0, 64, 1025, 0, 1025));
       hTigerTimeFine.emplace(m, make_shared<TH2F>(Form("timeFine_gr%d_t%d", gr, t), Form("%s: timeFine for gemroc %d tiger %d;channel;time, ns", file.Data(), gr, t), 64, 0, 64, 4096, 0, 409600));
       hTigertCoarse.emplace(m, make_shared<TH2F>(Form("tCoarse_gr%d_t%d", gr, t), Form("%s: tCoarse for gemroc %d tiger %d;channel;tCoarse", file.Data(), gr, t), 64, 0, 64, 65536, 0, 65536));
       hTigereCoarse.emplace(m, make_shared<TH2F>(Form("eCoarse_gr%d_t%d", gr, t), Form("%s: eCoarse for gemroc %d tiger %d;channel;eCoarse", file.Data(), gr, t), 64, 0, 64, 512, 0, 1024));
@@ -110,8 +110,8 @@ void tiger::Loop(unsigned long n)
       for(auto j = 0; j < 64; j++){
         hTigerChargePerTime.emplace(make_tuple(gr, t, j),
                                     make_shared<TH2F>(Form("ChargePerTime_gr%d_t%d_ch%d", gr, t, j),
-                                             Form("%s: Charge for gemroc %d tiger %d channel %d;full time, s; charge%s", file.Data(), gr, t, j, ((energyMode == TigerEnergyMode::SampleAndHold) ? " = 1024 - eFine": "")),
-                                             600, 0, 60, 512, 0, 1024));
+                                                      Form("%s: Charge for gemroc %d tiger %d channel %d;full time, s; charge%s", file.Data(), gr, t, j, ((energyMode == TigerEnergyMode::SampleAndHold) ? " = 1024 - eFine": "")),
+                                                      600, 0, 60, 512, 0, 1024));
         hTigereFinePerTime.emplace(make_tuple(gr, t, j),
                                    make_shared<TH2F>(Form("eFinePerTime_gr%d_t%d_ch%d", gr, t, j), Form("%s: eFine for gemroc %d tiger %d channel %d;full time, s; eFine", file.Data(), gr, t, j), 600, 0, 60, 512, 0, 1024));
         hTigerFullTimePerChannel.emplace(make_tuple(gr, t, j),
@@ -135,7 +135,7 @@ void tiger::Loop(unsigned long n)
   for(int i = 0; i <= 4; i++){
     if(i+2 == mmLayerY) continue;
     straw_vs_mm_spatial_corr.emplace(i+2, make_shared<TH2F>(Form("straw_vs_mm%d_spatial_corr", i), Form("%s: microMegas %d vs straw spatial correaltion;straw ch;MM ch", file.Data(), i),
-                                                   detMax.at(1) - detMin.at(1) + 1, detMin.at(1), detMax.at(1) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
+                                                            detMax.at(1) - detMin.at(1) + 1, detMin.at(1), detMax.at(1) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
   }
 
   vector<shared_ptr<TH1F>> hprofile;
@@ -152,16 +152,16 @@ void tiger::Loop(unsigned long n)
     d->cd();
     hprofile.push_back(make_shared<TH1F>(Form("profile_det%d", i), Form("%s: profile for detector %d;channel", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1));
     hChargeToT.push_back(make_shared<TH2F>(Form("charge_tot_det%d", i), Form("%s: charge (Time over Threshold mode) for detector %d;channel;charge", file.Data(), i),
-                                  detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 1025, 0, 1025));
+                                           detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 1025, 0, 1025));
     hChargeSH.push_back(make_shared<TH2F>(Form("charge_sh_det%d", i), Form("%s: charge (Sample and Hold mode) for detector %d;channel;charge", file.Data(), i),
-                                 detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 1025, 0, 1025));
+                                          detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 1025, 0, 1025));
     hTimeFine.push_back(make_shared<TH2F>(Form("timeFine_det%d", i), Form("%s: timeFine for detector %d;channel;time, ns", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 4096, 0, 409600));
     htCoarse.push_back(make_shared<TH2F>(Form("tCoarse_det%d", i), Form("%s: tCoarse for detector %d;channel;tCoarse", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 65536, 0, 65536));
     heCoarse.push_back(make_shared<TH2F>(Form("eCoarse_det%d", i), Form("%s: eCoarse for detector %d;channel;eCoarse", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 512, 0, 1024));
     htFine.push_back(make_shared<TH2F>(Form("tFine_det%d", i), Form("%s: tFine for detector %d;channel;tFine", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 512, 0, 1024));
     heFine.push_back(make_shared<TH2F>(Form("eFine_det%d", i), Form("%s: eFine for detector %d;channel;eFine", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 512, 0, 1024));
     htCoarse10bit.push_back(make_shared<TH2F>(Form("tCoarse10bit_det%d", i), Form("%s: last 10 bit of tCoarse for detector %d;channel;tCoarse %% 0x400", file.Data(), i),
-                                     detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 512, 0, 1024));
+                                              detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 512, 0, 1024));
     hFullTime.push_back(make_shared<TH2F>(Form("fullTime_det%d", i), Form("%s: fullTime for detector %d;channel;time, s", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 600, 0, 60));
     hFullTime1D.push_back(make_shared<TH1F>(Form("fullTime1D_det%d", i), Form("%s: fullTime for detector %d;time, s", file.Data(), i), 600, 0, 60));
 
@@ -169,12 +169,12 @@ void tiger::Loop(unsigned long n)
       for(auto j = detMin.at(i); j <= detMax.at(i); j++){
         hChargePerTime.emplace(make_pair(i, j),
                                make_shared<TH2F>(Form("ChargePerTime_det%d_ch%d", i, j),
-                                        Form("%s: Charge for detector %d, channel %d;full time, s; charge%s", file.Data(), i, j, ((energyMode == TigerEnergyMode::SampleAndHold) ? " = 1024 - eFine": "")),
-                                        600, 0, 60, 512, 0, 1024));
+                                                 Form("%s: Charge for detector %d, channel %d;full time, s; charge%s", file.Data(), i, j, ((energyMode == TigerEnergyMode::SampleAndHold) ? " = 1024 - eFine": "")),
+                                                 600, 0, 60, 512, 0, 1024));
         heFinePerTime.emplace(make_pair(i, j),
                               make_shared<TH2F>(Form("eFinePerTime_det%d_ch%d", i, j), Form("%s: eFine for detector %d, channel %d%s;full time, s; eFine", file.Data(), i, j,
-                                                                                   (detectorNames.count({i,j}) ? (string() + " (" + detectorNames.at({i,j}) + ")").c_str() : "")),
-                                       600, 0, 60, 512, 0, 1024));
+                                                                                            (detectorNames.count({i,j}) ? (string() + " (" + detectorNames.at({i,j}) + ")").c_str() : "")),
+                                                600, 0, 60, 512, 0, 1024));
         hFullTimePerChannel.emplace(make_pair(i, j),
                                     make_shared<TH1F>(Form("FullTimePerChannel_det%d_ch%d", i, j), Form("%s: fullTime for detector %d channel %d;time, s", file.Data(), i, j), 600, 0, 60));
       }
@@ -214,10 +214,10 @@ void tiger::Loop(unsigned long n)
   for(auto i = detMin.at(1); i <= detMax.at(1); i++){
     straw_deltat.emplace(i,
                          make_shared<TH1F>(Form("straw%d_vs_sci60", i),
-                                  Form("%s: straw%d_vs_sci60;#Delta t", file.Data(), i), 1000, -500, 500));
+                                           Form("%s: straw%d_vs_sci60;#Delta t", file.Data(), i), 1000, -500, 500));
     straw_deltat_0.emplace(i,
                            make_shared<TH1F>(Form("straw%d_vs_sci0", i),
-                                    Form("%s: straw%d_vs_sci0;#Delta t", file.Data(), i), 1000, -500, 500));
+                                             Form("%s: straw%d_vs_sci0;#Delta t", file.Data(), i), 1000, -500, 500));
   }
   out->cd();
 
@@ -226,12 +226,12 @@ void tiger::Loop(unsigned long n)
   for(auto i = detMin.at(1); i < detMax.at(1); i++){
     straw_banana.emplace(i,
                          make_shared<TH2F>(Form("straw%d-%d_banana", i, i+1),
-                                  Form("%s: Time difference between straws %d, %d and sci60;T_{straw%d} - T_{scint}, [ns];T_{straw%d} - T_{scint}, [ns]", file.Data(), i, i+1, i, i+1),
-                                  500, -250, 250, 500, -250, 250));
+                                           Form("%s: Time difference between straws %d, %d and sci60;T_{straw%d} - T_{scint}, [ns];T_{straw%d} - T_{scint}, [ns]", file.Data(), i, i+1, i, i+1),
+                                           500, -250, 250, 500, -250, 250));
     straw_banana_0.emplace(i,
                            make_shared<TH2F>(Form("straw%d-%d_banana_0", i, i+1),
-                                    Form("%s: Time difference between straws %d, %d and sci0;T_{straw%d} - T_{scint}, [ns];T_{straw%d} - T_{scint}, [ns]", file.Data(), i, i+1, i, i+1),
-                                    500, -250, 250, 500, -250, 250));
+                                             Form("%s: Time difference between straws %d, %d and sci0;T_{straw%d} - T_{scint}, [ns];T_{straw%d} - T_{scint}, [ns]", file.Data(), i, i+1, i, i+1),
+                                             500, -250, 250, 500, -250, 250));
   }
   out->cd();
 
@@ -240,7 +240,7 @@ void tiger::Loop(unsigned long n)
   for(auto i = detMin.at(1); i < detMax.at(1); i++){
     straw_straw.emplace(i,
                         make_shared<TH1F>(Form("straw%d_vs_straw%d", i, i+1),
-                                 Form("%s: straw%d_vs_straw%d;T_{straw%d} - T_{straw%d}", file.Data(), i, i+1, i, i+1), 1000, -500, 500));
+                                          Form("%s: straw%d_vs_straw%d;T_{straw%d} - T_{straw%d}", file.Data(), i, i+1, i, i+1), 1000, -500, 500));
   }
   out->cd();
 
@@ -251,14 +251,14 @@ void tiger::Loop(unsigned long n)
     out->mkdir("plots_corr_6")->cd();
     for(auto i = 2; i <= 5; i++){
       hNeighborsPerTime.emplace(i, make_shared<TH2F>(Form("hNeighborsPerTime_det%d", i), Form("%s: N neighbors per time for detector %d;full time, s; N neighbors", file.Data(), i),
-                                            600, 0, 60, detMax.at(i) - detMin.at(i) + 1, 0, detMax.at(i) - detMin.at(i) + 1));
+                                                     600, 0, 60, detMax.at(i) - detMin.at(i) + 1, 0, detMax.at(i) - detMin.at(i) + 1));
       heFineCorr.emplace(i, make_shared<TH2F>(Form("eFine_det%d_corr", i), Form("%s: eFine for detector %d corellated with ship straw;channel;eFine", file.Data(), i),
-                                     detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 512, 0, 1024));
+                                              detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 512, 0, 1024));
       for(auto j = detMin.at(i); j <= detMax.at(i); j++){
         heFinePerTimeCorr.emplace(make_pair(i, j),
                                   make_shared<TH2F>(Form("eFinePerTime_corr_det%d_ch%d", i, j), Form("%s: eFine for detector %d, channel %d%s correllated with ship straw;full time, s; eFine", file.Data(), i, j,
-                                                                                            (detectorNames.count({i,j}) ? (string() + " (" + detectorNames.at({i,j}) + ")").c_str() : "")),
-                                           60, 0, 60, 512, 0, 1024));
+                                                                                                     (detectorNames.count({i,j}) ? (string() + " (" + detectorNames.at({i,j}) + ")").c_str() : "")),
+                                                    60, 0, 60, 512, 0, 1024));
       }
     }
     out->cd();
@@ -275,7 +275,7 @@ void tiger::Loop(unsigned long n)
   if(detMax.at(6) > 0){
     for(int i = 2; i <= 4; i++){
       hShipRT.emplace(i, make_shared<TH2F>(Form("ship_rt_vs_mm%d", i-2), Form("%s: RT for SHiP straw and MM %d;strip;#DeltaT, ns", file.Data(), i-2),
-                                  detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i), 2000, -1000, 1000));
+                                           detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i), 2000, -1000, 1000));
     }
   }
 
@@ -286,9 +286,9 @@ void tiger::Loop(unsigned long n)
       if(i == j)
         continue;
       mmCorrellations[{i, j}] = make_shared<TH2F>(Form("mmCorrellations_det%d-%d", i, j),
-                                         Form("%s: N corellations between detectors %d and %d;strip (det %d); strip (det %d)", file.Data(), i, j, i, j),
-                                         detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1,
-                                         detMax.at(j) - detMin.at(j) + 1, detMin.at(j), detMax.at(j) + 1);
+                                                  Form("%s: N corellations between detectors %d and %d;strip (det %d); strip (det %d)", file.Data(), i, j, i, j),
+                                                  detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1,
+                                                  detMax.at(j) - detMin.at(j) + 1, detMin.at(j), detMax.at(j) + 1);
     }
   }
   out->cd();
@@ -298,9 +298,9 @@ void tiger::Loop(unsigned long n)
     for(int i = 2; i <= 5; i++){
       if(i == mmLayerY) continue;
       hStrawRT.emplace(i, make_shared<TH2F>(Form("straw_rt_vs_mm%d", i-2), Form("%s: RT for straws and MM %d;strip;#DeltaT, ns", file.Data(), i-2),
-                                  detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i), 2000, -1000, 1000));
+                                            detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i), 2000, -1000, 1000));
       hStrawRTCoarse.emplace(i, make_shared<TH2F>(Form("straw_rt_vs_mm%d_coarse", i-2), Form("%s: RT for straws and MM %d (coarse time);strip;#DeltaT (coarse), ns", file.Data(), i-2),
-                                  detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i), 320, -1000, 1000));
+                                                  detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i), 320, -1000, 1000));
     }
   }
   
