@@ -223,7 +223,7 @@ void tiger::addCalibrationEFine(TString filename, bool verbose){
     if (!(iss >> gr >> t >> ch >> min >> max))
       break; // error
     if(verbose)
-      printf("efine calibration: %d %d: %d: %d - %i\n", gr, t, ch, min, max);
+      printf("eFine calibration: %d %d: %d: %d - %i\n", gr, t, ch, min, max);
     eFineMap.emplace(make_tuple(gr,t, ch), make_pair(min, max));
   }
 }
