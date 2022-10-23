@@ -234,7 +234,7 @@ void tiger::addCalibrationTFine(TString filename, bool verbose){
     if(!filename.BeginsWith("tiger_tfine_calibration-")){
       auto fn2 = TString("tiger_tfine_calibration-") + filename;
       printf("No tFine calibration file %s found. Try to find file \"%s\"\n", filename.Data(), fn2.Data());
-      addCalibrationEFine(fn2, verbose);
+      addCalibrationTFine(fn2, verbose);
     }
     return;
   }else{
