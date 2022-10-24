@@ -221,49 +221,44 @@ void tiger_tree_converter_tl_directory(string folderName){
 union TMDataFrame{
   uint64_t unknown;
   struct {
-    uint16_t l1Timestamp: 16;
-    uint8_t countHits: 8; // What happens if all 64*8 = 512 channels will be activated?
-
+    uint64_t l1Timestamp: 16,
+      countHits: 8, // What happens if all 64*8 = 512 channels will be activated?
     // in python converter:
-    uint32_t l1LocalCount: 32;
-    uint8_t reserved: 2;
-    // in tiger_data_format.pdf:
-    // uint64_t l1LocalCount: 34;
-
-    uint8_t status: 3;
-    uint8_t key: 3; // should be 0x6
+      l1LocalCount0: 6, // bits 0-5
+      :2,
+      l1LocalCount1: 26, // bits 6-31
+      status: 3,
+      key: 3; // should be 0x6
   } header;
   struct {
-    uint32_t lastCountWordData: 18;
-    uint8_t lastCountWordCh: 6;
-    uint8_t l1LocalCount: 3;
-    uint8_t tiger: 3;
-    uint8_t reserved: 2;
-    uint8_t gemroc: 5;
-    uint32_t l1LocalFramenum: 24;
-    uint8_t key: 3; // should be 0x7
+    uint64_t lastCountWordData: 18,
+      lastCountWordCh: 6,
+      l1LocalCount: 3,
+      tiger: 3,
+      reserved: 2,
+      gemroc: 5,
+      l1LocalFramenum: 24,
+      key: 3; // should be 0x7
   } trailer;
   struct {
-    // in tiger_data_format.pdf:
-    // uint64_t rawData: 56;
-    // in python converter:
-    uint16_t eFine: 10;
-    uint16_t tFine: 10;
-    uint16_t eCoarse: 10;
-    uint8_t reserved: 2;
-    uint16_t tCoarse: 16;
-    uint8_t tac: 2;
-    uint8_t channel: 6;
-    uint8_t lastTigerFrameNumber: 3;
-    uint8_t tiger: 3;
-    uint8_t key: 2; // should be 0x0
+    uint64_t eFine: 10,
+      tFine: 10,
+      eCoarse: 10,
+      reserved: 2,
+      tCoarse: 16,
+      tac: 2,
+      channel: 6,
+      lastTigerFrameNumber: 3,
+      tiger: 3,
+      key: 2; // should be 0x0
   } data;
   struct {
-    uint32_t reserved: 28;
-    uint32_t udpFrameCount: 24;
-    uint8_t gemroc: 5;
-    uint32_t headerStatus: 3;
-    uint8_t key: 4; // should be 0x4
+    uint64_t udpFrameCount0: 28,
+      : 4,
+      udpFrameCount1: 20,
+      gemroc: 5,
+      headerStatus: 3,
+      key: 4; // should be 0x4
   } udpCounter;
 };
 #pragma pack(pop)
@@ -350,15 +345,14 @@ void convertTM(ifstream* fIn, Char_t gemroc){
         hitStatus.trailer = false;
         hitStatus.udp = false;
         hitStatus.errors = false;
-        l1LocalCount = frame.header.l1LocalCount;
+        l1LocalCount = frame.header.l1LocalCount0 | (frame.header.l1LocalCount1 << 6);
         l1Timestamp = frame.header.l1Timestamp;
         status = frame.header.status;
         hitsLeft = frame.header.countHits;
         auto timediff = l1Timestamp - prevl1Timestamp;
         timediff += (timediff > 0) ? 0 : (1<<16);
         if(DEBUG_PRINT)
-          printf("%s  HEADER :  STATUS BIT[2:0]: %01X: LOCAL L1 COUNT: %08X HitCount: %02X LOCAL L1 TIMESTAMP: %04X; Diff w.r.t. previous L1_TS: %04f us\n",
-                 printBinary(frame.unknown).c_str(),
+          printf("HEADER :  STATUS BIT[2:0]: %01X: LOCAL L1 COUNT: %08X HitCount: %02X LOCAL L1 TIMESTAMP: %04X; Diff w.r.t. previous L1_TS: %04f us\n",
                  status, (unsigned)l1LocalCount, hitsLeft, l1Timestamp, timediff * 25.0 / 1E3);
         prevl1Timestamp = l1Timestamp;
         break;
@@ -370,8 +364,7 @@ void convertTM(ifstream* fIn, Char_t gemroc){
           hitStatus.errors = true;
         hitStatus.trailer = true;
         if(DEBUG_PRINT)
-          printf("%s  TRAILER: LOCAL L1  FRAMENUM [23:0]: %06X: GEMROC_ID: %02X TIGER_ID: %01X LOCAL L1 COUNT[2:0]: %01X LAST COUNT WORD FROM TIGER:CH_ID[5:0]: %02X LAST COUNT WORD FROM TIGER: DATA[17:0]: %05X \n",
-                 printBinary(frame.unknown).c_str(),
+          printf("TRAILER: LOCAL L1  FRAMENUM [23:0]: %06X: GEMROC_ID: %02X TIGER_ID: %01X LOCAL L1 COUNT[2:0]: %01X LAST COUNT WORD FROM TIGER:CH_ID[5:0]: %02X LAST COUNT WORD FROM TIGER: DATA[17:0]: %05X \n",
                  frame.trailer.l1LocalFramenum, frame.trailer.gemroc, frame.trailer.tiger, frame.trailer.l1LocalCount, frame.trailer.lastCountWordCh, frame.trailer.lastCountWordData);
         break;
       }
@@ -392,9 +385,8 @@ void convertTM(ifstream* fIn, Char_t gemroc){
         lastFrameNum.push_back(frame.data.lastTigerFrameNumber);
 
         if(DEBUG_PRINT)
-          printf("%s  DATA   : TIGER: %01X L1_TS - TIGERCOARSE_TS: %d LAST TIGER FRAME NUM[2:0]: %01X TIGER DATA: ChID [base10]: %d tacID: %01X Tcoarse: %04X Ecoarse: %03X Tfine: %03X Efine: %d \n",
-                 printBinary(frame.unknown).c_str(),
-                 tigerID.back(), (unsigned)(l1LocalCount - tCoarse.back()), lastFrameNum.back(), channelID.back(), tacID.back(), tCoarse.back(), eCoarse.back(), tFine.back(), eFine.back());
+          printf("DATA   : TIGER: %01X L1_TS - TIGERCOARSE_TS: %d LAST TIGER FRAME NUM[2:0]: %01X TIGER DATA: ChID [base10]: %d tacID: %01X Tcoarse: %04X Ecoarse: %03X Tfine: %03X Efine: %d \n",
+                 tigerID.back(), (unsigned)(l1Timestamp - tCoarse.back()), lastFrameNum.back(), channelID.back(), tacID.back(), tCoarse.back(), eCoarse.back(), tFine.back(), eFine.back());
         
         hitsLeft--;
         break;
@@ -403,12 +395,12 @@ void convertTM(ifstream* fIn, Char_t gemroc){
         if(hitStatus.udp)
           hitStatus.errors = true;
         hitStatus.udp = true;
+        uint64_t udpfc = frame.udpCounter.udpFrameCount0 | (frame.udpCounter.udpFrameCount1 << 28);
         // if(frame.udpCounter.udpFrameCount != l1LocalCount + 1)
         //   printf("UDP Counter :: For event %lld UDP frame count not the %lld\n", l1LocalCount, l1LocalCount+1);
         if(DEBUG_PRINT)
-          printf("%s  UDP_SEQNO: GEMROC_ID: %02X UDP_SEQNO_U48: %012X  STATUS BIT[5:3]: %d\n",
-                 printBinary(frame.unknown).c_str(),
-                 frame.udpCounter.gemroc, frame.udpCounter.udpFrameCount, frame.udpCounter.headerStatus);
+          printf("UDP_SEQNO: GEMROC_ID: %02X UDP_SEQNO_U48: %012X  STATUS BIT[5:3]:%d\n",
+                 frame.udpCounter.gemroc, (unsigned)udpfc, frame.udpCounter.headerStatus);
         break;
       }
       case TMDataFrameType::unknown: {
