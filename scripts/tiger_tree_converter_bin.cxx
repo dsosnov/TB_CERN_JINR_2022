@@ -280,7 +280,7 @@ TMDataFrameType getTypeTM(const TMDataFrame &hit){
   return TMDataFrameType::unknown;
 }
 
-string printBinary(const TMDataFrame &hit){
+string printBinary(const uint64_t &hit){
   string s = "";
   for(auto i = 63; i >= 0; i--){
     s += static_cast<bool>((hit >> i) & 0x1) ? "1" : "0";
@@ -289,7 +289,7 @@ string printBinary(const TMDataFrame &hit){
 }
 
 void convertTM(ifstream* fIn, Char_t gemroc){
-  static vector<Char_t> gemrocID = gemroc; // -- "B" = Char_t == int8_t
+  static vector<Char_t> gemrocID; // -- "B" = Char_t == int8_t
   static vector<Short_t> tigerID; // 8 bit -- "S" == Short_t == int16_t
   static vector<Char_t> channelID; // 6 bit -- "B" = Char_t == int8_t
   static vector<Char_t> tacID; // 2 bit -- 4 TAC per shaper for event de-randomization -- "B" = Char_t == int8_t
@@ -334,7 +334,7 @@ void convertTM(ifstream* fIn, Char_t gemroc){
     switch(getTypeTM(frame)){
       case TMDataFrameType::Header: { // HEADER
         if(hitStatus.header)
-          printf("Event %d was not finished normally!\n", l1LocalCount);
+          printf("Event %lld was not finished normally!\n", l1LocalCount);
         {
           gemrocID.clear();
           tigerID.clear();
@@ -350,20 +350,19 @@ void convertTM(ifstream* fIn, Char_t gemroc){
         hitStatus.trailer = false;
         hitStatus.udp = false;
         hitStatus.errors = false;
-        l1LocalCount = frame.Header.l1LocalCount;
-        l1Timestamp = frame.Header.l1Timestamp;
-        status = frame.Header.status;
-        hitsLeft = frame.Header.countHits;
-        auto timeDiff = l1Timestamp - prevl1Timestamp;
+        l1LocalCount = frame.header.l1LocalCount;
+        l1Timestamp = frame.header.l1Timestamp;
+        status = frame.header.status;
+        hitsLeft = frame.header.countHits;
+        auto timediff = l1Timestamp - prevl1Timestamp;
         timediff += (timediff > 0) ? 0 : (1<<16);
         if(DEBUG_PRINT)
           printf("%s  HEADER :  STATUS BIT[2:0]: %01X: LOCAL L1 COUNT: %08X HitCount: %02X LOCAL L1 TIMESTAMP: %04X; Diff w.r.t. previous L1_TS: %04f us\n",
-                 printBinary(hit).c_str(),
-                 status, l1LocalCount, hitsLeft, l1Timestamp, timediff * 25.0 / 1E3);
+                 printBinary(frame.unknown).c_str(),
+                 status, (unsigned)l1LocalCount, hitsLeft, l1Timestamp, timediff * 25.0 / 1E3);
         prevl1Timestamp = l1Timestamp;
         break;
       }
-        //Trailer, Data, UDPCounter
       case TMDataFrameType::Trailer: { // TRAILER -- will ignore for now
         if(!hitStatus.header || hitStatus.udp)
           continue;
@@ -372,8 +371,8 @@ void convertTM(ifstream* fIn, Char_t gemroc){
         hitStatus.trailer = true;
         if(DEBUG_PRINT)
           printf("%s  TRAILER: LOCAL L1  FRAMENUM [23:0]: %06X: GEMROC_ID: %02X TIGER_ID: %01X LOCAL L1 COUNT[2:0]: %01X LAST COUNT WORD FROM TIGER:CH_ID[5:0]: %02X LAST COUNT WORD FROM TIGER: DATA[17:0]: %05X \n",
-                 printBinary(hit).c_str(),
-                 frame.Trailer.l1LocalFramenum, frame.Trailer.gemroc, frame.Trailer.tiger, frame.Trailer.l1LocalCount, frame.Trailer.lastCountWordCh, frame.Trailer.lastCountWordData);
+                 printBinary(frame.unknown).c_str(),
+                 frame.trailer.l1LocalFramenum, frame.trailer.gemroc, frame.trailer.tiger, frame.trailer.l1LocalCount, frame.trailer.lastCountWordCh, frame.trailer.lastCountWordData);
         break;
       }
       case TMDataFrameType::Data: { // DATA
@@ -382,6 +381,7 @@ void convertTM(ifstream* fIn, Char_t gemroc){
         if(hitsLeft <= 0)
           hitStatus.errors = true;
 
+        gemrocID.push_back(gemroc); // TODO fix
         eFine.push_back(frame.data.eFine);
         tFine.push_back(frame.data.tFine);
         eCoarse.push_back(frame.data.eCoarse);
@@ -393,8 +393,8 @@ void convertTM(ifstream* fIn, Char_t gemroc){
 
         if(DEBUG_PRINT)
           printf("%s  DATA   : TIGER: %01X L1_TS - TIGERCOARSE_TS: %d LAST TIGER FRAME NUM[2:0]: %01X TIGER DATA: ChID [base10]: %d tacID: %01X Tcoarse: %04X Ecoarse: %03X Tfine: %03X Efine: %d \n",
-                 printBinary(hit).c_str(),
-                 tigerID.back(), l1LocalCount - tCoarse.back(), lastFrameNum.back(), channelID.back(), tacID.back(), tCoarse.back(), eCoarse.back(), tFine.back(), eFine.back());
+                 printBinary(frame.unknown).c_str(),
+                 tigerID.back(), (unsigned)(l1LocalCount - tCoarse.back()), lastFrameNum.back(), channelID.back(), tacID.back(), tCoarse.back(), eCoarse.back(), tFine.back(), eFine.back());
         
         hitsLeft--;
         break;
@@ -403,23 +403,23 @@ void convertTM(ifstream* fIn, Char_t gemroc){
         if(hitStatus.udp)
           hitStatus.errors = true;
         hitStatus.udp = true;
-        if(frame.udp.udpFrameCount != l1LocalCount + 1)
-          printf("UDP Countel :: For event %d UDP frame count not the %d\n", l1LocalCount, l1LocalCount+1);
+        // if(frame.udpCounter.udpFrameCount != l1LocalCount + 1)
+        //   printf("UDP Counter :: For event %lld UDP frame count not the %lld\n", l1LocalCount, l1LocalCount+1);
         if(DEBUG_PRINT)
-          printf("%s  UDP_SEQNO: GEMROC_ID: %02X UDP_SEQNO_U48: %012X  STATUS BIT[5:3]:{}\n",
-                 printBinary(hit).c_str(),
-                 frame.udp.gemroc, frame.udp.udpFrameCount, frame.udp.headerStatus);
+          printf("%s  UDP_SEQNO: GEMROC_ID: %02X UDP_SEQNO_U48: %012X  STATUS BIT[5:3]: %d\n",
+                 printBinary(frame.unknown).c_str(),
+                 frame.udpCounter.gemroc, frame.udpCounter.udpFrameCount, frame.udpCounter.headerStatus);
         break;
       }
-      case TLDataFrameType::unknown: {
+      case TMDataFrameType::unknown: {
         break;
       }
     }
     if(hitStatus.header && hitStatus.udp){
       if(hitStatus.errors)
-        printf("For event %d errors was found!\n", l1LocalCount);
+        printf("For event %lld errors was found!\n", l1LocalCount);
       else if(!hitStatus.trailer)
-        printf("For event %d trailes is missed!\n", l1LocalCount);
+        printf("For event %lld trailes is missed!\n", l1LocalCount);
       else{
         tree->Fill();
         
@@ -497,6 +497,6 @@ void tiger_tree_converter_bin(string fileName, string folderName){
   TString fn = fileName;
   if(fn.EndsWith("_TL.dat"))
     tiger_tree_converter_tl_file(fileName, folderName);
-  else if(fn.EndsWith("_TW.dat"))
-    tiger_tree_converter_tl_file(fileName, folderName);
+  else if(fn.EndsWith("_TM.dat"))
+    tiger_tree_converter_tm_file(fileName, folderName);
 }
