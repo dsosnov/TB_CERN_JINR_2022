@@ -444,13 +444,59 @@ void convertTM(ifstream* fIn, Char_t gemroc){
   delete tree;
 }
 
+void tiger_tree_converter_tm_file(string fileName, string folderName){
+  int gemroc = static_cast<TObjString*>(TString(fileName).Tokenize("_")->At(3))->String().Atoi();
+  auto fIn = new ifstream((folderName+"/"+fileName).c_str(), std::ios::binary);
+  if(!fIn->is_open()){
+    delete fIn;
+    return;
+  }
+  auto tfn = TString(fileName.c_str());
+  auto n = tfn.Length();
+  tfn.Replace(n-4, 4, ".root");
+  printf("fout: %s\n", tfn.Data());
+  auto fOut = TFile::Open(TString(Form("%s/",folderName.c_str()))+tfn, "recreate");
+  convertTM(fIn, gemroc);
+  fIn->close();
+  delete fIn;
+  fOut->Close();
+  delete fOut;
+}
+void tiger_tree_converter_tm_directory(string folderName){
+  auto dir = new TSystemDirectory(folderName.c_str(), folderName.c_str());
+  auto files = dir->GetListOfFiles();
+  if(!files){
+    delete dir;
+    return;
+  }
+
+  vector<string> datoutFiles;
+
+  TString name;
+  for(auto f: *files){
+    name = f->GetName();
+    if (name.Index(TRegexp(Form("SubRUN_*_GEMROC_*_TM.dat"),kTRUE)) == kNPOS)
+        continue;
+    datoutFiles.push_back(name.Data());
+    printf("%s\n", name.Data());
+  }
+
+  for(auto &fn: datoutFiles){
+    tiger_tree_converter_tm_file(fn, folderName);
+  }
+
+}
+
 void tiger_tree_converter_bin(string folderName){
   printf("trigger_tree_converter_bin\n");
-    tiger_tree_converter_tl_directory(folderName);
+  tiger_tree_converter_tl_directory(folderName);
+  tiger_tree_converter_tm_directory(folderName);
 }
 void tiger_tree_converter_bin(string fileName, string folderName){
   printf("trigger_tree_converter_bin\n");
   TString fn = fileName;
   if(fn.EndsWith("_TL.dat"))
+    tiger_tree_converter_tl_file(fileName, folderName);
+  else if(fn.EndsWith("_TW.dat"))
     tiger_tree_converter_tl_file(fileName, folderName);
 }
