@@ -315,7 +315,43 @@ void tiger::freeHitMap(long long minEntry){
 // const auto count = std::erase_if(data, [](const auto& item) { auto const& [key, value] = item; return (key & 1) == 1;});
 }
 
-bool tiger::energyCut(tigerHitTL* hit){
+bool tiger::energyCut(tigerHitTL* hit){ // Only for SH mode
+  bool unchecked = true;
+  switch(getMappedDetector(hit)){
+    case 0:
+      if(hit->tigerID == 7 && hit->channelID == 22){
+        unchecked = false;
+        return hit->eFine >= 344 && hit->eFine <= 394;
+      }
+      break;
+    case 1:
+      unchecked = false;
+      if(hit->eFine > 1007)
+        return true;
+      switch(hit->channelID){
+        case 22:
+          break;
+        case 23:
+          break;
+        case 14:
+          break;
+        case 26:
+          return hit->eFine < 50;
+          break;
+        case 51:
+          return hit->eFine < 120;
+          break;
+        case 28:
+          break;
+        case 50:
+          return hit->eFine < 60;
+          break;
+        case 46:
+          break;
+      }
+      break;
+  }
+  if(!unchecked) return false;
   static constexpr bool untillSatulation = true;
   if(!eFineMap.count({hit->gemrocID, hit->tigerID, hit->channelID}))
     return true;
