@@ -18,32 +18,42 @@ connector_desc={
 
 feb=1
 mm=0
-for connector_type in ["l", "c", "r"]:
-  desc = connector_desc[connector_type]
-  with open(f'mm_tiger_board_alexeev_template_{connector_type}.txt', 'w') as f:
-    print(f'# tigers connected to {desc} connector of MM{mm} with gem-tiger board', file=f)
-    print(f'# connector (FEB), pin (on FEB3_pinout scheme) : detector, channel', file=f)
-    params = mm_connector_strips[connector_type]
-    with open('mm_tiger_board_alexeev_pins.csv', 'r') as f_pins:
-      for line in f_pins.readlines():
-        line_splitted = list(map(lambda x: x.strip(), line.split(';')))
-        if line_splitted[0].startswith('#'):
-          continue;
-        if line_splitted[1].startswith('GND'):
-          continue;
-        pin_num = int(line_splitted[0])
-        pin_num_feb3 = int(line_splitted[3])
-        channel = -1
-        if not (pin_num % 2):
-          channel = params[0] + params[1] + (pin_num - 2) / 2
-        elif pin_num < params[1]*2:
-          channel = params[0] + params[1] - (pin_num-1)/2
-        elif pin_num < (params[1]+params[2])*2:
-          channel = -1
-        else:
-          channel = params[0] + 64 + params[1] + 1 + (127-pin_num)/2
-        channel = int(channel)
-        if channel >= 0:
-          print(f'{feb}, {pin_num_feb3} :  MM{mm}, {channel}', file=f)
-        else:
-          print(f'{feb}, {pin_num_feb3} :  NC, 0', file=f)
+
+def getChannel(pin_num, params):
+  channel = -1
+  if not (pin_num % 2):
+    channel = params[0] + params[1] + (pin_num - 2) / 2
+  elif pin_num < params[1]*2:
+    channel = params[0] + params[1] - (pin_num-1)/2
+  elif pin_num < (params[1]+params[2])*2:
+    channel = -1
+  else:
+    channel = params[0] + 64 + params[1] + 1 + (127-pin_num)/2
+  channel = int(channel)
+  return channel
+
+for inverted in [False, True]:
+  inv_name = '_inv' if inverted else ''
+  inv_text = ', inverted' if inverted else ''
+  for connector_type in ["l", "c", "r"]:
+    desc = connector_desc[connector_type]
+    with open(f'mm_tiger_board_alexeev_template_{connector_type}{inv_name}.txt', 'w') as f:
+      print(f'# tigers connected to {desc} connector of MM{mm} with gem-tiger board{inv_text}', file=f)
+      print(f'# connector (FEB), pin (on FEB3_pinout scheme) : detector, channel', file=f)
+      params = mm_connector_strips[connector_type]
+      with open('mm_tiger_board_alexeev_pins.csv', 'r') as f_pins:
+        for line in f_pins.readlines():
+          line_splitted = list(map(lambda x: x.strip(), line.split(';')))
+          if line_splitted[0].startswith('#'):
+            continue;
+          if line_splitted[1].startswith('GND'):
+            continue;
+          pin_num = int(line_splitted[0])
+          pin_num_feb3 = int(line_splitted[3])
+          channel = getChannel(pin_num, params)
+          if channel < 0:
+            print(f'{feb}, {pin_num_feb3} :  NC, 0', file=f)
+          else:
+            if(inverted):
+              channel = 361 - channel
+            print(f'{feb}, {pin_num_feb3} :  MM{mm}, {channel}', file=f)
