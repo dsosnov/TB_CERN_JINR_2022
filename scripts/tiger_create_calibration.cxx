@@ -1,4 +1,4 @@
-void tiger_create_calibration(string path, bool directory = false){
+void tiger_create_calibration(string path, bool directory = false, bool createTFine = true, bool createEFine = true){
   auto chain = new TChain("tigerTL");
   if(directory)
     chain->Add((path + "/*.root").c_str());
@@ -39,7 +39,7 @@ void tiger_create_calibration(string path, bool directory = false){
       eFineMin[{gemrocID, tigerID, channelID}] = eFine;
   }
 
-  {
+  if(createTFine){
     auto fout = fopen("../out/tiger_tfine_calibration.txt", "w");
     fprintf(fout, "# Generated from %s\n", path.c_str());
     for(auto &p: tFineMin){
@@ -47,7 +47,7 @@ void tiger_create_calibration(string path, bool directory = false){
     }
     fclose(fout);
   }
-  {
+  if(createEFine){
     auto fout = fopen("../out/tiger_efine_calibration.txt", "w");
     fprintf(fout, "# Generated from %s\n", path.c_str());
     for(auto &p: eFineMin){
