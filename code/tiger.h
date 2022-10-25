@@ -322,7 +322,7 @@ void tiger::freeHitMap(long long minEntry){
 }
 
 bool tiger::energyCut(tigerHitTL* hit){ // Only for SH mode
-  if(energyMode = TigerEnergyMode::SampleAndHold){
+  if(energyMode == TigerEnergyMode::SampleAndHold){
     if(!eFineNoiseLimits.count({hit->gemrocID, hit->tigerID, hit->channelID}))
       return true;
     for(auto &limitPair: eFineNoiseLimits.at({hit->gemrocID, hit->tigerID, hit->channelID})){
