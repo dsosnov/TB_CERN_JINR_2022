@@ -432,7 +432,7 @@ void tiger::Loop(unsigned long n)
                 continue;
               hStrawRT.at(idet)->Fill(h.first, timeDifferenceFineNS(straw.second, hitMain));
               hStrawRTCoarse.at(idet)->Fill(h.first, timeDifferenceCoarsePS(straw.second, hitMain) / 1E3);
-              straw_vs_mm_spatial_corr_3det.at(idet)->Fill(h.first, getMappedChannel(straw.second));
+              straw_vs_mm_spatial_corr_3det.at(idet)->Fill(getMappedChannel(straw.second), h.first);
             }
           }
         }
