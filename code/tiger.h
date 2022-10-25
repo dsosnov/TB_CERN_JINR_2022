@@ -322,49 +322,34 @@ void tiger::freeHitMap(long long minEntry){
 }
 
 bool tiger::energyCut(tigerHitTL* hit){ // Only for SH mode
-  // bool unchecked = true;
-  // switch(getMappedDetector(hit)){
-  //   case 0:
-  //     if(hit->tigerID == 7 && hit->channelID == 22){
-  //       unchecked = false;
-  //       return hit->eFine >= 344 && hit->eFine <= 394;
-  //     }
-  //     break;
-  //   case 1:
-  //     unchecked = false;
-  //     if(hit->eFine > 1007)
-  //       return true;
-  //     switch(hit->channelID){
-  //       case 22:
-  //         break;
-  //       case 23:
-  //         break;
-  //       case 14:
-  //         break;
-  //       case 26:
-  //         return hit->eFine < 50;
-  //         break;
-  //       case 51:
-  //         return hit->eFine < 120;
-  //         break;
-  //       case 28:
-  //         break;
-  //       case 50:
-  //         return hit->eFine < 60;
-  //         break;
-  //       case 46:
-  //         break;
-  //     }
-  //     break;
-  // }
-  // if(!unchecked) return false;
-  if(!eFineNoiseLimits.count({hit->gemrocID, hit->tigerID, hit->channelID}))
+  if(energyMode = TigerEnergyMode::SampleAndHold){
+    if(!eFineNoiseLimits.count({hit->gemrocID, hit->tigerID, hit->channelID}))
+      return true;
+    for(auto &limitPair: eFineNoiseLimits.at({hit->gemrocID, hit->tigerID, hit->channelID})){
+      if(hit->eFine >= limitPair.first && hit->eFine <= limitPair.second) // remove noise inside limits
+        return false;
+    }
     return true;
-  for(auto &limitPair: eFineNoiseLimits.at({hit->gemrocID, hit->tigerID, hit->channelID})){
-    if(hit->eFine >= limitPair.first && hit->eFine <= limitPair.second) // remove noise inside limits
-      return false;
+  } else { // ToT
+    switch(getMappedDetector(hit)){
+      case 0:
+      case 1:
+        return hit->chargeToT() > 1007;
+        break;
+      case 2:
+      case 3:
+      case 4:
+      case 5:
+        return hit->chargeToT() > 400;
+        break;
+      case 6:
+        return hit->chargeToT() > 1007;
+        break;
+      case 7:
+      default:
+        return true;
+    };
   }
-  return true;
 }
 
 void tiger::Init()
