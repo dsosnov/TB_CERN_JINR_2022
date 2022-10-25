@@ -103,9 +103,9 @@ public :
     return getMappedChannel(&hit);
   }
 
-  map<tuple<int,int,int>, pair<int, int>> eFineMap;
+  map<tuple<int,int,int>, vector<pair<int, int>>> eFineNoiseLimits;
   void addCalibrationEFine(TString filename, bool verbose = false);
-  map<tuple<int,int,int>, pair<int, int>> tFineMap;
+  map<tuple<int,int,int>, pair<int, int>> tFineCalibration;
   void addCalibrationTFine(TString filename, bool verbose = false);
 
   tigerHitTL getTigerHitTLCurrent() const;
@@ -131,7 +131,9 @@ public :
 
 #endif
 
-tiger::tiger(TString filename, TString runFolder_, TString mapFile_, TString eFineFile_, TString tFineFile_, short energyMode_) : runFolder(runFolder_), mapFile(mapFile_), efineFile(eFineFile_), tfineFile(tFineFile_), energyMode(static_cast<TigerEnergyMode>(energyMode_))
+tiger::tiger(TString filename, TString runFolder_, TString mapFile_, TString eFineFile_, TString tFineFile_, short energyMode_) : runFolder(runFolder_),
+                                                                                                                                  mapFile(mapFile_), efineFile(eFineFile_), tfineFile(tFineFile_),
+                                                                                                                                  energyMode(static_cast<TigerEnergyMode>(energyMode_))
 {
   file = filename;
   folder = "../data/tiger/" + runFolder + "/";
@@ -146,7 +148,9 @@ tiger::tiger(TString filename, TString runFolder_, TString mapFile_, TString cal
   Init();
 }
 
-tiger::tiger(vector<TString> filenames, TString runFolder_, TString mapFile_, TString eFineFile_, short energyMode_) : runFolder(runFolder_), mapFile(mapFile_), efineFile(eFineFile_), energyMode(static_cast<TigerEnergyMode>(energyMode_))
+tiger::tiger(vector<TString> filenames, TString runFolder_, TString mapFile_, TString eFineFile_, short energyMode_) : runFolder(runFolder_),
+                                                                                                                       mapFile(mapFile_), efineFile(eFineFile_),
+                                                                                                                       energyMode(static_cast<TigerEnergyMode>(energyMode_))
 {
   file = filenames.at(0);
   folder = "../data/tiger/" + runFolder + "/";
@@ -224,7 +228,9 @@ void tiger::addCalibrationEFine(TString filename, bool verbose){
       break; // error
     if(verbose)
       printf("eFine calibration: %d %d: %d: %d - %i\n", gr, t, ch, min, max);
-    eFineMap.emplace(make_tuple(gr,t, ch), make_pair(min, max));
+    if(!eFineNoiseLimits.count(make_tuple(gr,t, ch)))
+      eFineNoiseLimits[make_tuple(gr,t, ch)] = {};
+    eFineNoiseLimits.at(make_tuple(gr,t, ch)).push_back(make_pair(min, max));
   }
 }
 void tiger::addCalibrationTFine(TString filename, bool verbose){
@@ -251,7 +257,7 @@ void tiger::addCalibrationTFine(TString filename, bool verbose){
       break; // error
     if(verbose)
       printf("tFine calibration: %d %d: %d: %d - %i\n", gr, t, ch, min, max);
-    tFineMap.emplace(make_tuple(gr,t, ch), make_pair(min, max));
+    tFineCalibration.emplace(make_tuple(gr,t, ch), make_pair(min, max));
   }
 }
 
@@ -273,8 +279,8 @@ void tiger::updateTigerHitTLCurrent(tigerHitTL &hit) const{
   hit.frameCountLoops = frameCountLoops;
 
   hit.counterWord = counterWord;
-  hit.tFineLimits = (tFineMap.count({gemrocID, tigerID, channelID})) ?
-    tFineMap.at({gemrocID, tigerID, channelID}) : make_pair(0, 1023);
+  hit.tFineLimits = (tFineCalibration.count({gemrocID, tigerID, channelID})) ?
+    tFineCalibration.at({gemrocID, tigerID, channelID}) : make_pair(0, 1023);
 }
 tigerHitTL tiger::getTigerHitTLCurrent() const{
   tigerHitTL hit;
@@ -316,51 +322,49 @@ void tiger::freeHitMap(long long minEntry){
 }
 
 bool tiger::energyCut(tigerHitTL* hit){ // Only for SH mode
-  bool unchecked = true;
-  switch(getMappedDetector(hit)){
-    case 0:
-      if(hit->tigerID == 7 && hit->channelID == 22){
-        unchecked = false;
-        return hit->eFine >= 344 && hit->eFine <= 394;
-      }
-      break;
-    case 1:
-      unchecked = false;
-      if(hit->eFine > 1007)
-        return true;
-      switch(hit->channelID){
-        case 22:
-          break;
-        case 23:
-          break;
-        case 14:
-          break;
-        case 26:
-          return hit->eFine < 50;
-          break;
-        case 51:
-          return hit->eFine < 120;
-          break;
-        case 28:
-          break;
-        case 50:
-          return hit->eFine < 60;
-          break;
-        case 46:
-          break;
-      }
-      break;
+  // bool unchecked = true;
+  // switch(getMappedDetector(hit)){
+  //   case 0:
+  //     if(hit->tigerID == 7 && hit->channelID == 22){
+  //       unchecked = false;
+  //       return hit->eFine >= 344 && hit->eFine <= 394;
+  //     }
+  //     break;
+  //   case 1:
+  //     unchecked = false;
+  //     if(hit->eFine > 1007)
+  //       return true;
+  //     switch(hit->channelID){
+  //       case 22:
+  //         break;
+  //       case 23:
+  //         break;
+  //       case 14:
+  //         break;
+  //       case 26:
+  //         return hit->eFine < 50;
+  //         break;
+  //       case 51:
+  //         return hit->eFine < 120;
+  //         break;
+  //       case 28:
+  //         break;
+  //       case 50:
+  //         return hit->eFine < 60;
+  //         break;
+  //       case 46:
+  //         break;
+  //     }
+  //     break;
+  // }
+  // if(!unchecked) return false;
+  if(!eFineNoiseLimits.count({hit->gemrocID, hit->tigerID, hit->channelID}))
+    return true;
+  for(auto &limitPair: eFineNoiseLimits.at({hit->gemrocID, hit->tigerID, hit->channelID})){
+    if(hit->eFine >= limitPair.first && hit->eFine <= limitPair.second) // remove noise inside limits
+      return false;
   }
-  if(!unchecked) return false;
-  static constexpr bool untillSatulation = true;
-  if(!eFineMap.count({hit->gemrocID, hit->tigerID, hit->channelID}))
-    return true;
-  if(hit->eFine < eFineMap.at({hit->gemrocID, hit->tigerID, hit->channelID}).first)
-    return true;
-  auto upperLevel = untillSatulation ? 1007 : eFineMap.at({hit->gemrocID, hit->tigerID, hit->channelID}).second;
-  if(hit->eFine > upperLevel)
-    return true;
-  return false;
+  return true;
 }
 
 void tiger::Init()
