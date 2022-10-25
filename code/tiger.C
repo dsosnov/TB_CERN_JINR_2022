@@ -121,6 +121,7 @@ void tiger::Loop(unsigned long n)
     out->cd();
   }
 
+  out->mkdir(Form("straw_vs_sci"))->cd();
   auto straw_vs_sci = make_shared<TH1F>("straw_vs_sci", Form("%s: straw vs scint;#Deltat, ns", file.Data()), 1000, -500, 500);
   map<int, shared_ptr<TH1F>> straw_vs_mm, mm_vs_sci, mm_vs_sciCoarse;
   for(int i = 0; i <= 4; i++){
@@ -128,13 +129,15 @@ void tiger::Loop(unsigned long n)
     mm_vs_sci.emplace(i+2, make_shared<TH1F>(Form("mm%d_vs_sci", i), Form("%s: microMegas %d vs scint;#Deltat, ns", file.Data(), i), 1000, -500, 500));
     mm_vs_sciCoarse.emplace(i+2, make_shared<TH1F>(Form("mm%d_vs_sci_coarse", i), Form("%s: microMegas %d vs scint (coarse time);#DeltaT, ns", file.Data(), i), 160, -500, 500));
   }
-
-  map<int, shared_ptr<TH2F>> straw_vs_mm_spatial_corr;
+  map<int, shared_ptr<TH2F>> straw_vs_mm_spatial_corr, straw_vs_mm_spatial_corr_3det;
   for(int i = 0; i <= 4; i++){
     if(i+2 == mmLayerY) continue;
     straw_vs_mm_spatial_corr.emplace(i+2, make_shared<TH2F>(Form("straw_vs_mm%d_spatial_corr", i), Form("%s: microMegas %d vs straw spatial correaltion;straw ch;MM ch", file.Data(), i),
                                                             detMax.at(1) - detMin.at(1) + 1, detMin.at(1), detMax.at(1) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
+    straw_vs_mm_spatial_corr_3det.emplace(i+2, make_shared<TH2F>(Form("straw_vs_mm%d_spatial_corr_3det", i), Form("%s: microMegas %d vs straw spatial correaltion (corellated to scint);straw ch;MM ch", file.Data(), i),
+                                                            detMax.at(1) - detMin.at(1) + 1, detMin.at(1), detMax.at(1) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
   }
+  out->cd();
 
   vector<shared_ptr<TH1F>> hprofile;
   vector<shared_ptr<TH2F>> hChargeToT, hChargeSH;
@@ -207,17 +210,6 @@ void tiger::Loop(unsigned long n)
   // }
   // out->cd();
 
-  out->mkdir("straw_deltat_corr")->cd();
-  map<int, shared_ptr<TH1F>> straw_deltat, straw_deltat_0;
-  for(auto i = detMin.at(1); i <= detMax.at(1); i++){
-    straw_deltat.emplace(i,
-                         make_shared<TH1F>(Form("straw%d_vs_sci60", i),
-                                           Form("%s: straw%d_vs_sci60;#Delta t", file.Data(), i), 1000, -500, 500));
-    straw_deltat_0.emplace(i,
-                           make_shared<TH1F>(Form("straw%d_vs_sci0", i),
-                                             Form("%s: straw%d_vs_sci0;#Delta t", file.Data(), i), 1000, -500, 500));
-  }
-  out->cd();
 
   out->mkdir("straw_banana")->cd();
   map<int, shared_ptr<TH2F>> straw_banana, straw_banana_0 ;
@@ -426,7 +418,7 @@ void tiger::Loop(unsigned long n)
           }
         }
       }
-      // RT for normal straws
+      // RT & spatial corellation for normal straws
       if(closestHitsInLayer.count(1)){
         for(auto &straw: closestHitsInLayer.at(1)){
           if(fabs(timeDifferenceFineNS(straw.second, hitMain)) > maxTimeDiff(fchD, 1))
@@ -440,6 +432,7 @@ void tiger::Loop(unsigned long n)
                 continue;
               hStrawRT.at(idet)->Fill(h.first, timeDifferenceFineNS(straw.second, hitMain));
               hStrawRTCoarse.at(idet)->Fill(h.first, timeDifferenceCoarsePS(straw.second, hitMain) / 1E3);
+              straw_vs_mm_spatial_corr_3det.at(idet)->Fill(h.first, getMappedChannel(straw.second));
             }
           }
         }
