@@ -121,7 +121,7 @@ void tiger::Loop(unsigned long n)
     out->cd();
   }
 
-  out->mkdir(Form("straw_vs_sci"))->cd();
+  out->mkdir(Form("deltaT_sci"))->cd();
   auto straw_vs_sci = make_shared<TH1F>("straw_vs_sci", Form("%s: straw vs scint;#Deltat, ns", file.Data()), 1000, -500, 500);
   map<int, shared_ptr<TH1F>> straw_vs_mm, mm_vs_sci, mm_vs_sciCoarse;
   for(int i = 0; i < 4; i++){
@@ -129,6 +129,8 @@ void tiger::Loop(unsigned long n)
     mm_vs_sci.emplace(i+2, make_shared<TH1F>(Form("mm%d_vs_sci", i), Form("%s: microMegas %d vs scint;#Deltat, ns", file.Data(), i), 1000, -500, 500));
     mm_vs_sciCoarse.emplace(i+2, make_shared<TH1F>(Form("mm%d_vs_sci_coarse", i), Form("%s: microMegas %d vs scint (coarse time);#DeltaT, ns", file.Data(), i), 160, -500, 500));
   }
+  out->cd();
+  out->mkdir(Form("mm_vs_straw"))->cd();
   map<int, shared_ptr<TH2F>> straw_vs_mm_spatial_corr, straw_vs_mm_spatial_corr_3det;
   for(int i = 0; i < 4; i++){
     if(i+2 == mmLayerY) continue;
@@ -271,7 +273,7 @@ void tiger::Loop(unsigned long n)
       if(i == j)
         continue;
       mmCorrellations[{i, j}] = make_shared<TH2F>(Form("mmCorrellations_det%d-%d", i, j),
-                                                  Form("%s: N corellations between detectors %d and %d;strip (det %d); strip (det %d)", file.Data(), i, j, i, j),
+                                                  Form("%s: N corellations between MM%d and MM%d;strip (MM%d); strip (MM%d)", file.Data(), i-2, j-2, i-2, j-2),
                                                   detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1,
                                                   detMax.at(j) - detMin.at(j) + 1, detMin.at(j), detMax.at(j) + 1);
     }
