@@ -10,8 +10,8 @@ void tiger_fullTime(){
   mainTree->GetEntry(0);
   printf("tiger_fullTime(tCoarse,tFine,frameCount,frameCountLoops, %d,%d,%d,%lld)\n", tCoarse,tFine,frameCount,frameCountLoops);
   printf("tiger_fullTime_auto(tCoarse,tFine,frameCount,frameCountLoops)\n");
-  printf("tiger_fullTimeCoarse(tCoarse,tFine,frameCount,frameCountLoops, %d,%d,%d,%lld)\n", tCoarse,tFine,frameCount,frameCountLoops);
-  printf("tiger_fullTimeCoarse_auto(tCoarse,tFine,frameCount,frameCountLoops)\n");
+  printf("tiger_fullTimeCoarse(tCoarse,frameCount,frameCountLoops, %d,%d,%d,%lld)\n", tCoarse,tFine,frameCount,frameCountLoops);
+  printf("tiger_fullTimeCoarse_auto(tCoarse,frameCount,frameCountLoops)\n");
 }
 
 double tiger_fullTime(
