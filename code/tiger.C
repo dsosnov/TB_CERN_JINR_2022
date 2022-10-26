@@ -124,13 +124,13 @@ void tiger::Loop(unsigned long n)
   out->mkdir(Form("straw_vs_sci"))->cd();
   auto straw_vs_sci = make_shared<TH1F>("straw_vs_sci", Form("%s: straw vs scint;#Deltat, ns", file.Data()), 1000, -500, 500);
   map<int, shared_ptr<TH1F>> straw_vs_mm, mm_vs_sci, mm_vs_sciCoarse;
-  for(int i = 0; i <= 4; i++){
+  for(int i = 0; i < 4; i++){
     straw_vs_mm.emplace(i+2, make_shared<TH1F>(Form("straw_vs_mm%d", i), Form("%s: straw vs microMegas %d;#Deltat, ns", file.Data(), i), 1000, -500, 500));
     mm_vs_sci.emplace(i+2, make_shared<TH1F>(Form("mm%d_vs_sci", i), Form("%s: microMegas %d vs scint;#Deltat, ns", file.Data(), i), 1000, -500, 500));
     mm_vs_sciCoarse.emplace(i+2, make_shared<TH1F>(Form("mm%d_vs_sci_coarse", i), Form("%s: microMegas %d vs scint (coarse time);#DeltaT, ns", file.Data(), i), 160, -500, 500));
   }
   map<int, shared_ptr<TH2F>> straw_vs_mm_spatial_corr, straw_vs_mm_spatial_corr_3det;
-  for(int i = 0; i <= 4; i++){
+  for(int i = 0; i < 4; i++){
     if(i+2 == mmLayerY) continue;
     straw_vs_mm_spatial_corr.emplace(i+2, make_shared<TH2F>(Form("straw_vs_mm%d_spatial_corr", i), Form("%s: microMegas %d vs straw spatial correaltion;straw ch;MM ch", file.Data(), i),
                                                             detMax.at(1) - detMin.at(1) + 1, detMin.at(1), detMax.at(1) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
@@ -291,7 +291,8 @@ void tiger::Loop(unsigned long n)
   }
   map<int, shared_ptr<TH2F>> hShipRT;
   if(detMax.at(6) > 0){
-    for(int i = 2; i <= 4; i++){
+    for(int i = 2; i <= 5; i++){
+      if(i == mmLayerY) continue;
       hShipRT.emplace(i, make_shared<TH2F>(Form("ship_rt_vs_mm%d", i-2), Form("%s: RT for SHiP straw and MM %d;strip;#DeltaT, ns", file.Data(), i-2),
                                            detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i), 2000, -1000, 1000));
     }
@@ -406,7 +407,7 @@ void tiger::Loop(unsigned long n)
       // RT for Ship straw
       if(closestHitsInLayer.count(6) && closestHitsInLayer.at(6).count(0) &&
          fabs(timeDifferenceFineNS(closestHitsInLayer.at(6).at(0), hitMain)) < maxTimeDiff(fchD, 6)){
-        for(auto i = 0; i <= 4; i++){
+        for(auto i = 0; i < 4; i++){
           auto idet = i+2;
           if(idet == mmLayerY) continue;
           if(!closestHitsInLayer.count(idet))
@@ -423,7 +424,7 @@ void tiger::Loop(unsigned long n)
         for(auto &straw: closestHitsInLayer.at(1)){
           if(fabs(timeDifferenceFineNS(straw.second, hitMain)) > maxTimeDiff(fchD, 1))
             continue;
-          for(auto i = 0; i <= 4; i++){
+          for(auto i = 0; i < 4; i++){
             auto idet = i+2;
             if(idet == mmLayerY) continue;
             if(!closestHitsInLayer.count(idet)) continue;
