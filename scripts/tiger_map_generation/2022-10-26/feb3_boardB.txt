@@ -67,7 +67,7 @@
 3, 138 : MM3, 213
 3,  5 : Scint, 0 # lemo 0
 3, 11 : Straw, 29 # lemo 1
-3, 17 : Straw, 30 # lemo 2
+3, 17 : Lemo, 2 # lemo 2
 3, 23 : Straw, 28 # lemo 3
 3, 29 : Straw, 27 # lemo 4
 3, 35 : Straw, 26 # lemo 5
