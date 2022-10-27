@@ -23,12 +23,11 @@ for connector_type in ["l", "c", "r"]:
   with open(f'mm_tiger_board_bautin_template_{connector_type}.txt', 'w') as f:
     print(f'# tigers connected to {desc} connector of MM{mm} with Bautin\'s board', file=f)
     print(f'# connector (FEB), pin (on FEB3_pinout scheme) : detector, channel', file=f)
-    print(f'{feb}, 10 :  NC, 0', file=f)
     params = mm_connector_strips[connector_type]
-    for i in(range(12,140,2)):
-      # channel = 1 + (128-6) + 27 + int((i-12)/2)
-      channel = 1 + params[0] + params[1] + int((i-12)/2)
+    for i in(range(10,138,2)):
+      channel = 1 + params[0] + params[1] + int((136-i)/2)
       print(f'{feb}, {i} : MM{mm}, {channel}', file=f)
+    print(f'{feb}, 138 :  NC, 0', file=f)
     lemo = [5,11,17,23,29,35,41,47]
     for ch in lemo:
       print(f'{feb}, {ch} : lemo, {lemo.index(ch)} # lemo {lemo.index(ch)}', file=f)
