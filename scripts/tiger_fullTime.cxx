@@ -10,6 +10,8 @@ void tiger_fullTime(){
   mainTree->GetEntry(0);
   printf("tiger_fullTime(tCoarse,tFine,frameCount,frameCountLoops, %d,%d,%d,%lld)\n", tCoarse,tFine,frameCount,frameCountLoops);
   printf("tiger_fullTime_auto(tCoarse,tFine,frameCount,frameCountLoops)\n");
+  printf("tiger_fullTimeCoarse(tCoarse,frameCount,frameCountLoops, %d,%d,%d,%lld)\n", tCoarse,tFine,frameCount,frameCountLoops);
+  printf("tiger_fullTimeCoarse_auto(tCoarse,frameCount,frameCountLoops)\n");
 }
 
 double tiger_fullTime(
@@ -31,7 +33,7 @@ double tiger_fullTime(
   currHit.tFine = tFine;
   currHit.frameCount = frameCount;
   currHit.frameCountLoops = frameCountLoops;
-  double fullTime = timeDifferenceFineNS(currHit, firstHit);
+  double fullTime = timeDifferenceFineNS(currHit, firstHit) / 1E9;
   return fullTime;
 }
 
@@ -60,6 +62,50 @@ double tiger_fullTime_auto(
     frameCountLoops,
     tCoarseFirst,
     tFineFirst,
+    frameCountFirst,
+    frameCountLoopsFirst
+    );
+}
+
+double tiger_fullTimeCoarse(
+  Int_t    tCoarse,
+  Int_t    frameCount,
+  Long64_t frameCountLoops,
+  Int_t    tCoarseFirst,
+  Int_t    frameCountFirst,
+  Long64_t frameCountLoopsFirst
+  ){
+  tigerHitTL currHit, firstHit;
+  firstHit.tCoarse = tCoarseFirst;
+  firstHit.frameCount = frameCountFirst;
+  firstHit.frameCountLoops = frameCountLoopsFirst;
+  currHit.tCoarse = tCoarse;
+  currHit.frameCount = frameCount;
+  currHit.frameCountLoops = frameCountLoops;
+  double fullTime = timeDifferenceCoarsePS(currHit, firstHit) / 1E12;
+  return fullTime;
+}
+
+double tiger_fullTimeCoarse_auto(
+  Int_t    tCoarse,
+  Int_t    frameCount,
+  Long64_t frameCountLoops){
+  static Int_t    tCoarseFirst = 0;
+  static Int_t    frameCountFirst = 0;
+  static Long64_t frameCountLoopsFirst = 0;
+  if(!tCoarseFirst && !frameCountFirst && !frameCountLoopsFirst){
+    auto mainTree = static_cast<TTree*>(gDirectory->Get("tigerTL"));
+    mainTree->SetBranchAddress("tCoarse", &tCoarseFirst);
+    mainTree->SetBranchAddress("frameCount", &frameCountFirst);
+    mainTree->SetBranchAddress("frameCountLoops", &frameCountLoopsFirst);
+    mainTree->GetEntry(0);
+    mainTree->ResetBranchAddresses();
+  }
+  return tiger_fullTimeCoarse(
+    tCoarse,
+    frameCount,
+    frameCountLoops,
+    tCoarseFirst,
     frameCountFirst,
     frameCountLoopsFirst
     );

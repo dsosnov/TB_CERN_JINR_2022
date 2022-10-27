@@ -1,0 +1,93 @@
+#
+# Map file for Tiger setup. 
+# Structure: gemroc 	 tiger # 	 tiger channel 	 detector 	 channel
+# Detectors:
+# - -1: not connected
+# - 0: scintillator:
+#   - channel 0 - triple scintillator coinsidence [non-scaled]
+#   - channel 1 - sci1
+#   - channel 2 - sci2
+#   - channel 3 - triple scintillator coinsidence prescaled
+#   - channel 4 - master clock (10ms)
+#   - channel 5 - master clock (50us)
+# - 1: straw
+# - 2: MM layer 0
+# - 3: MM layer 1
+# - 4: MM layer 2
+# - 5: MM layer 3
+# - 6: Additional straws:
+#   - channel 0 - SHiP straw
+#   - channel 1 - neutron straw
+# - 7: lemo connector without additional description
+0	2	0	2	189
+0	2	1	2	192
+0	2	2	2	190
+0	2	3	2	191
+0	2	4	2	207
+0	2	6	2	206
+0	2	7	2	209
+0	2	8	2	203
+0	2	9	2	213
+0	2	10	2	195
+0	2	11	2	211
+0	2	13	2	188
+0	2	14	2	186
+0	2	15	2	187
+0	2	16	2	178
+0	2	17	2	202
+0	2	19	2	181
+0	2	21	2	180
+0	2	23	2	193
+0	2	24	2	182
+0	2	25	2	185
+0	2	26	2	183
+0	2	27	2	184
+0	2	32	2	198
+0	2	33	2	201
+0	2	34	2	199
+0	2	35	2	200
+0	2	37	2	212
+0	2	38	2	208
+0	2	40	2	204
+0	2	41	2	205
+0	2	42	2	197
+0	2	43	2	210
+0	2	48	2	196
+0	2	49	2	194
+0	2	51	2	175
+0	2	53	2	177
+0	2	55	2	179
+0	2	57	2	176
+0	3	1	2	158
+0	3	2	2	165
+0	3	5	2	170
+0	3	6	2	153
+0	3	7	2	157
+0	3	8	2	168
+0	3	9	2	154
+0	3	10	2	169
+0	3	13	2	160
+0	3	14	7	2
+0	3	17	2	166
+0	3	18	2	172
+0	3	21	2	167
+0	3	22	0	5
+0	3	23	6	0
+0	3	24	2	171
+0	3	25	2	155
+0	3	26	7	3
+0	3	27	2	159
+0	3	28	7	5
+0	3	29	2	156
+0	3	30	2	173
+0	3	31	2	174
+0	3	33	2	150
+0	3	35	2	162
+0	3	37	2	152
+0	3	39	2	151
+0	3	43	-1	0
+0	3	46	0	0
+0	3	50	0	4
+0	3	51	7	4
+0	3	53	2	164
+0	3	57	2	163
