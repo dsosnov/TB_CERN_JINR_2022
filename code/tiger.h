@@ -105,7 +105,7 @@ public :
 
   map<tuple<int,int,int>, vector<pair<int, int>>> eFineNoiseLimits;
   void addCalibrationEFine(TString filename, bool verbose = false);
-  map<tuple<int,int,int>, pair<int, int>> tFineCalibration;
+  map<tuple<int,int,int,int>, pair<int, int>> tFineCalibration;
   void addCalibrationTFine(TString filename, bool verbose = false);
 
   tigerHitTL getTigerHitTLCurrent() const;
@@ -247,17 +247,17 @@ void tiger::addCalibrationTFine(TString filename, bool verbose){
     printf("tFine calibration file: \"%s\"\n", filename.Data());
   }
   std::string line;
-  int gr, t, ch, min, max;
+  int gr, t, ch, min, max, tac;
   while (std::getline(infile, line))
   {
     std::istringstream iss(line);
     if(iss.str().substr(0, 1) == string("#")) // in c++20 there is starts_with("#")
       continue;
-    if (!(iss >> gr >> t >> ch >> min >> max))
+    if (!(iss >> gr >> t >> ch >> tac, min >> max))
       break; // error
     if(verbose)
       printf("tFine calibration: %d %d: %d: %d - %i\n", gr, t, ch, min, max);
-    tFineCalibration.emplace(make_tuple(gr,t, ch), make_pair(min, max));
+    tFineCalibration.emplace(make_tuple(gr, t, ch, tac), make_pair(min, max));
   }
 }
 
@@ -279,8 +279,8 @@ void tiger::updateTigerHitTLCurrent(tigerHitTL &hit) const{
   hit.frameCountLoops = frameCountLoops;
 
   hit.counterWord = counterWord;
-  hit.tFineLimits = (tFineCalibration.count({gemrocID, tigerID, channelID})) ?
-    tFineCalibration.at({gemrocID, tigerID, channelID}) : make_pair(0, 1023);
+  hit.tFineLimits = (tFineCalibration.count({gemrocID, tigerID, channelID, tacID})) ?
+    tFineCalibration.at({gemrocID, tigerID, channelID, tacID}) : make_pair(0, 1023);
 }
 tigerHitTL tiger::getTigerHitTLCurrent() const{
   tigerHitTL hit;
