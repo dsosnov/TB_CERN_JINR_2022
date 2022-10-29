@@ -8,6 +8,8 @@ if not filename:
 
 active_channels = dict()
 
+unmapped_only = True
+
 with open(filename, 'r') as f:
   lines = f.readlines()
   for l in lines:
@@ -19,7 +21,7 @@ with open(filename, 'r') as f:
       active_channels[gr] = dict()
     if t not in active_channels[gr].keys():
       active_channels[gr][t] = set()
-    if d >= 0:
+    if d >= 0 or unmapped_only:
       active_channels[gr][t].add(c)
 with open('ch_to_disable', 'w') as fout:
   print('#Comments line begin with "#"', file=fout)
