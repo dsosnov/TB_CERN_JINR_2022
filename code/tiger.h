@@ -253,7 +253,7 @@ void tiger::addCalibrationTFine(TString filename, bool verbose){
     std::istringstream iss(line);
     if(iss.str().substr(0, 1) == string("#")) // in c++20 there is starts_with("#")
       continue;
-    if (!(iss >> gr >> t >> ch >> tac, min >> max))
+    if (!(iss >> gr >> t >> ch >> tac >> min >> max))
       break; // error
     if(verbose)
       printf("tFine calibration: %d %d: %d: %d - %i\n", gr, t, ch, min, max);
