@@ -28,7 +28,7 @@ void tiger_create_calibration_tfine(TChain *chain){
         auto minTFine = static_cast<int>(p->GetXaxis()->GetBinLowEdge(firstBin));
         auto maxTFine = static_cast<int>(p->GetXaxis()->GetBinUpEdge(lastBin));
         if(minTFine >= 0 && maxTFine >= 0){
-          fprintf(fout, "%d %d %d %d %d %d\n", gemroc, t, ch, tac, maxTFine, minTFine);        
+          fprintf(fout, "%d %d %d %d %d %d\n", gemroc, t, ch, tac, minTFine, maxTFine);        
           printf("%d %d %d %d %d %d\n", gemroc, t, ch, tac, minTFine, maxTFine);
         }
       }
