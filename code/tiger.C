@@ -89,6 +89,7 @@ void tiger::Loop(unsigned long n)
   map<tuple<int, int, int>, shared_ptr<TH2F>> hTigerChargePerTime, hTigereFinePerTime;
   map<tuple<int, int, int>, shared_ptr<TH1F>> hTigerFullTimePerChannel;
   map<pair<int, int>, shared_ptr<TH1F>> hTigerFullTime1D;
+  map<pair<int, int>, shared_ptr<TH2F>> hTigertFineCorrected;
   for(auto &gr: {0}){
     auto grD = out->mkdir(Form("gemroc_%d", gr));
     grD->cd();
@@ -106,6 +107,7 @@ void tiger::Loop(unsigned long n)
       hTigereFine.emplace(m, make_shared<TH2F>(Form("eFine_gr%d_t%d", gr, t), Form("%s: eFine for gemroc %d tiger %d;channel;eFine", file.Data(), gr, t), 64, 0, 64, 512, 0, 1024));
       hTigerFullTime.emplace(m, make_shared<TH2F>(Form("fullTime_gr%d_t%d", gr, t), Form("%s: fullTime for gemroc %d tiger %d;channel;time, s", file.Data(), gr, t), 64, 0, 64, 600, 0, 60));
       hTigerFullTime1D.emplace(m, make_shared<TH1F>(Form("fullTime1D_gr%d_t%d", gr, t), Form("%s: fullTime for gemroc %d tiger %d;time, s", file.Data(), gr, t), 600, 0, 60));
+      hTigertFineCorrected.emplace(m, make_shared<TH2F>(Form("tFineCorrected_gr%d_t%d", gr, t), Form("%s: tFineCorrected for gemroc %d tiger %d;tFine", file.Data(), gr, t), 64, 0, 64, 100, 0, 1));
       for(auto j = 0; j < 64; j++){
         hTigerChargePerTime.emplace(make_tuple(gr, t, j),
                                     make_shared<TH2F>(Form("ChargePerTime_gr%d_t%d_ch%d", gr, t, j),
@@ -351,6 +353,7 @@ void tiger::Loop(unsigned long n)
       hTigerChargePerTime.at({hitMain->gemrocID, hitMain->tigerID, hitMain->channelID})->Fill(timeSinceStart, hitMain->charge(energyMode));
       hTigereFinePerTime.at({hitMain->gemrocID, hitMain->tigerID, hitMain->channelID})->Fill(timeSinceStart, hitMain->eFine);        
       hTigerFullTimePerChannel.at({hitMain->gemrocID, hitMain->tigerID, hitMain->channelID})->Fill(timeSinceStart);
+      hTigertFineCorrected.at({hitMain->gemrocID, hitMain->tigerID})->Fill(hitMain->channelID, hitMain->tFineCorrected());
     }
     if (fchD < 0) continue; // unmapped channels
     if(!isGoodHit(jentry))
