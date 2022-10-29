@@ -6,6 +6,8 @@
 #include <map>
 #include <vector>
 
+#include "analysisGeneral.h"
+
 using std::vector;
 using std::map;
 using std::optional, std::nullopt;
@@ -26,24 +28,50 @@ vector<map<double, int>> splitByDistance(map<double, int> hitsPerLayer, double m
   return out;
 }
 
-double correctAlignment(int strip, int layer){
-    // shifts from Stefano
+double correctAlignment(int strip, int layer, analysisGeneral::TestBeams tb){
   double stripD = 0;
-   switch(layer){
-      case 0:
-        stripD = static_cast<double>(strip);
-        break;
-      case 1:
-        stripD = static_cast<double>(strip) * (1 - 2.29e-3) - 2.412 / 0.25;
-        break;        
-      case 2:
-        stripD = static_cast<double>(strip) * (1 - 8e-3) - 8.46 / 0.25;
-        break;
-      default:
-        stripD = static_cast<double>(strip);
-        break;
-    }
-   return stripD;
+  switch(tb){
+    case analysisGeneral::TestBeams::TB22_October:
+      break;
+    case analysisGeneral::TestBeams::TB22_August:
+      break;
+    case analysisGeneral::TestBeams::TB22_July:
+      switch(layer){
+        case 0:
+          stripD = static_cast<double>(strip) * 1.09 - 6.16;
+          break;
+        case 1:
+          stripD = static_cast<double>(strip);
+          break;        
+        case 2:
+          stripD = static_cast<double>(strip) * 1.01 + 3.77;
+          break;
+        default:
+          stripD = static_cast<double>(strip);
+          break;
+      }
+      break;
+    case analysisGeneral::TestBeams::TB22_April:
+      // shifts from Stefano
+      switch(layer){
+        case 0:
+          stripD = static_cast<double>(strip);
+          break;
+        case 1:
+          stripD = static_cast<double>(strip) * (1 - 2.29e-3) - 2.412 / 0.25;
+          break;        
+        case 2:
+          stripD = static_cast<double>(strip) * (1 - 8e-3) - 8.46 / 0.25;
+          break;
+        default:
+          stripD = static_cast<double>(strip);
+          break;
+      }
+      break;
+    default:
+      break;
+  }
+  return stripD;
 }
 
 void filterClusters(vector<map<double, int>> &clusters, int layer, bool vmmHits){
@@ -135,26 +163,82 @@ optional<pair<double, double>> getMeanPosition(map<int, int> hitsPerLayer, int l
 }
 
 /*
- * positions:
+ * positions (april measurements):
  * L0 - L1: 285
  * L1 - L2: 345
- * L2 - Straw: 523
+ * L2 - L3 ( & Straw): 523
+ *
+ * Some distances (July measurements):
+ * 183 - mm0-straw (layer -1 now)
+ * 434 - mm0-mm1 - mm layer 3 (y) was connected to mm layer 1
+ * 325 - mm3-mm2
+ *
  * return: position in mm, from Layer 0
+ * Layer -1 -> straw, odd(?)
+ * Layer -2 -> straw, even(?)
  */
-int getLayerPosition(int layer){
+int getLayerPosition(int layer, analysisGeneral::TestBeams tb){ // TODO do normally
   int y = 0;
-  switch(layer){
-    case 3:
-      y += 523;
-    case 2:
-      y += 345;
-    case 1:
-      y += 285;
-    case 0:
-      y += 0;
+    switch(tb){
+    case analysisGeneral::TestBeams::TB22_October:
+    switch(layer){
+      case 2:
+        y += 195;
+      case -2:
+        y += 7;
+      case -1:
+        y += 233;
+      case 3:
+        y += 32;
+      case 1:
+        y += 332;
+      case 0:
+        y += 0;
+    }
+      break;
+    case analysisGeneral::TestBeams::TB22_August:
+      break;
+    case analysisGeneral::TestBeams::TB22_July:
+    switch(layer){
+      case -2:
+        y += 7;
+      case -1:
+        y = -183;
+        break;
+      case 2:
+        y += 325;
+      case 3:
+      case 1:
+        y += 434;
+      case 0:
+        y += 0;
+        break;
+      default:
+        y += 0;
+        break;
+    }
+      break;
+    case analysisGeneral::TestBeams::TB22_April:
+    switch(layer){
+      case -2:
+        y += 7;
+      case -1:
+      case 3:
+        y += 523;
+      case 2:
+        y += 345;
+      case 1:
+        y += 285;
+      case 0:
+        y += 0;
+    }
+      break;
+    default:
+      break;
   }
   return y;
 }
+
 
 double estimatePositionInLayer(pair<double, double> trackAB, int layer){
   double x = getLayerPosition(layer);

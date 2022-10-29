@@ -22,6 +22,9 @@ void analyseMerged(string runVMM = "0832", string runAPV = "423", bool tight = f
   auto apvan = new apv(tAPV, nullptr);
   apvan->useSyncSignal();
 
+  auto tbType = apvan->testbeamType;
+  auto drLayer = vmman->mmDoubleReadout - 2;
+
   auto fOut = TFile::Open(Form("../out/_analysed_%s_%s%s.root", runVMM.c_str(), runAPV.c_str(), (tightText+fixTimeText+partialfileEnd).c_str()), "recreate");
 
   auto hL0Straw = new TH2F("hL0Straw", "hL0Straw; straw; L0 strip", 6, 24, 30, 206, 54, 260);
@@ -57,7 +60,7 @@ void analyseMerged(string runVMM = "0832", string runAPV = "423", bool tight = f
       auto meanPos = getMeanClusterPositions(layerData, i);
       if(!meanPos.size())
         continue;
-      if(i < 2 || !drLayerFromVMM)
+      if(i != drLayer || !drLayerFromVMM)
         positions.emplace(i, meanPos);
       // printf("Event %d, position for layer %d: %g\n", event, i, meanPos.value());
       TH2F* hist = nullptr;
@@ -93,12 +96,12 @@ void analyseMerged(string runVMM = "0832", string runAPV = "423", bool tight = f
       // Adding MM layer from VMM data
       map<int, int> hitsMMVMM;
       for(auto h: dataVMM){
-        if(h.detector != 4) continue;
+        if(h.detector != drLayer+2) continue;
         // printf("MM VMM strip %d\n", h.strip);
         hitsMMVMM.emplace(h.strip, h.pdo);
       }
       // printf("Number of MM VMM strips %lu\n", hitsMMVMM.size());
-      auto meanPosMMVMM = getMeanClusterPositions(hitsMMVMM, 2, true);
+      auto meanPosMMVMM = getMeanClusterPositions(hitsMMVMM, drLayer, true);
       if(!meanPosMMVMM.size())
         continue;
       positions.emplace(2, meanPosMMVMM);
@@ -112,7 +115,7 @@ void analyseMerged(string runVMM = "0832", string runAPV = "423", bool tight = f
       auto distance = getDistanceToTrack(clusters, track);
       if(distance > maxDistanceToTrack)
         continue;
-      auto estimatedCoord = estimatePositionInLayer(track, 3);
+      auto estimatedCoord = estimatePositionInLayer(track, -1); // TODO
       for(auto h: dataVMM){
         if(h.detector != 1)
           continue;

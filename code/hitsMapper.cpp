@@ -116,6 +116,9 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
     auto vmman = new evBuilder(run_pair.first, "g1_p25_s100-0&60", "map-20220605");
     vmman->useSyncSignal();
 
+    auto tbType = apvan->testbeamType;
+    auto drLayer = vmman->mmDoubleReadout - 2;
+
     cout << "Num of events: APV -- " << apvan->GetEntries() << "; VMM -- " << vmman->GetEntries() << endl;
 
     if(nAll < 1) nAll = 1;  
@@ -214,7 +217,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
 
     auto hVMMEstimatedTimeBetweenPulsers = make_shared<TH2F>("hVMMEstimatedTimeBetweenPulsers", "hVMMEstimatedTimeBetweenPulsers; time, s; T_{pulse}-T_{pulse-1} , #mus", 4000, 0, 400, 2000, -10000, 10000);
     
-    std::function<int(int)> thrPerStrip = [](int strip){
+    std::function<int(int)> thrPerStrip = [](int strip){ // TODO
         int thr = 50;
         switch(strip){
             case 161:
@@ -312,7 +315,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
     bool hitMapped;
 
     vector<pair<int, int>> vmm_hits_vec;
-    vector<pair<int, int>> apv_hits_vec;
+    vector<pair<int, int>> apv_hits_vec_l2;
     vector<pair<int, int>> apv_hits_vec_l0;
     vector<pair<int, int>> apv_hits_vec_l1;
     int diff_hit;
@@ -407,41 +410,54 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
             // apv_hit_T = pulser_T + apv_time_from_SRS(prev_pulse_SRS, hit_apv.timeSrs, fixSRSTime);
             if (hit_apv.hitsPerLayer.at(0).size() != 0)
             {
-                apv_hits_vec.clear();
+                apv_hits_vec_l2.clear();
                 apv_hits_vec_l0.clear();
                 apv_hits_vec_l1.clear();
                 // std::cout << "---> with hits:" << prev_pulse_SRS << "\t" << hit_apv.timeSrs << "\n";
                 // out_APV << "------- APV Period " << nPeriodsAPV << " -------- \n";
                 for (auto &h : hit_apv.hitsPerLayer.at(0))
                 {
-                    strip = h.first;
+                    strip = correctAlignment(strip, 0, tbType);
                     pdo = h.second;
                     if (strip > 118 && strip < 172)
                         apv_hits_vec_l0.push_back(make_pair(strip, pdo));
                 }
                 for (auto &h : hit_apv.hitsPerLayer.at(1))
                 {
-                    strip = h.first; // * (1 - 2.29e-3) - 2.412 / 0.25;
+                    strip = correctAlignment(strip, 1, tbType);
                     pdo = h.second;
                     if (strip > 118 && strip < 172)
                         apv_hits_vec_l1.push_back(make_pair(strip, pdo));
                 }
                 for (auto &h : hit_apv.hitsPerLayer.at(2))
                 {
-                    strip = h.first; // * (1 - 8e-3) - 8.46 / 0.25;
+                    strip = correctAlignment(strip, 2, tbType);
                     pdo = h.second;
                     if (strip > 118 && strip < 172)
-                        apv_hits_vec.push_back(make_pair(strip, pdo));
+                        apv_hits_vec_l2.push_back(make_pair(strip, pdo));
                 }
 
                 if (apv_hits_vec_l0.size() && apv_hits_vec_l1.size())
                     tracksPerTime->Fill((T_apv - startT_apv)/1E6);
                 
-                if (!apv_hits_vec.size() || !apv_hits_vec_l0.size() || !apv_hits_vec_l1.size())
+                if (!apv_hits_vec_l2.size() || !apv_hits_vec_l0.size() || !apv_hits_vec_l1.size())
                     continue;
 
 
-                map<int, vector<pair<double, double>>> means = {{0, getMeanClusterPositions(apv_hits_vec_l0, 0)}, {1, getMeanClusterPositions(apv_hits_vec_l1, 1)}};
+                map<int, vector<pair<double, double>>> means;
+                switch(tbType){
+                  case analysisGeneral::TestBeams::TB22_October:
+                  case analysisGeneral::TestBeams::TB22_August:
+                    break;
+                  case analysisGeneral::TestBeams::TB22_July:
+                    means = {{1, getMeanClusterPositions(apv_hits_vec_l1, 1)}, {2, getMeanClusterPositions(apv_hits_vec_l2, 2)}};
+                    break;
+                  case analysisGeneral::TestBeams::TB22_April:
+                    means = {{0, getMeanClusterPositions(apv_hits_vec_l0, 0)}, {1, getMeanClusterPositions(apv_hits_vec_l1, 1)}};
+                    break;
+                  default:
+                    break;
+                }
                 auto tracks = getEstimatedTracks(means);
                 // remove tracks propogated out of layer bounds
                 // tracks.erase(std::remove_if(tracks.begin(), tracks.end(),
@@ -450,8 +466,8 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                 //                                 return (e >= 146 && e <= 210);
                 //                             }),
                 //              tracks.end());
-                vector<double> propogated = {};
-                std::transform(tracks.begin(), tracks.end(), std::back_inserter(propogated), [](auto tr){return estimatePositionInLayer(tr, 2);});
+                vector<double> propogated = {};                
+                std::transform(tracks.begin(), tracks.end(), std::back_inserter(propogated), [](auto tr){return estimatePositionInLayer(tr, drLayer);});
 
                 vmm_hits_vec.clear();
 
@@ -499,7 +515,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                             diff = (currEvent->bcid - prevSyncBcid > 0) ? currEvent->bcid - prevSyncBcid : currEvent->bcid + 4096 - prevSyncBcid;
                             diffDiff = (currEvent->bcid - prevPrevSyncBcid > 0) ? currEvent->bcid - prevPrevSyncBcid: currEvent->bcid + 4096 - prevPrevSyncBcid;
 
-                            nPeriodsAdd = calculateVMMNPulsers(diff, 3, 4);
+                            nPeriodsAdd = calculateVMMNPulsers(diff, 3, 4); // TODO add dependency on testbeam
                             
                             diffTvmm = T_vmm-T_vmm_pulse_prev;
 
@@ -562,7 +578,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
 
                     for (auto it = currEvent->hitsX.begin(); it != currEvent->hitsX.end(); ++it)
                     {
-                        strip = it->first * (1 - 8e-3) - 8.46 / 0.25;
+                        strip = correctAlignment(it->first, 2, tbType);
                         pdo = it->second;
                         if (pdo < thrPerStrip(it->first))
                             continue;
@@ -585,11 +601,11 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                         if(hitMapped) break;
                     }
 
-                    // for (unsigned long k = 0; k < apv_hits_vec.size(); k++)
+                    // for (unsigned long k = 0; k < apv_hits_vec_l2.size(); k++)
                     // {
                     //     for (unsigned long l = 0; l < vmm_hits_vec.size(); l++)
                     //     {
-                    //         if (vmm_hits_vec.size() != 0 && abs(apv_hits_vec.at(k).first - vmm_hits_vec.at(l).first) < 5){
+                    //         if (vmm_hits_vec.size() != 0 && abs(apv_hits_vec_l2.at(k).first - vmm_hits_vec.at(l).first) < 5){
                     //             hitMapped = true;
                     //             break;
                     //         }
@@ -628,14 +644,14 @@ void hitsMapper(bool tight = false, bool fixSRSTime = false, int nAll = 1, int n
                                     out_APV << "------- APV Double ReadOut Period " << nPeriodsAPV << " -------- T = " << T_apv - startT_pulse_apv << " [us] \n";
                                 }
                             }
-                            for (int k = 0; k < apv_hits_vec.size(); k++)
+                            for (int k = 0; k < apv_hits_vec_l2.size(); k++)
                             {
                                 if(PRINT_TO_FILE)
                                 {
-                                    out_APV << k << "\t Strip: " << apv_hits_vec.at(k).first << "\n";
-                                    out_APV << "  \t PDO: " << apv_hits_vec.at(k).second << "\n";
+                                    out_APV << k << "\t Strip: " << apv_hits_vec_l2.at(k).first << "\n";
+                                    out_APV << "  \t PDO: " << apv_hits_vec_l2.at(k).second << "\n";
                                 }
-                                mappedHitsPdo_apv->Fill(apv_hits_vec.at(k).second);
+                                mappedHitsPdo_apv->Fill(apv_hits_vec_l2.at(k).second);
                             }
                             if(PRINT_TO_FILE)
                             {

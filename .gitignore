@@ -8,6 +8,6 @@
 *.pdf
 *.png
 *.log
-
 *.pcm
 link.C
+.DS_Store
