@@ -590,3 +590,108 @@ void tiger::Loop(unsigned long n)
 
   printf("Finish\n");
 }
+
+// deltaT in NS
+bool inTimeWindow(int detector, double deltaTNS){
+  switch(detector){
+    case 0:
+      return false;
+      break;
+    case 1:
+      return (-140 < deltaTNS && deltaTNS < 40);
+      break;
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+      return (-140 < deltaTNS && deltaTNS < 320);
+      break;
+    case 6:
+  return false;
+      break;
+    case 7:
+  return false;
+      break;
+    default:
+      break;
+  }
+  return false;
+}
+
+void tiger::FindClusters(unsigned long n)
+{
+  printf("tiger::FindClusters()\n");
+
+  if (fChain == 0)
+    return;
+
+  // auto out = make_shared<TFile>("../out/out_tiger_clusters_" + ((runFolder == "") ? "" : runFolder + "-") + file + ending, "RECREATE"); // PATH where to save out_*.root file
+  auto tree = make_shared<TTree>("tigerClusters", "tigerClusters");
+
+  Long64_t nentries = fChain->GetEntries();
+  if(n > 0 && nentries > n)
+    nentries = n;
+  
+  // =============================== CORRELATION FINDING ===============================
+  Long64_t timeWindowNS = maxTimeDiff(); // ns
+  Long64_t firstHitInWindow = 0;
+  tigerHitTL *hitMain, *hitSecondary, hitFirst;
+  map<int, map<int, tigerHitTL*>> closestHitsInLayer;
+  for (Long64_t jentry = 0; jentry < nentries; jentry++)
+  {
+    if (!(jentry % 100000)){
+      std::cout << "Entry " << jentry << "\t of \t" << nentries << "\n";
+      // if(jentry>0) break;
+      freeHitMap(firstHitInWindow);
+    }
+    hitMain = getHitFromTree(jentry, true);
+    auto fchMapped = getMapped(hitMain);
+    auto [fchD, fchM] = fchMapped;
+    auto charge = hitMain->charge(energyMode);
+    auto timeSinceStart = timeDifferenceFineNS(hitMain, &hitFirst)  *  1E-9;
+    if (fchD < 0) continue; // unmapped channels
+    if(!isGoodHit(jentry))
+      continue;
+
+    if(fchD == 0 && fchM == 0){ // Scintillator
+      closestHitsInLayer.clear();
+      for(Long64_t kentry = firstHitInWindow; kentry < nentries; kentry++){
+        if(kentry == jentry) continue;
+        hitSecondary = getHitFromTree(kentry);
+        if(!hitSecondary) continue;
+        /* Checking that second hit in maximum time window */
+        auto timeDifference = timeDifferenceFineNS(hitSecondary, hitMain);
+        auto timeDifferenceAbs = fabs(timeDifference);
+        if(timeDifferenceAbs > timeWindowNS){
+          if(timeDifference < 0){ // hitSecondary before hitMain
+            firstHitInWindow++;
+            continue;
+          } else // hitSecondary after hitMain
+            break;
+        }
+        auto [ffchD, ffchM] = getMapped(hitSecondary);
+        if(!inTimeWindow(ffchD, timeDifference))
+          continue;
+        if(!closestHitsInLayer.count(ffchD)) closestHitsInLayer[ffchD] = {};
+        // Search closest hits for all other channels
+        if(!closestHitsInLayer.at(ffchD).count(ffchM) || timeDifferenceAbs < fabs(timeDifferenceFineNS(hitMain, closestHitsInLayer.at(ffchD).at(ffchM))))
+          (closestHitsInLayer.at(ffchD))[ffchM] = hitSecondary;
+
+      }
+      // Here we have closestHitsInLayer with hits acceptable to produce clusters
+    }
+    else if(fchD == 0 && fchM == 4){ // 50us clocks
+    }
+    else if (fchD == 1){ // All straw ch
+    }
+    else if (fchD >= 2 && fchD <= 5){ // All MM ch
+    }
+    else if (fchD == 6){ // All straw ch
+    }
+  }
+
+  // out->Write();
+  // out->Close();
+
+  printf("Finish\n");
+}

@@ -63,6 +63,7 @@ public :
   virtual ~tiger();
   virtual void     Init() override;
   virtual void     Loop(unsigned long n = 0) override;
+  void     FindClusters(unsigned long n = 0) ;
 
   bool energyCut(tigerHitTL* hit);
 
@@ -404,4 +405,5 @@ void tiger::Init()
 
 #ifndef tiger_cxx
 void tiger::Loop(unsigned long n){}
+void tiger::FindClusters(unsigned long n){}
 #endif // #ifdef tiger_cxx
