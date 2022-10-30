@@ -320,6 +320,7 @@ void tiger::Loop(unsigned long n)
   Long64_t timeWindowNS = maxTimeDiff(); // ns
   Long64_t firstHitInWindow = 0;
   tigerHitTL *hitMain, *hitSecondary, hitFirst;
+  map<int, map<int, tigerHitTL*>> closestHitsInLayer;
   for (Long64_t jentry = 0; jentry < nentries; jentry++)
   {
     if (!(jentry % 100000)){
@@ -390,8 +391,6 @@ void tiger::Loop(unsigned long n)
         prevHit[fchMapped] = *hitMain;
       }
     }
-
-    map<int, map<int, tigerHitTL*>> closestHitsInLayer;
 
     if(fchD == 0 && fchM == 0){ // Scintillator
       closestHitsInLayer.clear();
