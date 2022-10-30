@@ -27,7 +27,7 @@ for connector_type in ["l", "c", "r"]:
     for i in(range(10,138,2)):
       channel = 1 + params[0] + params[1] + int((136-i)/2)
       print(f'{feb}, {i} : MM{mm}, {channel}', file=f)
-    print(f'{feb}, 138 :  NC, 0', file=f)
+    print(f'{feb}, 138 : NC, 0', file=f)
     lemo = [5,11,17,23,29,35,41,47]
     for ch in lemo:
       print(f'{feb}, {ch} : lemo, {lemo.index(ch)} # lemo {lemo.index(ch)}', file=f)
