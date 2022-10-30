@@ -679,6 +679,19 @@ void tiger::FindClusters(unsigned long n)
 
       }
       // Here we have closestHitsInLayer with hits acceptable to produce clusters
+      if(!closestHitsInLayer.count(1))
+        continue;
+      bool anyHitInMM = false;
+      for(auto i = 0; i < 4; i++){
+        auto idet = i + 2;
+        if(idet == mmLayerY) continue;
+        if(!closestHitsInLayer.count(idet))
+          continue;
+        anyHitInMM = true;
+        break;
+      }
+      if(!anyHitInMM)
+        continue;
     }
     else if(fchD == 0 && fchM == 4){ // 50us clocks
     }
