@@ -207,7 +207,7 @@ void tiger::Loop(unsigned long n)
       straw_rt.emplace(make_pair(i,j+2),
                        make_shared<TH2F>(Form("straw%d_rt_det%d", i, j+2),
                                          Form("%s: straw %d v-shape against MM%d;MM strip;T, ns", file.Data(), i, j),
-                                         detMax.at(j+2) - detMin.at(j+2) + 1, detMin.at(j), detMax.at(j+2) + 1, 600, -300, 300));
+                                         detMax.at(j+2) - detMin.at(j+2) + 1, detMin.at(j+2), detMax.at(j+2) + 1, 600, -300, 300));
     }
   }
   out->cd();
@@ -320,6 +320,7 @@ void tiger::Loop(unsigned long n)
   Long64_t timeWindowNS = maxTimeDiff(); // ns
   Long64_t firstHitInWindow = 0;
   tigerHitTL *hitMain, *hitSecondary, hitFirst;
+  map<int, map<int, tigerHitTL*>> closestHitsInLayer;
   for (Long64_t jentry = 0; jentry < nentries; jentry++)
   {
     if (!(jentry % 100000)){
@@ -390,8 +391,6 @@ void tiger::Loop(unsigned long n)
         prevHit[fchMapped] = *hitMain;
       }
     }
-
-    map<int, map<int, tigerHitTL*>> closestHitsInLayer;
 
     if(fchD == 0 && fchM == 0){ // Scintillator
       closestHitsInLayer.clear();
