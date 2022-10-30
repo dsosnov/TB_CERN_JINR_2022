@@ -65,7 +65,7 @@ for inverted in [False, True]:
         if feb_pin < 0:
           print(f'Feb pin for panasonic pin is below zero! [{panasonic_pin} -> {mm_strip} -> {mm_in_scheme}]')
         elif mm_strip < 0:
-          print(f'{feb}, {feb_pin} :  NC, 0', file=f)
+          print(f'{feb}, {feb_pin} : NC, 0', file=f)
         else:
           if(inverted):
             mm_strip = 361 - mm_strip
