@@ -198,20 +198,6 @@ void tiger::Loop(unsigned long n)
     out->cd();
   }
   map<pair<int, int>, tigerHitTL> prevHit;
-  
-  out->mkdir("straw_rt")->cd();
-  map<pair<int, int>, shared_ptr<TH2F>> straw_rt;
-  for(auto i = detMin.at(1); i <= detMax.at(1); i++){
-    for(int j = 0; j < 4; j++){
-      if(j+2 == mmLayerY) continue;
-      straw_rt.emplace(make_pair(i,j+2),
-                       make_shared<TH2F>(Form("straw%d_rt_det%d", i, j+2),
-                                         Form("%s: straw %d v-shape against MM%d;MM strip;T, ns", file.Data(), i, j),
-                                         detMax.at(j+2) - detMin.at(j+2) + 1, detMin.at(j+2), detMax.at(j+2) + 1, 600, -300, 300));
-    }
-  }
-  out->cd();
-
 
   out->mkdir("straw_banana")->cd();
   map<int, shared_ptr<TH2F>> straw_banana ;
@@ -224,11 +210,14 @@ void tiger::Loop(unsigned long n)
   out->cd();
 
   out->mkdir("straw_vs_straw_deltat")->cd();
-  map<int, shared_ptr<TH1F>> straw_straw;
+  map<int, shared_ptr<TH1F>> straw_straw, straw_straw_sci;
   for(auto i = detMin.at(1); i < detMax.at(1); i++){
     straw_straw.emplace(i,
                         make_shared<TH1F>(Form("straw%d_vs_straw%d", i, i+1),
                                           Form("%s: straw%d_vs_straw%d;T_{straw%d} - T_{straw%d}", file.Data(), i, i+1, i, i+1), 1000, -500, 500));
+    straw_straw_sci.emplace(i,
+                        make_shared<TH1F>(Form("straw%d_vs_straw%d_vs_sci", i, i+1),
+                                          Form("%s: straw%d_vs_straw%d;T_{straw%d} - T_{straw%d}, corellated to sci", file.Data(), i, i+1, i, i+1), 1000, -500, 500));
   }
   out->cd();
 
@@ -262,6 +251,18 @@ void tiger::Loop(unsigned long n)
     hSciTimeToDetCoarse.emplace(i, make_shared<TH1F>(Form("sci_vs_det%d_coarse", i), Form("%s: T_{det %d} - T_{scint} (coarse time);#DeltaT, ns", file.Data(), i), 160, -500, 500));
     hSciTimeToDetCoarsePerTime.emplace(i, make_shared<TH2F>(Form("sci_vs_det%d_coarse_per_time", i), Form("%s: T_{det %d} - T_{scint} (coarse time);time, s; #DeltaT, ns", file.Data(), i), 600, 0, 60, 160, -500, 500));
   }
+  map<int, shared_ptr<TH1F>> hSciVsSci, hSciVsSciCoarse;
+  map<int, shared_ptr<TH2F>> hSciVsSciCoarsePerTime;
+  for(int i = detMin.at(0); i <= detMax.at(0); i++){
+    if(i<=0) continue;
+    hSciVsSci.emplace(i, make_shared<TH1F>(Form("sci_vs_sci%d", i), Form("%s: T_{scint %d} - T_{scint 0};#Deltat, ns", file.Data(), i), 1000, -500, 500));
+    hSciVsSciCoarse.emplace(i, make_shared<TH1F>(Form("sci_vs_sci%d_coarse", i), Form("%s: T_{scint %d} - T_{scint 0} (coarse time);#DeltaT, ns", file.Data(), i), 160, -500, 500));
+    hSciVsSciCoarsePerTime.emplace(i, make_shared<TH2F>(Form("sci_vs_sci%d_coarse_per_time", i), Form("%s: T_{scint %d} - T_{scint 0} (coarse time);time, s; #DeltaT, ns", file.Data(), i), 600, 0, 60, 160, -500, 500));
+  }
+  map<int, shared_ptr<TH1F>> hSciTimeToStraw;
+  for(int i = detMin.at(1); i <= detMax.at(1); i++){
+    hSciTimeToStraw.emplace(i, make_shared<TH1F>(Form("sci_vs_straw%d", i), Form("%s: T_{straw %d} - T_{scint};#Deltat, ns", file.Data(), i), 1000, -500, 500));
+  }
   out->cd();
 
   map<pair<int,int>, shared_ptr<TH2F>> mmCorrellations;
@@ -289,6 +290,16 @@ void tiger::Loop(unsigned long n)
                                                   detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i), 96, -300, 300));
     }
   }
+  map<pair<int, int>, shared_ptr<TH2F>> straw_rt;
+  for(auto i = detMin.at(1); i <= detMax.at(1); i++){
+    for(int j = 0; j < 4; j++){
+      if(j+2 == mmLayerY) continue;
+      straw_rt.emplace(make_pair(i,j+2),
+                       make_shared<TH2F>(Form("straw%d_rt_det%d", i, j+2),
+                                         Form("%s: straw %d v-shape against MM%d;MM strip;T, ns", file.Data(), i, j),
+                                         detMax.at(j+2) - detMin.at(j+2) + 1, detMin.at(j+2), detMax.at(j+2) + 1, 600, -300, 300));
+    }
+  }
   map<int, shared_ptr<TH2F>> hShipRT;
   if(detMax.at(6) > 0){
     for(int i = 2; i <= 5; i++){
@@ -298,18 +309,6 @@ void tiger::Loop(unsigned long n)
     }
   }
   out->cd();
-
-  out->mkdir("sci_vs_sci")->cd();
-  map<int, shared_ptr<TH1F>> hSciVsSci, hSciVsSciCoarse;
-  map<int, shared_ptr<TH2F>> hSciVsSciCoarsePerTime;
-  for(int i = detMin.at(0); i <= detMax.at(0); i++){
-    if(i<=0) continue;
-    hSciVsSci.emplace(i, make_shared<TH1F>(Form("sci_vs_sci%d", i), Form("%s: T_{scint %d} - T_{scint 0};#Deltat, ns", file.Data(), i), 1000, -500, 500));
-    hSciVsSciCoarse.emplace(i, make_shared<TH1F>(Form("sci_vs_sci%d_coarse", i), Form("%s: T_{scint %d} - T_{scint 0} (coarse time);#DeltaT, ns", file.Data(), i), 160, -500, 500));
-    hSciVsSciCoarsePerTime.emplace(i, make_shared<TH2F>(Form("sci_vs_sci%d_coarse_per_time", i), Form("%s: T_{scint %d} - T_{scint 0} (coarse time);time, s; #DeltaT, ns", file.Data(), i), 600, 0, 60, 160, -500, 500));
-  }
-  out->cd();
-
   
   
   Long64_t nentries = fChain->GetEntries();
@@ -463,19 +462,22 @@ void tiger::Loop(unsigned long n)
           if(fabs(timeDifferenceFineNS(straw2Hit, hitMain)) > maxTimeDiff(fchD, 1))
             continue;
           straw_banana.at(straw.first)->Fill(timeDifferenceFineNS(straw.second, hitMain), timeDifferenceFineNS(straw2Hit, hitMain));
+          straw_straw_sci.at(straw.first)->Fill(timeDifferenceFineNS(straw.second, straw2Hit));
         }
       }
       for(auto i = 1; i < 7; i++){
         if(!closestHitsInLayer.count(i))
           continue;
         if(hSciTimeToDet.count(i)){
-          for(auto &h: closestHitsInLayer.at(i))
-            hSciTimeToDet.at(i)->Fill(timeDifferenceFineNS(h.second, hitMain));
-        }
-        if(hSciTimeToDet.count(i)){
           for(auto &h: closestHitsInLayer.at(i)){
+            hSciTimeToDet.at(i)->Fill(timeDifferenceFineNS(h.second, hitMain));
             hSciTimeToDetCoarse.at(i)->Fill(timeDifferenceCoarsePS(h.second, hitMain)/1E3);
             hSciTimeToDetCoarsePerTime.at(i)->Fill(timeSinceStart, timeDifferenceCoarsePS(h.second, hitMain)/1E3);
+          }
+        }
+        if(i == 1 && hSciTimeToDet.count(i)){
+          for(auto &h: closestHitsInLayer.at(i)){
+            hSciTimeToStraw.at(h.first)->Fill(timeDifferenceFineNS(h.second, hitMain));
           }
         }
       }
