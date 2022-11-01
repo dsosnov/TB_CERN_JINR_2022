@@ -141,6 +141,17 @@ void tiger::Loop(unsigned long n)
     straw_vs_mm_spatial_corr_3det.emplace(i+2, make_shared<TH2F>(Form("straw_vs_mm%d_spatial_corr_3det", i), Form("%s: microMegas %d vs straw spatial correaltion (corellated to scint);straw ch;MM ch", file.Data(), i),
                                                             detMax.at(1) - detMin.at(1) + 1, detMin.at(1), detMax.at(1) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
   }
+  map<int, shared_ptr<TH2F>> addstraw_vs_mm_spatial_corr, addstraw_vs_mm_spatial_corr_3det;
+  if(detMax.at(6) >= 0){
+    for(int i = 0; i < 4; i++){
+      if(i+2 == mmLayerY) continue;
+      addstraw_vs_mm_spatial_corr.emplace(i+2, make_shared<TH2F>(Form("addstraw_vs_mm%d_spatial_corr", i), Form("%s: microMegas %d vs det 6 spatial correaltion;det 6 straw ch;MM ch", file.Data(), i),
+                                                                 detMax.at(6) - detMin.at(6) + 1, detMin.at(6), detMax.at(6) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
+      addstraw_vs_mm_spatial_corr_3det.emplace(i+2, make_shared<TH2F>(Form("addstraw_vs_mm%d_spatial_corr_3det", i),
+                                                                      Form("%s: microMegas %d vs det 6 spatial correaltion (corellated to scint);det 6 straw ch;MM ch", file.Data(), i),
+                                                                      detMax.at(6) - detMin.at(6) + 1, detMin.at(6), detMax.at(6) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
+    }
+  }
   out->cd();
 
   vector<shared_ptr<TH1F>> hprofile;
@@ -226,7 +237,7 @@ void tiger::Loop(unsigned long n)
     DeltaTBetweenPulsers = make_shared<TH2F>("DeltaTBetweenPulsers", Form("%s: DeltaTBetweenPulsers;time, s;T^{scint}_{50#mus} - T^{scint}_{10ms}, #mus", file.Data()), 600, 0, 60, 10000, 0, 100000);
   map<int, shared_ptr<TH2F>> heFineCorr, hNeighborsPerTime;
   map<pair<int,int>, shared_ptr<TH2F>> heFinePerTimeCorr;
-  if(detMax.at(6) > 0){
+  if(detMax.at(6) >= 0){
     out->mkdir("plots_corr_6")->cd();
     for(auto i = 2; i <= 5; i++){
       hNeighborsPerTime.emplace(i, make_shared<TH2F>(Form("hNeighborsPerTime_det%d", i), Form("%s: N neighbors per time for detector %d;full time, s; N neighbors", file.Data(), i),
@@ -301,7 +312,7 @@ void tiger::Loop(unsigned long n)
     }
   }
   map<int, shared_ptr<TH2F>> hShipRT;
-  if(detMax.at(6) > 0){
+  if(detMax.at(6) >= 0){
     for(int i = 2; i <= 5; i++){
       if(i == mmLayerY) continue;
       hShipRT.emplace(i, make_shared<TH2F>(Form("ship_rt_vs_mm%d", i-2), Form("%s: RT for SHiP straw and MM %d;strip;#DeltaT, ns", file.Data(), i-2),
@@ -427,6 +438,7 @@ void tiger::Loop(unsigned long n)
             if(fabs(timeDifferenceFineNS(h.second, hitMain)) > maxTimeDiff(fchD, idet))
               continue;
             hShipRT.at(idet)->Fill(h.first, timeDifferenceFineNS(closestHitsInLayer.at(6).at(0), hitMain));
+            addstraw_vs_mm_spatial_corr_3det.at(idet)->Fill(getMappedChannel(closestHitsInLayer.at(6).at(0)), h.first);
           }
         }
       }
