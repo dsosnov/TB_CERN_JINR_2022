@@ -134,12 +134,16 @@ void tiger::Loop(unsigned long n)
   out->cd();
   out->mkdir(Form("mm_vs_straw"))->cd();
   map<int, shared_ptr<TH2F>> straw_vs_mm_spatial_corr, straw_vs_mm_spatial_corr_3det;
+  map<int, shared_ptr<TH2F>> straw_vs_mm_spatial_corr_3det_closestTime;
   for(int i = 0; i < 4; i++){
     if(i+2 == mmLayerY) continue;
     straw_vs_mm_spatial_corr.emplace(i+2, make_shared<TH2F>(Form("straw_vs_mm%d_spatial_corr", i), Form("%s: microMegas %d vs straw spatial correaltion;straw ch;MM ch", file.Data(), i),
                                                             detMax.at(1) - detMin.at(1) + 1, detMin.at(1), detMax.at(1) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
     straw_vs_mm_spatial_corr_3det.emplace(i+2, make_shared<TH2F>(Form("straw_vs_mm%d_spatial_corr_3det", i), Form("%s: microMegas %d vs straw spatial correaltion (corellated to scint);straw ch;MM ch", file.Data(), i),
                                                             detMax.at(1) - detMin.at(1) + 1, detMin.at(1), detMax.at(1) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
+    straw_vs_mm_spatial_corr_3det_closestTime.emplace(i+2, make_shared<TH2F>(Form("straw_vs_mm%d_spatial_corr_3det_closestTime", i),
+                                                                             Form("%s: microMegas %d vs straw spatial correaltion (corellated to scint, MM hit with minimal time to scint);straw ch;MM ch", file.Data(), i),
+                                                                             detMax.at(1) - detMin.at(1) + 1, detMin.at(1), detMax.at(1) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
   }
   map<int, shared_ptr<TH2F>> addstraw_vs_mm_spatial_corr, addstraw_vs_mm_spatial_corr_3det;
   if(detMax.at(6) >= 0){
@@ -291,7 +295,7 @@ void tiger::Loop(unsigned long n)
   out->cd();
 
   out->mkdir("rt")->cd();
-  map<int, shared_ptr<TH2F>> hStrawRT, hStrawRTCoarse;
+  map<int, shared_ptr<TH2F>> hStrawRT, hStrawRTCoarse, hStrawRT_closestTime;
   if(detMax.at(1) > 0){
     for(int i = 2; i <= 5; i++){
       if(i == mmLayerY) continue;
@@ -299,15 +303,21 @@ void tiger::Loop(unsigned long n)
                                             detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i), 600, -300, 300));
       hStrawRTCoarse.emplace(i, make_shared<TH2F>(Form("straw_rt_vs_mm%d_coarse", i-2), Form("%s: RT for straws and MM %d (coarse time);strip;#DeltaT (coarse), ns", file.Data(), i-2),
                                                   detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i), 96, -300, 300));
+      hStrawRT_closestTime.emplace(i, make_shared<TH2F>(Form("straw_rt_vs_mm%d_closestTime", i-2), Form("%s: RT for straws and MM %d, MM closest hit to scint;strip;#DeltaT, ns", file.Data(), i-2),
+                                            detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i), 600, -300, 300));
     }
   }
-  map<pair<int, int>, shared_ptr<TH2F>> straw_rt;
+  map<pair<int, int>, shared_ptr<TH2F>> straw_rt, straw_rt_closestTime;
   for(auto i = detMin.at(1); i <= detMax.at(1); i++){
     for(int j = 0; j < 4; j++){
       if(j+2 == mmLayerY) continue;
       straw_rt.emplace(make_pair(i,j+2),
                        make_shared<TH2F>(Form("straw%d_rt_det%d", i, j+2),
                                          Form("%s: straw %d v-shape against MM%d;MM strip;T, ns", file.Data(), i, j),
+                                         detMax.at(j+2) - detMin.at(j+2) + 1, detMin.at(j+2), detMax.at(j+2) + 1, 600, -300, 300));
+      straw_rt_closestTime.emplace(make_pair(i,j+2),
+                       make_shared<TH2F>(Form("straw%d_rt_det%d_closestTime", i, j+2),
+                                         Form("%s: straw %d v-shape against MM%d, MM closest hit to scint;MM strip;T, ns", file.Data(), i, j),
                                          detMax.at(j+2) - detMin.at(j+2) + 1, detMin.at(j+2), detMax.at(j+2) + 1, 600, -300, 300));
     }
   }
@@ -452,14 +462,21 @@ void tiger::Loop(unsigned long n)
             auto idet = i+2;
             if(idet == mmLayerY) continue;
             if(!closestHitsInLayer.count(idet)) continue;
+            optional<int> closest = nullopt;
             for(auto &h: closestHitsInLayer.at(idet)){
               if(fabs(timeDifferenceFineNS(h.second, hitMain)) > maxTimeDiff(fchD, idet))
                 continue;
+              if(!closest ||
+                 timeDifferenceFineNS(h.second, hitMain) < timeDifferenceFineNS(closestHitsInLayer.at(idet).at(closest.value()), hitMain))
+                closest = h.first;
               hStrawRT.at(idet)->Fill(h.first, timeDifferenceFineNS(straw.second, hitMain));
               hStrawRTCoarse.at(idet)->Fill(h.first, timeDifferenceCoarsePS(straw.second, hitMain) / 1E3);
               straw_vs_mm_spatial_corr_3det.at(idet)->Fill(getMappedChannel(straw.second), h.first);
               straw_rt.at(make_pair(getMappedChannel(straw.second), idet))->Fill(h.first, timeDifferenceFineNS(straw.second, hitMain));
             }
+            straw_vs_mm_spatial_corr_3det_closestTime.at(idet)->Fill(getMappedChannel(straw.second), closest.value());
+            straw_rt_closestTime.at(make_pair(getMappedChannel(straw.second), idet))->Fill(closest.value(), timeDifferenceFineNS(straw.second, hitMain));
+            hStrawRT_closestTime.at(idet)->Fill(closest.value(), timeDifferenceFineNS(straw.second, hitMain));
           }
         }
       }
