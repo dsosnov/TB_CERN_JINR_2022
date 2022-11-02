@@ -619,6 +619,18 @@ bool inTimeWindow(int detector, double deltaTNS){
   return false;
 }
 
+vector<map<double, int>> splitByDistance(map<double, int> hitsPerLayer, double maxDistance = 5){
+  vector<map<double, int>> out;
+  double prev = -1;
+  for(auto &h: hitsPerLayer){ // hits are sorted by the rules of map structure
+    if(!out.size() || prev == -1 || fabs(prev - h.first) > maxDistance)
+      out.push_back({});
+    out.back().emplace(h.first, h.second);
+    prev = h.first;
+  }
+  return out;
+}
+
 void tiger::FindClusters(unsigned long n)
 {
   printf("tiger::FindClusters()\n");
@@ -626,8 +638,16 @@ void tiger::FindClusters(unsigned long n)
   if (fChain == 0)
     return;
 
-  // auto out = make_shared<TFile>("../out/out_tiger_clusters_" + ((runFolder == "") ? "" : runFolder + "-") + file + ending, "RECREATE"); // PATH where to save out_*.root file
-  auto tree = make_shared<TTree>("tigerClusters", "tigerClusters");
+  auto out = make_shared<TFile>("../out/out_tiger_clusters_" + ((runFolder == "") ? "" : runFolder + "-") + file + ending, "RECREATE"); // PATH where to save out_*.root file
+  auto tree = make_shared<TTree>("clusters", "clusters");
+
+  map<int, pair<double, double>> track_candidate;
+  map<int, double> straw_points;
+  Long64_t scintEvent;
+
+  tree->Branch("scintEvent", &scintEvent);
+  tree->Branch("track_candidate", &track_candidate);
+  tree->Branch("straw_points", &straw_points);
 
   Long64_t nentries = fChain->GetEntries();
   if(n > 0 && nentries > n)
@@ -659,9 +679,12 @@ void tiger::FindClusters(unsigned long n)
     if (fchD < 0) continue; // unmapped channels
     if(!isGoodHit(jentry))
       continue;
+    
+
 
     if(fchD == 0 && fchM == 0){ // Scintillator
       closestHitsInLayer.clear();
+      scintEvent = jentry;
       for(Long64_t kentry = firstHitInWindow; kentry < nentries; kentry++){
         if(kentry == jentry) continue;
         hitSecondary = getHitFromTree(kentry);
@@ -688,17 +711,74 @@ void tiger::FindClusters(unsigned long n)
       // Here we have closestHitsInLayer with hits acceptable to produce clusters
       if(!closestHitsInLayer.count(1))
         continue;
-      bool anyHitInMM = false;
-      for(auto i = 0; i < 4; i++){
+
+      
+      track_candidate.clear();
+      straw_points.clear();
+
+      for(auto i = 0; i < 4; i++)
+      {
         auto idet = i + 2;
-        if(idet == mmLayerY) continue;
+
         if(!closestHitsInLayer.count(idet))
           continue;
-        anyHitInMM = true;
-        break;
+
+        map<double, int> hitsPerLayer;  
+        for (auto &hit : closestHitsInLayer.at(idet))
+        {
+          hitsPerLayer.emplace(hit.first, hit.second->eFine);
+        }
+        auto hitsPerLayer_splited = splitByDistance(hitsPerLayer);
+
+        if (hitsPerLayer_splited.size() > 1)
+          continue;
+        
+        double sum = 0, e_sum = 0;
+
+        for (auto &hit_i : hitsPerLayer_splited.at(0))
+        {
+          double w = 1.0 / (hit_i.second + 2);
+          sum += w * hit_i.first;
+          e_sum += w;
+        }
+
+        double w_mean = sum / e_sum;
+
+        double std_sq = 0;
+
+        for (auto &hit_i : hitsPerLayer_splited.at(0))
+        {
+          std_sq += (hit_i.first - w_mean) * (hit_i.first - w_mean);
+        }
+
+        double mean_e = TMath::Sqrt(std_sq / hitsPerLayer_splited.at(0).size());
+        if (!mean_e)
+          mean_e = 0.5;
+        
+        // cout << w_mean << "\t+/- " << mean_e << "\n";
+
+        track_candidate.emplace(idet, make_pair(w_mean, mean_e));
       }
-      if(!anyHitInMM)
+
+      bool threePointsTrack = true;
+
+      for(auto l = 2; l <= 5; l++) 
+      {
+        if(l != mmLayerY && !track_candidate.count(l)) 
+        {    
+          threePointsTrack = false;
+        }
+      }
+      
+      if (!threePointsTrack)
         continue;
+      
+      for (auto &hit_i : closestHitsInLayer.at(1))
+      {
+        straw_points.emplace(hit_i.first, timeDifferenceFineNS(hit_i.second, hitMain));
+        // cout << hit_i.first << "\t" << timeDifferenceFineNS(hit_i.second, hitMain) << "\n";
+      }
+      tree->Fill();
     }
     else if(fchD == 0 && fchM == 4){ // 50us clocks
     }
@@ -709,9 +789,10 @@ void tiger::FindClusters(unsigned long n)
     else if (fchD == 6){ // All straw ch
     }
   }
-
-  // out->Write();
-  // out->Close();
+  tree->Print();
+  tree->Write();
+  
+  out->Close();
 
   printf("Finish\n");
 }

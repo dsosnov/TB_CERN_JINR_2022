@@ -32,4 +32,7 @@
 #pragma link C++ class analysisGeneral::mm2CenterHitParameters+;
 #pragma link C++ class apv::doubleReadoutHits+;
 
+#pragma link C++ class  map<int, pair<double, double>>+;
+#pragma link C++ class  map<int, double>+;
+
 #endif
