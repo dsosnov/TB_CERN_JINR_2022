@@ -646,6 +646,12 @@ void tiger::FindClusters(unsigned long n)
       freeHitMap(firstHitInWindow);
     }
     hitMain = getHitFromTree(jentry, true);
+    if (!jentry){
+      printf("First hit: ");
+      hitMain->print();
+      hitFirst = *hitMain;
+    }
+
     auto fchMapped = getMapped(hitMain);
     auto [fchD, fchM] = fchMapped;
     auto charge = hitMain->charge(energyMode);
