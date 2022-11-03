@@ -753,7 +753,7 @@ void tiger::FindClusters(unsigned long n)
         // cout << w_mean << "\t+/- " << mean_e << std::endl;
         // cout << "--------\n";
 
-        mm_clusters.emplace(idet, make_pair(w_mean, mean_e));
+        mm_clusters.emplace(i, make_pair(w_mean, mean_e));
       }
 
       bool threePointsTrack = true;
