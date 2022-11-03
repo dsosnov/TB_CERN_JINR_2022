@@ -639,7 +639,7 @@ void tiger::FindClusters(unsigned long n)
   if (fChain == 0)
     return;
 
-  auto out = make_shared<TFile>("../out/out_tiger_clusters_" + ((runFolder == "") ? "" : runFolder + "-") + file + ending, "RECREATE"); // PATH where to save out_*.root file
+  auto out = make_shared<TFile>("../out/tiger_clusters_" + ((runFolder == "") ? "" : runFolder + "-") + file + ending, "RECREATE"); // PATH where to save out_*.root file
   auto tree = make_shared<TTree>("clusters", "clusters");
 
   map<int, pair<double, double>> mm_clusters;
