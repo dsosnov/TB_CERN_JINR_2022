@@ -673,15 +673,13 @@ void tiger::FindClusters(unsigned long n)
       hitFirst = *hitMain;
     }
 
+    if(!isGoodHit(jentry)) continue;
     auto fchMapped = getMapped(hitMain);
     auto [fchD, fchM] = fchMapped;
+    if (fchD < 0) continue; // unmapped channels
+    
     auto charge = hitMain->charge(energyMode);
     auto timeSinceStart = timeDifferenceFineNS(hitMain, &hitFirst)  *  1E-9;
-    if (fchD < 0) continue; // unmapped channels
-    if(!isGoodHit(jentry))
-      continue;
-    
-
 
     if(fchD == 0 && fchM == 0){ // Scintillator
       closestHitsInLayer.clear();
