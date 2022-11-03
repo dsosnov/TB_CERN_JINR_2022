@@ -642,13 +642,13 @@ void tiger::FindClusters(unsigned long n)
   auto out = make_shared<TFile>("../out/out_tiger_clusters_" + ((runFolder == "") ? "" : runFolder + "-") + file + ending, "RECREATE"); // PATH where to save out_*.root file
   auto tree = make_shared<TTree>("clusters", "clusters");
 
-  map<int, pair<double, double>> track_candidate;
-  map<int, double> straw_points;
-  Long64_t scintEvent;
+  map<int, pair<double, double>> mm_clusters;
+  map<int, double> straw_hits;
+  Long64_t scintEntry;
 
-  tree->Branch("scintEvent", &scintEvent);
-  tree->Branch("track_candidate", &track_candidate);
-  tree->Branch("straw_points", &straw_points);
+  tree->Branch("scintEntry", &scintEntry);
+  tree->Branch("mm_clusters", &mm_clusters);
+  tree->Branch("straw_hits", &straw_hits);
 
   Long64_t nentries = fChain->GetEntries();
   if(n > 0 && nentries > n)
@@ -683,7 +683,7 @@ void tiger::FindClusters(unsigned long n)
 
     if(fchD == 0 && fchM == 0){ // Scintillator
       closestHitsInLayer.clear();
-      scintEvent = jentry;
+      scintEntry = jentry;
       for(Long64_t kentry = firstHitInWindow; kentry < nentries; kentry++){
         if(kentry == jentry) continue;
         hitSecondary = getHitFromTree(kentry);
@@ -711,8 +711,8 @@ void tiger::FindClusters(unsigned long n)
       if(!closestHitsInLayer.count(1))
         continue;
 
-      track_candidate.clear();
-      straw_points.clear();
+      mm_clusters.clear();
+      straw_hits.clear();
 
       // TODO move to function. mb optimize
       for(auto i = 0; i < 4; i++)
@@ -753,19 +753,19 @@ void tiger::FindClusters(unsigned long n)
         // cout << w_mean << "\t+/- " << mean_e << std::endl;
         // cout << "--------\n";
 
-        track_candidate.emplace(idet, make_pair(w_mean, mean_e));
+        mm_clusters.emplace(idet, make_pair(w_mean, mean_e));
       }
 
       bool threePointsTrack = true;
       for(auto l = 2; l <= 5; l++) 
-        if(l != mmLayerY && !track_candidate.count(l)) 
+        if(l != mmLayerY && !mm_clusters.count(l)) 
           threePointsTrack = false;
       if (!threePointsTrack)
         continue;
       
       for (auto &hit_i : closestHitsInLayer.at(1))
       {
-        straw_points.emplace(hit_i.first, timeDifferenceFineNS(hit_i.second, hitMain));
+        straw_hits.emplace(hit_i.first, timeDifferenceFineNS(hit_i.second, hitMain));
         // cout << hit_i.first << "\t" << timeDifferenceFineNS(hit_i.second, hitMain) << std::endl;
       }
       tree->Fill();
