@@ -96,7 +96,8 @@ double tigerHitTL::chargeToT(const bool fine) const {
 }
 
 int tigerHitTL::chargeSH() const {
-  return 1024 - eFine; // TODO maybe use eFineCorrected()?
+  // important: eFine > 1007 is saturation (overflow)
+  return eFine > 1007 ? 1007 + (1024 - eFine) : 1007 - eFine; // TODO maybe use eFineCorrected()?
 }
 
 double tigerHitTL::charge(const bool ToTMode) const {
