@@ -711,10 +711,10 @@ void tiger::FindClusters(unsigned long n)
       if(!closestHitsInLayer.count(1))
         continue;
 
-      
       track_candidate.clear();
       straw_points.clear();
 
+      // TODO move to function. mb optimize
       for(auto i = 0; i < 4; i++)
       {
         auto idet = i + 2;
@@ -722,11 +722,9 @@ void tiger::FindClusters(unsigned long n)
         if(!closestHitsInLayer.count(idet))
           continue;
 
-        map<double, int> hitsPerLayer;  
+        map<double, double> hitsPerLayer;  
         for (auto &hit : closestHitsInLayer.at(idet))
-        {
-          hitsPerLayer.emplace(hit.first, hit.second->eFine);
-        }
+          hitsPerLayer.emplace(hit.first, hit.second->charge(energyMode));
         auto hitsPerLayer_splited = splitByDistance(hitsPerLayer);
 
         if (hitsPerLayer_splited.size() > 1)
@@ -734,48 +732,41 @@ void tiger::FindClusters(unsigned long n)
         
         double sum = 0, e_sum = 0;
 
-        for (auto &hit_i : hitsPerLayer_splited.at(0))
+        // cout << "--------\n";
+        auto cluster = hitsPerLayer_splited.at(0);
+        for (auto &hit_i : cluster)
         {
-          double w = 1.0 / (hit_i.second + 2);
-          sum += w * hit_i.first;
-          e_sum += w;
+          sum += hit_i.first * hit_i.second;
+          e_sum += hit_i.second;
+          // cout << hit_i.first << "\t" << hit_i.second << std::endl;
         }
-
         double w_mean = sum / e_sum;
 
-        double std_sq = 0;
-
-        for (auto &hit_i : hitsPerLayer_splited.at(0))
+        double std_sq = 0, e2_sum = 0;
+        for (auto &hit_i : cluster)
         {
-          std_sq += (hit_i.first - w_mean) * (hit_i.first - w_mean);
+          std_sq += (hit_i.first - w_mean) * (hit_i.first - w_mean) * hit_i.second * hit_i.second;
+          e2_sum += hit_i.second * hit_i.second;
         }
-
-        double mean_e = TMath::Sqrt(std_sq / hitsPerLayer_splited.at(0).size());
-        if (!mean_e)
-          mean_e = 0.5;
+        double mean_e = (cluster.size() < 2) ? 0.5 : TMath::Sqrt(std_sq / e2_sum);
         
-        // cout << w_mean << "\t+/- " << mean_e << "\n";
+        // cout << w_mean << "\t+/- " << mean_e << std::endl;
+        // cout << "--------\n";
 
         track_candidate.emplace(idet, make_pair(w_mean, mean_e));
       }
 
       bool threePointsTrack = true;
-
       for(auto l = 2; l <= 5; l++) 
-      {
         if(l != mmLayerY && !track_candidate.count(l)) 
-        {    
           threePointsTrack = false;
-        }
-      }
-      
       if (!threePointsTrack)
         continue;
       
       for (auto &hit_i : closestHitsInLayer.at(1))
       {
         straw_points.emplace(hit_i.first, timeDifferenceFineNS(hit_i.second, hitMain));
-        // cout << hit_i.first << "\t" << timeDifferenceFineNS(hit_i.second, hitMain) << "\n";
+        // cout << hit_i.first << "\t" << timeDifferenceFineNS(hit_i.second, hitMain) << std::endl;
       }
       tree->Fill();
     }
