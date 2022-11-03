@@ -770,14 +770,6 @@ void tiger::FindClusters(unsigned long n)
       }
       tree->Fill();
     }
-    else if(fchD == 0 && fchM == 4){ // 50us clocks
-    }
-    else if (fchD == 1){ // All straw ch
-    }
-    else if (fchD >= 2 && fchD <= 5){ // All MM ch
-    }
-    else if (fchD == 6){ // All straw ch
-    }
   }
   tree->Print();
   tree->Write();
