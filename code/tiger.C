@@ -757,9 +757,12 @@ void tiger::FindClusters(unsigned long n)
       }
 
       bool threePointsTrack = true;
-      for(auto l = 2; l <= 5; l++) 
-        if(l != mmLayerY && !mm_clusters.count(l)) 
+      for(auto i = 0; i < 4; i++)
+      {
+        auto idet = i + 2;
+        if(idet != mmLayerY && !mm_clusters.count(i))
           threePointsTrack = false;
+      }
       if (!threePointsTrack)
         continue;
       
