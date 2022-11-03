@@ -619,8 +619,9 @@ bool inTimeWindow(int detector, double deltaTNS){
   return false;
 }
 
-vector<map<double, int>> splitByDistance(map<double, int> hitsPerLayer, double maxDistance = 5){
-  vector<map<double, int>> out;
+template<typename T1, typename T2>
+vector<map<T1, T2>> splitByDistance(map<T1, T2> hitsPerLayer, T1 maxDistance = 5){
+  vector<map<T1, T2>> out;
   double prev = -1;
   for(auto &h: hitsPerLayer){ // hits are sorted by the rules of map structure
     if(!out.size() || prev == -1 || fabs(prev - h.first) > maxDistance)
