@@ -650,6 +650,27 @@ void tiger::FindClusters(unsigned long n)
   tree->Branch("mm_clusters", &mm_clusters);
   tree->Branch("straw_hits", &straw_hits);
 
+  auto treeAdd = make_shared<TTree>("clusters_additional_info", "clusters_additional_info");
+  vector<int> strips;
+  vector<double> charges;
+  bool selected;
+  double clusterPosition;
+  double sumE, maxE;
+  double dispersion, dispersionWeighted;
+  double maxDistanceToCenter;
+  double closestClusterEnd, clusterAsymmetry;
+  treeAdd->Branch("strips", &strips);
+  treeAdd->Branch("charges", &charges);
+  treeAdd->Branch("selected", &selected);
+  treeAdd->Branch("clusterPosition", &clusterPosition);
+  treeAdd->Branch("sumE", &sumE);
+  treeAdd->Branch("maxE", &maxE);
+  treeAdd->Branch("dispersion", &dispersion);
+  treeAdd->Branch("dispersionWeighted", &dispersionWeighted);
+  treeAdd->Branch("maxDistanceToCenter", &maxDistanceToCenter);
+  treeAdd->Branch("closestClusterEnd", &closestClusterEnd);
+  treeAdd->Branch("clusterAsymmetry", &clusterAsymmetry);
+  
   Long64_t nentries = fChain->GetEntries();
   if(n > 0 && nentries > n)
     nentries = n;
@@ -717,6 +738,7 @@ void tiger::FindClusters(unsigned long n)
       // TODO move to function. mb optimize
       for(auto i = 0; i < 4; i++)
       {
+        selected = true;
         auto idet = i + 2;
 
         if(!closestHitsInLayer.count(idet))
@@ -728,32 +750,57 @@ void tiger::FindClusters(unsigned long n)
         auto hitsPerLayer_splited = splitByDistance(hitsPerLayer);
 
         if (hitsPerLayer_splited.size() > 1)
-          continue;
+          selected = false;
         
-        double sum = 0, e_sum = 0;
+        for(auto &cluster :hitsPerLayer_splited){
+          strips.clear();
+          charges.clear();
+          sumE = 0;
+          maxE = -1;
 
-        // cout << "--------\n";
-        auto cluster = hitsPerLayer_splited.at(0);
-        for (auto &hit_i : cluster)
-        {
-          sum += hit_i.first * hit_i.second;
-          e_sum += hit_i.second;
-          // cout << hit_i.first << "\t" << hit_i.second << std::endl;
+          
+          double sum = 0, e_sum = 0;
+          // cout << "--------\n";
+          for (auto &hit_i : cluster)
+          {
+            strips.push_back(hit_i.first);
+            charges.push_back(hit_i.second);
+            sum += hit_i.first * hit_i.second;
+            e_sum += hit_i.second;
+            sumE += hit_i.second;
+            if(maxE < 0 || hit_i.second > maxE)
+              maxE = hit_i.second;
+            // cout << hit_i.first << "\t" << hit_i.second << std::endl;
+          }
+          double mean_v = sum / e_sum;
+          clusterPosition = mean_v;
+
+          double std_sq = 0, e2_sum = 0;
+          double std_sqUW = 0;
+          maxDistanceToCenter = -1;
+          double clusterEnd1 = -1, clusterEnd2 = -1;
+          for (auto &hit_i : cluster)
+          {
+            std_sq += (hit_i.first - mean_v) * (hit_i.first - mean_v) * hit_i.second * hit_i.second;
+            e2_sum += hit_i.second * hit_i.second;
+            std_sqUW += (hit_i.first - mean_v) * (hit_i.first - mean_v);
+            if(maxDistanceToCenter < 0 || fabs(hit_i.first - mean_v) > maxDistanceToCenter)
+              maxDistanceToCenter = fabs(hit_i.first - mean_v);
+            clusterEnd2 = fabs(hit_i.first - mean_v);
+            if(clusterEnd1 < 0) clusterEnd1 = clusterEnd2;
+          }
+          double mean_e = (cluster.size() < 2) ? 0.5 : TMath::Sqrt(std_sq / e2_sum);
+          dispersion = TMath::Sqrt(std_sqUW / cluster.size());
+          dispersionWeighted = TMath::Sqrt(std_sq / e2_sum);
+
+          closestClusterEnd = (maxDistanceToCenter == clusterEnd2) ? clusterEnd1 : clusterEnd2;
+          clusterAsymmetry = (clusterEnd1 > clusterEnd2) ? clusterEnd2 / clusterEnd1 : clusterEnd1 / clusterEnd2;
+          // cout << mean_v << "\t+/- " << mean_e << std::endl;
+          // cout << "--------\n";
+          if(selected)
+            mm_clusters.emplace(i, make_pair(mean_v, mean_e));
+          treeAdd->Fill();
         }
-        double w_mean = sum / e_sum;
-
-        double std_sq = 0, e2_sum = 0;
-        for (auto &hit_i : cluster)
-        {
-          std_sq += (hit_i.first - w_mean) * (hit_i.first - w_mean) * hit_i.second * hit_i.second;
-          e2_sum += hit_i.second * hit_i.second;
-        }
-        double mean_e = (cluster.size() < 2) ? 0.5 : TMath::Sqrt(std_sq / e2_sum);
-        
-        // cout << w_mean << "\t+/- " << mean_e << std::endl;
-        // cout << "--------\n";
-
-        mm_clusters.emplace(i, make_pair(w_mean, mean_e));
       }
 
       bool threePointsTrack = true;
@@ -776,6 +823,8 @@ void tiger::FindClusters(unsigned long n)
   }
   tree->Print();
   tree->Write();
+
+  treeAdd->Write();
   
   out->Close();
 
