@@ -47,18 +47,21 @@ struct tigerHitTL : public tigerHit {
   void print(bool hex = false) const override;
 
   friend bool isLater(const tigerHitTL hit1, const tigerHitTL hit2);
+  friend bool isLater(const tigerHitTL *hit1, const tigerHitTL *hit2);
   friend Long64_t timeDifferenceCoarsePS(const tigerHitTL hit1, const tigerHitTL hit2);
+  friend Long64_t timeDifferenceCoarsePS(const tigerHitTL *hit1, const tigerHitTL *hit2);
   friend double timeDifferenceFineNS(const tigerHitTL hit1, const tigerHitTL hit2);
+  friend double timeDifferenceFineNS(const tigerHitTL *hit1, const tigerHitTL *hit2);
 };
 
 inline double tigerHitTL::tFineCorrected() const {
   if(tFine < tFineLimits.first){
-    printf("Hit tFine below limits! ");
-    print();
+    // printf("Hit tFine below limits! ");
+    // print();
     return 0;
   }else if(tFine > tFineLimits.second){
-    printf("Hit tFine above limits! ");
-    print();
+    // printf("Hit tFine above limits! ");
+    // print();
     return 1.0;
   }else{
     return static_cast<double>(tFine - tFineLimits.first) / static_cast<double>(tFineLimits.second - tFineLimits.first + 1);
@@ -123,27 +126,30 @@ void tigerHitTL::print(bool hex) const {
 }
 
 
-bool isLater(const tigerHitTL hit1, const tigerHitTL hit2){
+bool isLater(const tigerHitTL *hit1, const tigerHitTL *hit2){
   bool later = false;
-  if(hit1.frameCountLoops != hit2.frameCountLoops){
-    later = hit1.frameCountLoops > hit2.frameCountLoops;
-  }else if(hit1.frameCount != hit2.frameCount){
-    later = hit1.frameCount > hit2.frameCount;
-  }else if(std::abs(hit1.tCoarse - hit2.tCoarse) > (1<<15)){ // If difference between hits > 2^15, then there is roll-over between
-    later = hit1.tCoarse < hit2.tCoarse;
-  }else if(hit1.tCoarse != hit2.tCoarse){
-    later = hit1.tCoarse > hit2.tCoarse;
+  if(hit1->frameCountLoops != hit2->frameCountLoops){
+    later = hit1->frameCountLoops > hit2->frameCountLoops;
+  }else if(hit1->frameCount != hit2->frameCount){
+    later = hit1->frameCount > hit2->frameCount;
+  }else if(std::abs(hit1->tCoarse - hit2->tCoarse) > (1<<15)){ // If difference between hits > 2^15, then there is roll-over between
+    later = hit1->tCoarse < hit2->tCoarse;
+  }else if(hit1->tCoarse != hit2->tCoarse){
+    later = hit1->tCoarse > hit2->tCoarse;
   }else{
-    later = hit1.tFineCorrected() < hit2.tFineCorrected();
+    later = hit1->tFineCorrected() < hit2->tFineCorrected();
   }
   return later;
 }
+bool isLater(const tigerHitTL hit1, const tigerHitTL hit2){
+  return isLater(&hit1, &hit2);
+}
 
 /*The differance should be not larger then ~106 days */
-Long64_t timeDifferenceCoarsePS(const tigerHitTL hit1, const tigerHitTL hit2){
+Long64_t timeDifferenceCoarsePS(const tigerHitTL *hit1, const tigerHitTL *hit2){
   auto later = isLater(hit1, hit2);
-  auto hitFirst = later ? &hit2: &hit1;
-  auto hitLast = later ? &hit1: &hit2;
+  auto hitFirst = later ? hit2: hit1;
+  auto hitLast = later ? hit1: hit2;
 
   // each framecount loop is 2**16 frameCounts.
   Long64_t FCLoopDiff = hitLast->frameCountLoops - hitFirst->frameCountLoops;
@@ -175,14 +181,20 @@ Long64_t timeDifferenceCoarsePS(const tigerHitTL hit1, const tigerHitTL hit2){
 
   return later ? absTime : -absTime; // picoseconds
 }
+Long64_t timeDifferenceCoarsePS(const tigerHitTL hit1, const tigerHitTL hit2){
+  return timeDifferenceCoarsePS(&hit1, &hit2);
+}
 
-double timeDifferenceFineNS(const tigerHitTL hit1, const tigerHitTL hit2){
+double timeDifferenceFineNS(const tigerHitTL *hit1, const tigerHitTL *hit2){
   auto later = isLater(hit1, hit2);
-  auto hitFirst = later ? &hit2: &hit1;
-  auto hitLast = later ? &hit1: &hit2;
+  auto hitFirst = later ? hit2: hit1;
+  auto hitLast = later ? hit1: hit2;
   double fineDiff = hitFirst->tFineCorrected() - hitLast->tFineCorrected();
 
   double timeDiffAbs = double(timeDifferenceCoarsePS(*hitLast, *hitFirst)) / 1E3 + fineDiff * 6.25;
   
   return later ? timeDiffAbs : -timeDiffAbs; // nanoseconds
+}
+double timeDifferenceFineNS(const tigerHitTL hit1, const tigerHitTL hit2){
+  return timeDifferenceFineNS(&hit1, &hit2);
 }
