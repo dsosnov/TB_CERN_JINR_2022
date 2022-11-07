@@ -1,12 +1,12 @@
 #MM connector pin;channel number;Tiger connector pin;Tiger connector pin
 #in Schematics_TIGER_GEM_L.pdf;in Schematics_TIGER_GEM_L.pdf;in Schematics_TIGER_GEM_L.pdf;In FEB3_pinout.pdf
-1;2;144;144
+1;2;141;138
 2;GND (MM GND);;
-3;4;143;142
+3;4;142;140
 4;1;136;128
-5;6;142;140
+5;6;143;142
 6;3;135;126
-7;8;141;138
+7;8;144;144
 8;5;134;124
 9;10;140;136
 10;7;133;122
