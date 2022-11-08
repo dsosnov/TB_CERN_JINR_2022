@@ -662,7 +662,7 @@ vector<map<T1, T2>> splitByDistance(map<T1, T2> hitsPerLayer, T1 maxDistance = 5
 }
 
 template<typename T1, typename T2>
-void filterClusterVector(vector<map<T1, T2>> &clusters, pair<int, int> clusterSizes = {0, 5}){
+void filterClusterVector(vector<map<T1, T2>> &clusters, pair<int, int> clusterSizes = {1, 5}){
   /* Remove small clusters or clusters with small energy for the first layers only */
   clusters.erase(std::remove_if(clusters.begin(), clusters.end(),
                                 [clusterSizes](auto c){return (c.size() < clusterSizes.first || c.size() > clusterSizes.second);}),
@@ -765,6 +765,9 @@ void tiger::FindClusters(unsigned long n)
         auto hitsPerLayer_splited = splitByDistance(hitsPerLayer);
 
         filterClusterVector(hitsPerLayer_splited);
+        if (!hitsPerLayer_splited.size())
+          continue;
+
         if (hitsPerLayer_splited.size() > 1)
           continue;
         
