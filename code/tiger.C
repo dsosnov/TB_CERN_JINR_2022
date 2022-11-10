@@ -713,6 +713,24 @@ void tiger::FindClusters(unsigned long n)
   treeAdd->Branch("chargeCenter", &chargeCenter);
   treeAdd->Branch("chargeLeftNeighbour", &chargeLeftNeighbour);
   treeAdd->Branch("chargeRightNeighbour", &chargeRightNeighbour);
+
+  vector<tuple<int, // layer
+               vector<int>, // strips
+               vector<double>, // charges
+               bool, // selected
+               double, // clusterPosition
+               double, // sumE,
+               double, // maxE
+               double, // stdev,
+               double, // stdevW
+               double, // maxDistanceToCenter
+               double, // closestClusterEnd
+               double, // clusterSymmetry
+               double, // chargeCenter
+               double, // chargeLeftNeighbour
+               double //chargeRightNeighbour
+               >>clusterAddInfo;
+
   
   Long64_t nentries = fChain->GetEntries();
   if(n > 0 && nentries > n)
@@ -777,6 +795,7 @@ void tiger::FindClusters(unsigned long n)
 
       mm_clusters.clear();
       straw_hits.clear();
+      clusterAddInfo.clear();
 
       // TODO move to function. mb optimize
       for(auto i = 0; i < 4; i++)
@@ -824,13 +843,13 @@ void tiger::FindClusters(unsigned long n)
           double mean_v = sum / e_sum;
           clusterPosition = mean_v;
 
-          if(!cluster.count(static_cast<int>(clusterPosition))){
-            // printf("--- %d\n", static_cast<int>(clusterPosition));
-            for (auto &hit_i : cluster){
-              // cout << hit_i.first << "\t" << hit_i.second << std::endl;
-            }
-            // printf("---\n");
-          }
+          // if(!cluster.count(static_cast<int>(clusterPosition))){
+          //   printf("--- %d\n", static_cast<int>(clusterPosition));
+          //   for (auto &hit_i : cluster){
+          //     cout << hit_i.first << "\t" << hit_i.second << std::endl;
+          //   }
+          //   printf("---\n");
+          // }
 
           chargeCenter = cluster.count(static_cast<int>(clusterPosition)) ? cluster.at(static_cast<int>(clusterPosition)) : -1;
           chargeLeftNeighbour = cluster.count(static_cast<int>(clusterPosition-1)) ? cluster.at(static_cast<int>(clusterPosition-1)) : -1;
@@ -861,7 +880,17 @@ void tiger::FindClusters(unsigned long n)
           // cout << "--------\n";
           if(selected)
             mm_clusters.emplace(i, make_pair(mean_v, mean_e));
-          treeAdd->Fill();
+          clusterAddInfo.push_back({
+              layer,
+              strips,
+              charges,
+              selected,
+              clusterPosition,
+              sumE, maxE,
+              stdev, stdevW,
+              maxDistanceToCenter,
+              closestClusterEnd, clusterSymmetry,
+              chargeCenter, chargeLeftNeighbour, chargeRightNeighbour});
         }
       }
 
@@ -872,15 +901,34 @@ void tiger::FindClusters(unsigned long n)
         if(idet != mmLayerY && !mm_clusters.count(i))
           threePointsTrack = false;
       }
-      if (!threePointsTrack)
-        continue;
-      
-      for (auto &hit_i : closestHitsInLayer.at(1))
-      {
-        straw_hits.emplace(hit_i.first, timeDifferenceFineNS(hit_i.second, hitMain));
-        // cout << hit_i.first << "\t" << timeDifferenceFineNS(hit_i.second, hitMain) << std::endl;
+      selected = threePointsTrack;
+      if (threePointsTrack){
+        for (auto &hit_i : closestHitsInLayer.at(1))
+        {
+          straw_hits.emplace(hit_i.first, timeDifferenceFineNS(hit_i.second, hitMain));
+          // cout << hit_i.first << "\t" << timeDifferenceFineNS(hit_i.second, hitMain) << std::endl;
+        }
+        tree->Fill();
       }
-      tree->Fill();
+
+      for(auto &ai: clusterAddInfo){
+        layer = get<0>(ai);
+        strips = get<1>(ai);
+        charges = get<2>(ai);
+        selected = selected && get<3>(ai);
+        clusterPosition = get<4>(ai);
+        sumE = get<5>(ai);
+        maxE = get<6>(ai);
+        stdev = get<7>(ai);
+        stdevW = get<8>(ai);
+        maxDistanceToCenter = get<9>(ai);
+        closestClusterEnd = get<10>(ai);
+        clusterSymmetry = get<11>(ai);
+        chargeCenter = get<12>(ai);
+        chargeLeftNeighbour = get<13>(ai);
+        chargeRightNeighbour = get<14>(ai);
+        treeAdd->Fill();
+      }
     }
   }
   tree->Print();
