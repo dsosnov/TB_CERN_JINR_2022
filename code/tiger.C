@@ -827,8 +827,6 @@ void tiger::FindClusters(unsigned long n)
           if(!cluster.count(static_cast<int>(clusterPosition))){
             // printf("--- %d\n", static_cast<int>(clusterPosition));
             for (auto &hit_i : cluster){
-              strips.push_back(hit_i.first);
-              charges.push_back(hit_i.second);
               // cout << hit_i.first << "\t" << hit_i.second << std::endl;
             }
             // printf("---\n");
