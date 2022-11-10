@@ -693,20 +693,24 @@ void tiger::FindClusters(unsigned long n)
   bool selected;
   double clusterPosition;
   double sumE, maxE;
-  double dispersion, dispersionWeighted;
+  double stdev, stdevW;
   double maxDistanceToCenter;
-  double closestClusterEnd, clusterAsymmetry;
+  double closestClusterEnd, clusterSymmetry;
+  double chargeCenter, chargeLeftNeighbour, chargeRightNeighbour;
   treeAdd->Branch("strips", &strips);
   treeAdd->Branch("charges", &charges);
   treeAdd->Branch("selected", &selected);
   treeAdd->Branch("clusterPosition", &clusterPosition);
   treeAdd->Branch("sumE", &sumE);
   treeAdd->Branch("maxE", &maxE);
-  treeAdd->Branch("dispersion", &dispersion);
-  treeAdd->Branch("dispersionWeighted", &dispersionWeighted);
+  treeAdd->Branch("stdev", &stdev);
+  treeAdd->Branch("stdevW", &stdevW);
   treeAdd->Branch("maxDistanceToCenter", &maxDistanceToCenter);
   treeAdd->Branch("closestClusterEnd", &closestClusterEnd);
-  treeAdd->Branch("clusterAsymmetry", &clusterAsymmetry);
+  treeAdd->Branch("clusterSymmetry", &clusterSymmetry);
+  treeAdd->Branch("chargeCenter", &chargeCenter);
+  treeAdd->Branch("chargeLeftNeighbour", &chargeLeftNeighbour);
+  treeAdd->Branch("chargeRightNeighbour", &chargeRightNeighbour);
   
   Long64_t nentries = fChain->GetEntries();
   if(n > 0 && nentries > n)
@@ -786,19 +790,17 @@ void tiger::FindClusters(unsigned long n)
           hitsPerLayer.emplace(hit.first, hit.second->charge(energyMode));
         auto hitsPerLayer_splited = splitByDistance(hitsPerLayer);
 
-        filterClusterVector(hitsPerLayer_splited);
-        if (!hitsPerLayer_splited.size())
-          continue;
-
         if (hitsPerLayer_splited.size() > 1)
           selected = false;
         
         for(auto &cluster :hitsPerLayer_splited){
+          if(cluster.size() < 1 || cluster.size() > 5)
+            selected = false;
+
           strips.clear();
           charges.clear();
           sumE = 0;
           maxE = -1;
-
           
           double sum = 0, e_sum = 0;
           // cout << "--------\n";
@@ -816,6 +818,10 @@ void tiger::FindClusters(unsigned long n)
           double mean_v = sum / e_sum;
           clusterPosition = mean_v;
 
+          chargeCenter = cluster.at(static_cast<int>(clusterPosition));
+          chargeLeftNeighbour = cluster.count(static_cast<int>(clusterPosition-1)) ? cluster.at(static_cast<int>(clusterPosition-1)) : -1;
+          chargeRightNeighbour = cluster.count(static_cast<int>(clusterPosition+1)) ? cluster.at(static_cast<int>(clusterPosition+1)) : -1;
+
           double std_sq = 0, e2_sum = 0;
           double std_sqUW = 0;
           maxDistanceToCenter = -1;
@@ -831,11 +837,13 @@ void tiger::FindClusters(unsigned long n)
             if(clusterEnd1 < 0) clusterEnd1 = clusterEnd2;
           }
           double mean_e = (cluster.size() < 2) ? 0.5 : TMath::Sqrt(std_sq / e2_sum);
-          dispersion = TMath::Sqrt(std_sqUW / cluster.size());
-          dispersionWeighted = TMath::Sqrt(std_sq / e2_sum);
+          stdev = TMath::Sqrt(std_sqUW / cluster.size());
+          stdevW = TMath::Sqrt(std_sq / e2_sum);
 
           closestClusterEnd = (maxDistanceToCenter == clusterEnd2) ? clusterEnd1 : clusterEnd2;
-          clusterAsymmetry = (clusterEnd1 > clusterEnd2) ? clusterEnd2 / clusterEnd1 : clusterEnd1 / clusterEnd2;
+          clusterSymmetry = (clusterEnd1 > clusterEnd2) ? clusterEnd2 / clusterEnd1 : clusterEnd1 / clusterEnd2;
+
+
           // cout << mean_v << "\t+/- " << mean_e << std::endl;
           // cout << "--------\n";
           if(selected)
