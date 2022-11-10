@@ -688,6 +688,7 @@ void tiger::FindClusters(unsigned long n)
   tree->Branch("straw_hits", &straw_hits);
 
   auto treeAdd = make_shared<TTree>("clusters_additional_info", "clusters_additional_info");
+  int layer;
   vector<int> strips;
   vector<double> charges;
   bool selected;
@@ -697,6 +698,7 @@ void tiger::FindClusters(unsigned long n)
   double maxDistanceToCenter;
   double closestClusterEnd, clusterSymmetry;
   double chargeCenter, chargeLeftNeighbour, chargeRightNeighbour;
+  treeAdd->Branch("layer", &layer);
   treeAdd->Branch("strips", &strips);
   treeAdd->Branch("charges", &charges);
   treeAdd->Branch("selected", &selected);
@@ -793,8 +795,12 @@ void tiger::FindClusters(unsigned long n)
         if (hitsPerLayer_splited.size() > 1)
           selected = false;
         
+        layer = i;
+
         for(auto &cluster :hitsPerLayer_splited){
-          if(cluster.size() < 1 || cluster.size() > 5)
+          if(!cluster.size())
+            continue;
+          if(cluster.size() > 5)
             selected = false;
 
           strips.clear();
@@ -818,7 +824,17 @@ void tiger::FindClusters(unsigned long n)
           double mean_v = sum / e_sum;
           clusterPosition = mean_v;
 
-          chargeCenter = cluster.at(static_cast<int>(clusterPosition));
+          if(!cluster.count(static_cast<int>(clusterPosition))){
+            // printf("--- %d\n", static_cast<int>(clusterPosition));
+            for (auto &hit_i : cluster){
+              strips.push_back(hit_i.first);
+              charges.push_back(hit_i.second);
+              // cout << hit_i.first << "\t" << hit_i.second << std::endl;
+            }
+            // printf("---\n");
+          }
+
+          chargeCenter = cluster.count(static_cast<int>(clusterPosition)) ? cluster.at(static_cast<int>(clusterPosition)) : -1;
           chargeLeftNeighbour = cluster.count(static_cast<int>(clusterPosition-1)) ? cluster.at(static_cast<int>(clusterPosition-1)) : -1;
           chargeRightNeighbour = cluster.count(static_cast<int>(clusterPosition+1)) ? cluster.at(static_cast<int>(clusterPosition+1)) : -1;
 
@@ -842,7 +858,6 @@ void tiger::FindClusters(unsigned long n)
 
           closestClusterEnd = (maxDistanceToCenter == clusterEnd2) ? clusterEnd1 : clusterEnd2;
           clusterSymmetry = (clusterEnd1 > clusterEnd2) ? clusterEnd2 / clusterEnd1 : clusterEnd1 / clusterEnd2;
-
 
           // cout << mean_v << "\t+/- " << mean_e << std::endl;
           // cout << "--------\n";
