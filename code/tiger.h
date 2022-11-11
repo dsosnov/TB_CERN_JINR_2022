@@ -35,7 +35,7 @@ class tiger : public analysisGeneral {
 public :
   TString runFolder = "";
   TString mapFile = "map-tiger-empty.txt";
-  TString efineFile = "";
+  TString efineNoiseFile = "";
   TString tfineFile = "";
   bool useEnergyCut = true;
   enum TigerEnergyMode : bool {SampleAndHold = 0, TimeOverThreshold = 1};
@@ -56,10 +56,10 @@ public :
   Long64_t frameCountLoops; //                "L" == Long64_t == int64_t
   Int_t    counterWord;     // 24 bit data -- "I" == Int_t    == int32_t
 
-  tiger(TString, TString runFolder_, TString mapFile_, TString eFineFile_, TString tFineFile_, short energyMode_ = 0);
+  tiger(TString, TString runFolder_, TString mapFile_, TString eFineNoiseFile_, TString tFineFile_, short energyMode_ = 0);
   tiger(TString, TString runFolder_ = "", TString mapFile_ = "map-tiger-empty.txt", TString calibration = "", short energyMode_ = 0);
-  tiger(vector<TString>, TString runFolder_ = "", TString mapFile_ = "map-tiger-empty.txt", TString eFineFile_ = "", short energyMode_ = 0);
-  tiger(TChain *tree = nullptr, TString mapFile_ = "map-tiger-empty.txt", TString eFineFile_ = "", short energyMode_ = 0);
+  tiger(vector<TString>, TString runFolder_ = "", TString mapFile_ = "map-tiger-empty.txt", TString eFineNoiseFile_ = "", short energyMode_ = 0);
+  tiger(TChain *tree = nullptr, TString mapFile_ = "map-tiger-empty.txt", TString eFineNoiseFile_ = "", short energyMode_ = 0);
   virtual ~tiger();
   virtual void     Init() override;
   virtual void     Loop(unsigned long n = 0) override;
@@ -104,7 +104,7 @@ public :
   }
 
   map<tuple<int,int,int>, vector<pair<int, int>>> eFineNoiseLimits;
-  void addCalibrationEFine(TString filename, bool verbose = false);
+  void addEFineNoiseLimits(TString filename, bool verbose = false);
   map<tuple<int,int,int,int>, pair<int, int>> tFineCalibration;
   void addCalibrationTFine(TString filename, bool verbose = false);
 
@@ -131,8 +131,8 @@ public :
 
 #endif
 
-tiger::tiger(TString filename, TString runFolder_, TString mapFile_, TString eFineFile_, TString tFineFile_, short energyMode_) : runFolder(runFolder_),
-                                                                                                                                  mapFile(mapFile_), efineFile(eFineFile_), tfineFile(tFineFile_),
+tiger::tiger(TString filename, TString runFolder_, TString mapFile_, TString eFineNoiseFile_, TString tFineFile_, short energyMode_) : runFolder(runFolder_),
+                                                                                                                                  mapFile(mapFile_), efineNoiseFile(eFineNoiseFile_), tfineFile(tFineFile_),
                                                                                                                                   energyMode(static_cast<TigerEnergyMode>(energyMode_))
 {
   file = filename;
@@ -140,7 +140,7 @@ tiger::tiger(TString filename, TString runFolder_, TString mapFile_, TString eFi
   fChain = GetTree(filename, "tigerTL");
   Init();
 }
-tiger::tiger(TString filename, TString runFolder_, TString mapFile_, TString calibration, short energyMode_) : runFolder(runFolder_), mapFile(mapFile_), efineFile(calibration), tfineFile(calibration),
+tiger::tiger(TString filename, TString runFolder_, TString mapFile_, TString calibration, short energyMode_) : runFolder(runFolder_), mapFile(mapFile_), efineNoiseFile(calibration), tfineFile(calibration),
                                                                                                                energyMode(static_cast<TigerEnergyMode>(energyMode_)){
   file = filename;
   folder = "../data/tiger/" + runFolder + "/";
@@ -148,8 +148,8 @@ tiger::tiger(TString filename, TString runFolder_, TString mapFile_, TString cal
   Init();
 }
 
-tiger::tiger(vector<TString> filenames, TString runFolder_, TString mapFile_, TString eFineFile_, short energyMode_) : runFolder(runFolder_),
-                                                                                                                       mapFile(mapFile_), efineFile(eFineFile_),
+tiger::tiger(vector<TString> filenames, TString runFolder_, TString mapFile_, TString eFineNoiseFile_, short energyMode_) : runFolder(runFolder_),
+                                                                                                                       mapFile(mapFile_), efineNoiseFile(eFineNoiseFile_),
                                                                                                                        energyMode(static_cast<TigerEnergyMode>(energyMode_))
 {
   file = filenames.at(0);
@@ -160,7 +160,7 @@ tiger::tiger(vector<TString> filenames, TString runFolder_, TString mapFile_, TS
   Init();
 }
 
-tiger::tiger(TChain *tree, TString mapFile_, TString eFineFile_, short energyMode_) : analysisGeneral(tree), mapFile(mapFile_), efineFile(eFineFile_), energyMode(static_cast<TigerEnergyMode>(energyMode_))
+tiger::tiger(TChain *tree, TString mapFile_, TString eFineNoiseFile_, short energyMode_) : analysisGeneral(tree), mapFile(mapFile_), efineNoiseFile(eFineNoiseFile_), energyMode(static_cast<TigerEnergyMode>(energyMode_))
 {
   folder = "../data/tiger/";
   fChain = (tree == nullptr) ? GetTree("", "tigerTL") : tree;
@@ -204,14 +204,14 @@ pair<int,int> tiger::getMapped(const tuple<int,int,int> channel) const{
   return channelMap.at(channel);
 }
 
-void tiger::addCalibrationEFine(TString filename, bool verbose){
+void tiger::addEFineNoiseLimits(TString filename, bool verbose){
   if(filename == "") return;
   ifstream infile(Form("../configs/%s", filename.Data()));
   if(infile.fail()){
-    if(!filename.BeginsWith("tiger_efine_calibration-")){
-      auto fn2 = TString("tiger_efine_calibration-") + filename;
-      printf("No eFine calibration file %s found. Try to find file \"%s\"\n", filename.Data(), fn2.Data());
-      addCalibrationEFine(fn2, verbose);
+    if(!filename.BeginsWith("tiger_efine_noise_limits-")){
+      auto fn2 = TString("tiger_efine_noise_limits-") + filename;
+      printf("No eFine noise limit file %s found. Try to find file \"%s\"\n", filename.Data(), fn2.Data());
+      addEFineNoiseLimits(fn2, verbose);
     }
     return;
   }else{
@@ -227,7 +227,7 @@ void tiger::addCalibrationEFine(TString filename, bool verbose){
     if (!(iss >> gr >> t >> ch >> min >> max))
       break; // error
     if(verbose)
-      printf("eFine calibration: %d %d: %d: %d - %i\n", gr, t, ch, min, max);
+      printf("eFine noise limits: %d %d: %d: %d - %i\n", gr, t, ch, min, max);
     if(!eFineNoiseLimits.count(make_tuple(gr,t, ch)))
       eFineNoiseLimits[make_tuple(gr,t, ch)] = {};
     eFineNoiseLimits.at(make_tuple(gr,t, ch)).push_back(make_pair(min, max));
@@ -394,9 +394,9 @@ void tiger::Init()
   if(mapFile!="" && !mapFile.EndsWith(".txt"))
     mapFile.Append(".txt");
   addMap(mapFile.Data());
-  if(efineFile!="" && !efineFile.EndsWith(".txt"))
-    efineFile.Append(".txt");
-  addCalibrationEFine(efineFile.Data());
+  if(efineNoiseFile!="" && !efineNoiseFile.EndsWith(".txt"))
+    efineNoiseFile.Append(".txt");
+  addEFineNoiseLimits(efineNoiseFile.Data());
   if(tfineFile!="" && !tfineFile.EndsWith(".txt"))
     tfineFile.Append(".txt");
   addCalibrationTFine(tfineFile.Data());
