@@ -91,7 +91,7 @@ def analyse():
 def submit_dir(d, tb_type):
   userlogin = os.getlogin()
   script_basename = os.path.basename(sys.argv[0])
-  fullpath_tb_analysis = os.path.abspath('../../')
+  fullpath_tb_analysis = os.path.abspath('../../../')
   eos_path = f'/eos/project-r/rd51-straw/TestBeam-2022-{tb_type}/data-tiger/'
   ddir = 'RUN_'+str(d)
 
