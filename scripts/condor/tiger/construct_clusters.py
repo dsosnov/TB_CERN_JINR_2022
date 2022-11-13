@@ -67,7 +67,6 @@ def analyse():
   for src in glob.glob(os.path.join(fullpath_tb_analysis, 'code/*.*')):
     shutil.copy(src, './')
 
-  shutil.copy('../process_tiger.cxx', './')
   shell_source('/cvmfs/sft.cern.ch/lcg/views/LCG_102/x86_64-centos7-gcc11-opt/setup.sh')
 
   os.makedirs('../data/tiger')
