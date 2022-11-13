@@ -98,8 +98,8 @@ void tiger::Loop(unsigned long n)
       pair<int, int> m = {gr, t};
       hTigerChargeToT.emplace(m, make_shared<TH2F>(Form("charge_tot_gr%d_t%d", gr, t), Form("%s: charge (Time over Threshold mode) for gemroc %d tiger %d;channel;charge", file.Data(), gr, t),
                                                    64, 0, 64, 1025, 0, 1025));
-      hTigerChargeSH.emplace(m, make_shared<TH2F>(Form("charge_sh_gr%d_t%d", gr, t), Form("%s: charge (Sample and Hold mode) for gemroc %d tiger %d;channel;charge", file.Data(), gr, t),
-                                                  64, 0, 64, 1025, 0, 1025));
+      hTigerChargeSH.emplace(m, make_shared<TH2F>(Form("charge_sh_gr%d_t%d", gr, t), Form("%s: charge (Sample and Hold mode) for gemroc %d tiger %d;channel;charge, fC", file.Data(), gr, t),
+                                                  64, 0, 64, 1000, 0, 100));
       hTigerTimeFine.emplace(m, make_shared<TH2F>(Form("timeFine_gr%d_t%d", gr, t), Form("%s: timeFine for gemroc %d tiger %d;channel;time, ns", file.Data(), gr, t), 64, 0, 64, 4096, 0, 409600));
       hTigertCoarse.emplace(m, make_shared<TH2F>(Form("tCoarse_gr%d_t%d", gr, t), Form("%s: tCoarse for gemroc %d tiger %d;channel;tCoarse", file.Data(), gr, t), 64, 0, 64, 65536, 0, 65536));
       hTigereCoarse.emplace(m, make_shared<TH2F>(Form("eCoarse_gr%d_t%d", gr, t), Form("%s: eCoarse for gemroc %d tiger %d;channel;eCoarse", file.Data(), gr, t), 64, 0, 64, 512, 0, 1024));
@@ -109,10 +109,18 @@ void tiger::Loop(unsigned long n)
       hTigerFullTime1D.emplace(m, make_shared<TH1F>(Form("fullTime1D_gr%d_t%d", gr, t), Form("%s: fullTime for gemroc %d tiger %d;time, s", file.Data(), gr, t), 600, 0, 60));
       hTigertFineCorrected.emplace(m, make_shared<TH2F>(Form("tFineCorrected_gr%d_t%d", gr, t), Form("%s: tFineCorrected for gemroc %d tiger %d;tFine", file.Data(), gr, t), 64, 0, 64, 100, 0, 1));
       for(auto j = 0; j < 64; j++){
-        hTigerChargePerTime.emplace(make_tuple(gr, t, j),
-                                    make_shared<TH2F>(Form("ChargePerTime_gr%d_t%d_ch%d", gr, t, j),
-                                                      Form("%s: Charge for gemroc %d tiger %d channel %d;full time, s; charge%s", file.Data(), gr, t, j, ((energyMode == TigerEnergyMode::SampleAndHold) ? " = 1024 - eFine": "")),
-                                                      600, 0, 60, 512, 0, 1024));
+        if(energyMode == TigerEnergyMode::SampleAndHold){
+          hTigerChargePerTime.emplace(make_tuple(gr, t, j),
+                                      make_shared<TH2F>(Form("ChargePerTime_gr%d_t%d_ch%d", gr, t, j),
+                                                        Form("%s: Charge for gemroc %d tiger %d channel %d;full time, s; charge, fC", file.Data(), gr, t, j),
+                                                        600, 0, 60, 500, 15, 65));
+        }else{
+          hTigerChargePerTime.emplace(make_tuple(gr, t, j),
+                                      make_shared<TH2F>(Form("ChargePerTime_gr%d_t%d_ch%d", gr, t, j),
+                                                        Form("%s: Charge for gemroc %d tiger %d channel %d;full time, s; charge", file.Data(), gr, t, j),
+                                                        600, 0, 60, 512, 0, 1024));
+        }
+
         hTigereFinePerTime.emplace(make_tuple(gr, t, j),
                                    make_shared<TH2F>(Form("eFinePerTime_gr%d_t%d_ch%d", gr, t, j), Form("%s: eFine for gemroc %d tiger %d channel %d;full time, s; eFine", file.Data(), gr, t, j), 600, 0, 60, 512, 0, 1024));
         hTigerFullTimePerChannel.emplace(make_tuple(gr, t, j),
@@ -173,8 +181,8 @@ void tiger::Loop(unsigned long n)
     hprofile.push_back(make_shared<TH1F>(Form("profile_det%d", i), Form("%s: profile for detector %d;channel", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1));
     hChargeToT.push_back(make_shared<TH2F>(Form("charge_tot_det%d", i), Form("%s: charge (Time over Threshold mode) for detector %d;channel;charge", file.Data(), i),
                                            detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 1025, 0, 1025));
-    hChargeSH.push_back(make_shared<TH2F>(Form("charge_sh_det%d", i), Form("%s: charge (Sample and Hold mode) for detector %d;channel;charge", file.Data(), i),
-                                          detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 1025, 0, 1025));
+    hChargeSH.push_back(make_shared<TH2F>(Form("charge_sh_det%d", i), Form("%s: charge (Sample and Hold mode) for detector %d;channel;charge, fC", file.Data(), i),
+                                          detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 1000, 0, 100));
     hTimeFine.push_back(make_shared<TH2F>(Form("timeFine_det%d", i), Form("%s: timeFine for detector %d;channel;time, ns", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 4096, 0, 409600));
     htCoarse.push_back(make_shared<TH2F>(Form("tCoarse_det%d", i), Form("%s: tCoarse for detector %d;channel;tCoarse", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 65536, 0, 65536));
     heCoarse.push_back(make_shared<TH2F>(Form("eCoarse_det%d", i), Form("%s: eCoarse for detector %d;channel;eCoarse", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 512, 0, 1024));
@@ -187,10 +195,17 @@ void tiger::Loop(unsigned long n)
 
     if(detMax.at(i) >= 0){
       for(auto j = detMin.at(i); j <= detMax.at(i); j++){
-        hChargePerTime.emplace(make_pair(i, j),
-                               make_shared<TH2F>(Form("ChargePerTime_det%d_ch%d", i, j),
-                                                 Form("%s: Charge for detector %d, channel %d;full time, s; charge%s", file.Data(), i, j, ((energyMode == TigerEnergyMode::SampleAndHold) ? " = 1024 - eFine": "")),
-                                                 600, 0, 60, 512, 0, 1024));
+        if(energyMode == TigerEnergyMode::SampleAndHold){
+          hChargePerTime.emplace(make_pair(i, j),
+                                 make_shared<TH2F>(Form("ChargePerTime_det%d_ch%d", i, j),
+                                                   Form("%s: Charge for detector %d, channel %d;full time, s; charge, fC", file.Data(), i, j),
+                                                   600, 0, 60, 500, 15, 65));
+        }else{
+          hChargePerTime.emplace(make_pair(i, j),
+                                 make_shared<TH2F>(Form("ChargePerTime_det%d_ch%d", i, j),
+                                                   Form("%s: Charge for detector %d, channel %d;full time, s; charge", file.Data(), i, j),
+                                                   600, 0, 60, 512, 0, 1024));
+        }
         heFinePerTime.emplace(make_pair(i, j),
                               make_shared<TH2F>(Form("eFinePerTime_det%d_ch%d", i, j), Form("%s: eFine for detector %d, channel %d%s;full time, s; eFine", file.Data(), i, j,
                                                                                             (detectorNames.count({i,j}) ? (string() + " (" + detectorNames.at({i,j}) + ")").c_str() : "")),
@@ -204,8 +219,19 @@ void tiger::Loop(unsigned long n)
         d->mkdir("deltaT")->cd();
         hDeltaTPrev.emplace(i, make_shared<TH2F>(Form("DeltaTPrev_det%d", i), Form("%s: #Delta T for detector %d;channel;#Delta T, #mus", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 10000, 0, 100000));
         for(auto j = detMin.at(i); j <= detMax.at(i); j++){
-          hDeltaTPrevPerCharge.emplace(make_pair(i, j),
-                                       make_shared<TH2F>(Form("DeltaTPrevPerCharge_det%d_ch%d", i, j), Form("%s: #Delta T for detector %d, channel %d;#Delta T, #mus; charge", file.Data(), i, j), 5000, 0, 50000, 512, 0, 1024));
+          if(energyMode == TigerEnergyMode::SampleAndHold){
+            hDeltaTPrevPerCharge.emplace(make_pair(i, j),
+                                         make_shared<TH2F>(Form("DeltaTPrevPerCharge_det%d_ch%d", i, j),
+                                                           Form("%s: #Delta T for detector %d, channel %d;#Delta T, #mus; charge, fC", file.Data(), i, j),
+                                                           5000, 0, 50000,
+                                                           500, 15, 65));
+          }else{
+            hDeltaTPrevPerCharge.emplace(make_pair(i, j),
+                                         make_shared<TH2F>(Form("DeltaTPrevPerCharge_det%d_ch%d", i, j),
+                                                           Form("%s: #Delta T for detector %d, channel %d;#Delta T, #mus; charge", file.Data(), i, j),
+                                                           5000, 0, 50000,
+                                                           512, 0, 1024));
+          }
         }
         d->cd();
       }
