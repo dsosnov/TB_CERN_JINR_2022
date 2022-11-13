@@ -70,12 +70,8 @@ struct tigerHitTL : public tigerHit {
 
 inline double tigerHitTL::tFineCorrected() const {
   if(tFine < tFineLimits.first){
-    // printf("Hit tFine below limits! ");
-    // print();
     return 0;
   }else if(tFine > tFineLimits.second){
-    // printf("Hit tFine above limits! ");
-    // print();
     return 1.0;
   }else{
     return static_cast<double>(tFine - tFineLimits.first) / static_cast<double>(tFineLimits.second - tFineLimits.first + 1);
@@ -84,12 +80,8 @@ inline double tigerHitTL::tFineCorrected() const {
 
 inline double tigerHitTL::eFineCorrected() const {
   if(eFine < eFineLimits.first){
-    printf("Hit eFine below limits! ");
-    print();
     return 0;
   }else if(eFine > eFineLimits.second){
-    printf("Hit eFine above limits! ");
-    print();
     return 1.0;
   }else{
     return static_cast<double>(eFine - eFineLimits.first) / static_cast<double>(eFineLimits.second - eFineLimits.first + 1);
