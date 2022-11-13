@@ -116,7 +116,7 @@ def submit_dir(d, tb_type):
   sub['output'] = os.path.join(logdir, f'{script_basename}-{tb_type}-{ddir}-$(ClusterId).$(ProcId).out')
   sub['log'] = os.path.join(logdir, f'{script_basename}-{tb_type}-{ddir}-$(ClusterId).log')
   sub['MY.SendCredential'] = True
-  sub['+JobFlavour'] = '"longlunch"'
+  sub['+JobFlavour'] = '"espresso"'
   sub['request_cpus'] = '1'
   sub['should_transfer_files'] = True
   sub['arguments'] = f'analyse {ddir} $(inputfile) {outdir_abs} {eos_path} {fullpath_tb_analysis} {tb_type}'
