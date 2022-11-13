@@ -694,6 +694,32 @@ void filterClusterVector(vector<map<T1, T2>> &clusters, pair<int, int> clusterSi
                                 [clusterSizes](auto c){return (c.size() < clusterSizes.first || c.size() > clusterSizes.second);}),
                  clusters.end());
 }
+void filterClusterVector(vector<mmCluster> &clusters, pair<int, int> clusterSizes = {1, 5}){
+  /* Remove small clusters or clusters with small energy for the first layers only */
+  clusters.erase(std::remove_if(clusters.begin(), clusters.end(),
+                                [clusterSizes](auto c){return (c.hits.size() < clusterSizes.first || c.hits.size() > clusterSizes.second);}),
+                 clusters.end());
+}
+
+template<typename T1, typename T2>
+mmCluster constructClusterMM(map<T1, T2> hits, int layer){
+  double sum = 0, e_sum = 0;
+  for (auto &hit_i : hits)
+  {
+    sum += hit_i.first * hit_i.second;
+    e_sum += hit_i.second;
+  }
+  double w_mean = sum / e_sum;
+
+  double std_sq = 0, e2_sum = 0;
+  for (auto &hit_i : hits)
+  {
+    std_sq += (hit_i.first - w_mean) * (hit_i.first - w_mean) * hit_i.second * hit_i.second;
+    e2_sum += hit_i.second * hit_i.second;
+  }
+  double mean_e = (hits.size() < 2) ? 0.5 : TMath::Sqrt(std_sq / e2_sum);
+  return {layer, w_mean, mean_e, hits, 0};
+}
 
 void tiger::FindClusters(unsigned long n)
 {
@@ -708,10 +734,12 @@ void tiger::FindClusters(unsigned long n)
   map<int, pair<double, double>> mm_clusters;
   map<int, double> straw_hits;
   Long64_t scintEntry;
+  vector<mmCluster> mm_clusters_all;
 
   tree->Branch("scintEntry", &scintEntry);
   tree->Branch("mm_clusters", &mm_clusters);
   tree->Branch("straw_hits", &straw_hits);
+  tree->Branch("mm_clusters_all", &mm_clusters_all);
 
   Long64_t nentries = fChain->GetEntries();
   if(n > 0 && nentries > n)
@@ -722,6 +750,8 @@ void tiger::FindClusters(unsigned long n)
   Long64_t firstHitInWindow = 0;
   tigerHitTL *hitMain, *hitSecondary, hitFirst;
   map<int, map<int, tigerHitTL*>> closestHitsInLayer;
+  vector<mmCluster> clustersInLayer;
+  map<double, double> hitsPerLayer;
   for (Long64_t jentry = 0; jentry < nentries; jentry++)
   {
     if (!(jentry % 100000)){
@@ -776,6 +806,7 @@ void tiger::FindClusters(unsigned long n)
 
       mm_clusters.clear();
       straw_hits.clear();
+      mm_clusters_all.clear();
 
       // TODO move to function. mb optimize
       for(auto i = 0; i < 4; i++)
@@ -785,42 +816,25 @@ void tiger::FindClusters(unsigned long n)
         if(!closestHitsInLayer.count(idet))
           continue;
 
-        map<double, double> hitsPerLayer;  
+        hitsPerLayer.clear();
         for (auto &hit : closestHitsInLayer.at(idet))
           hitsPerLayer.emplace(hit.first, hit.second->charge(energyMode));
         auto hitsPerLayer_splited = splitByDistance(hitsPerLayer);
 
-        filterClusterVector(hitsPerLayer_splited);
-        if (!hitsPerLayer_splited.size())
+        clustersInLayer.clear();
+        std::transform(hitsPerLayer_splited.cbegin(), hitsPerLayer_splited.cend(),
+                       std::back_inserter(clustersInLayer),
+                       [i](auto c){ return constructClusterMM(c, i); });
+        
+        filterClusterVector(clustersInLayer);
+        if (!clustersInLayer.size())
+          continue;
+        if (clustersInLayer.size() > 1)
           continue;
 
-        if (hitsPerLayer_splited.size() > 1)
-          continue;
-        
-        double sum = 0, e_sum = 0;
-
-        // cout << "--------\n";
-        auto cluster = hitsPerLayer_splited.at(0);
-        for (auto &hit_i : cluster)
-        {
-          sum += hit_i.first * hit_i.second;
-          e_sum += hit_i.second;
-          // cout << hit_i.first << "\t" << hit_i.second << std::endl;
-        }
-        double w_mean = sum / e_sum;
-
-        double std_sq = 0, e2_sum = 0;
-        for (auto &hit_i : cluster)
-        {
-          std_sq += (hit_i.first - w_mean) * (hit_i.first - w_mean) * hit_i.second * hit_i.second;
-          e2_sum += hit_i.second * hit_i.second;
-        }
-        double mean_e = (cluster.size() < 2) ? 0.5 : TMath::Sqrt(std_sq / e2_sum);
-        
-        // cout << w_mean << "\t+/- " << mean_e << std::endl;
-        // cout << "--------\n";
-
-        mm_clusters.emplace(i, make_pair(w_mean, mean_e));
+        auto cluster = clustersInLayer.at(0);
+        mm_clusters.emplace(cluster.layer, make_pair(cluster.center, cluster.centerE));
+        mm_clusters_all.insert(mm_clusters_all.end(), clustersInLayer.begin(), clustersInLayer.end());
       }
 
       bool threePointsTrack = true;

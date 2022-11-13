@@ -12,6 +12,16 @@ using std::vector;
 using std::string;
 using std::map;
 
+struct mmCluster {
+  int layer;
+  double center, centerE;
+  map<double, double> hits;
+  int quality;
+  void print() const{
+    printf("MM layer %d cluster with %lu hits, center at %g (%g)\n", layer, hits.size(), center, centerE);
+  }
+};
+
 class analysisGeneral {
 public :
    TString folder = "../data/vmm/";
