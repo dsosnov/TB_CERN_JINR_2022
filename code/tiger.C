@@ -287,10 +287,15 @@ void tiger::Loop(unsigned long n)
   out->mkdir("dt_vs_sci")->cd();
   map<int, shared_ptr<TH1F>> hSciTimeToDet, hSciTimeToDetCoarse;
   map<int, shared_ptr<TH2F>> hSciTimeToDetCoarsePerTime, hSciTimeToDetCoarsePerCharge;
-  for(int i = 1; i <= nDetectorTypes; i++){
+  map<int, shared_ptr<TH2F>> hSciTimeToDetCoarsePerChannel;
+  for(int i = 1; i < nDetectorTypes; i++){
+    if(detMax.at(i) < 0)
+      continue;
     hSciTimeToDet.emplace(i, make_shared<TH1F>(Form("sci_vs_det%d", i), Form("%s: T_{det %d} - T_{scint};#Deltat, ns", file.Data(), i), 1000, -500, 500));
     hSciTimeToDetCoarse.emplace(i, make_shared<TH1F>(Form("sci_vs_det%d_coarse", i), Form("%s: T_{det %d} - T_{scint} (coarse time);#DeltaT, ns", file.Data(), i), 160, -500, 500));
     hSciTimeToDetCoarsePerTime.emplace(i, make_shared<TH2F>(Form("sci_vs_det%d_coarse_per_time", i), Form("%s: T_{det %d} - T_{scint} (coarse time);time, s; #DeltaT, ns", file.Data(), i), 600, 0, 60, 160, -500, 500));
+    hSciTimeToDetCoarsePerChannel.emplace(i, make_shared<TH2F>(Form("sci_vs_det%d_coarse_per_channel", i), Form("%s: T_{det %d} - T_{scint} (coarse time);#DeltaT, ns;channel", file.Data(), i),
+                                                               160, -500, 500, detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1));
     if(energyMode == TigerEnergyMode::SampleAndHold){
       hSciTimeToDetCoarsePerCharge.emplace(i,
                                            make_shared<TH2F>(Form("sci_vs_det%d_coarse_per_charge", i),
@@ -542,6 +547,7 @@ void tiger::Loop(unsigned long n)
             hSciTimeToDetCoarse.at(i)->Fill(timeDifferenceCoarsePS(h.second, hitMain)/1E3);
             hSciTimeToDetCoarsePerTime.at(i)->Fill(timeSinceStart, timeDifferenceCoarsePS(h.second, hitMain)/1E3);
             hSciTimeToDetCoarsePerCharge.at(i)->Fill(timeDifferenceCoarsePS(h.second, hitMain)/1E3, h.second->charge(energyMode));
+            hSciTimeToDetCoarsePerChannel.at(i)->Fill(timeDifferenceCoarsePS(h.second, hitMain)/1E3, h.first);
           }
         }
         if(i == 1 && hSciTimeToDet.count(i)){
