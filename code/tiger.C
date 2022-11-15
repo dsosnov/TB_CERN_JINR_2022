@@ -830,7 +830,7 @@ void tiger::FindClusters(unsigned long n)
         if (!clustersInLayer.size())
           continue;
         if (clustersInLayer.size() > 1)
-          continue;
+          std::sort(clustersInLayer.begin(), clustersInLayer.end(), [](auto ca, auto cb){return ca.sumE() > cb.sumE();});
 
         auto cluster = clustersInLayer.at(0);
         mm_clusters.emplace(cluster.layer, make_pair(cluster.center, cluster.centerE));
