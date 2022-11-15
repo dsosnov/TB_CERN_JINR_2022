@@ -131,41 +131,6 @@ void tiger::Loop(unsigned long n)
     out->cd();
   }
 
-  out->mkdir(Form("deltaT_sci"))->cd();
-  auto straw_vs_sci = make_shared<TH1F>("straw_vs_sci", Form("%s: straw vs scint;#Deltat, ns", file.Data()), 1000, -500, 500);
-  map<int, shared_ptr<TH1F>> straw_vs_mm, mm_vs_sci, mm_vs_sciCoarse;
-  for(int i = 0; i < 4; i++){
-    straw_vs_mm.emplace(i+2, make_shared<TH1F>(Form("straw_vs_mm%d", i), Form("%s: straw vs microMegas %d;#Deltat, ns", file.Data(), i), 1000, -500, 500));
-    mm_vs_sci.emplace(i+2, make_shared<TH1F>(Form("mm%d_vs_sci", i), Form("%s: microMegas %d vs scint;#Deltat, ns", file.Data(), i), 1000, -500, 500));
-    mm_vs_sciCoarse.emplace(i+2, make_shared<TH1F>(Form("mm%d_vs_sci_coarse", i), Form("%s: microMegas %d vs scint (coarse time);#DeltaT, ns", file.Data(), i), 160, -500, 500));
-  }
-  out->cd();
-  out->mkdir(Form("mm_vs_straw"))->cd();
-  map<int, shared_ptr<TH2F>> straw_vs_mm_spatial_corr, straw_vs_mm_spatial_corr_3det;
-  map<int, shared_ptr<TH2F>> straw_vs_mm_spatial_corr_3det_closestTime;
-  for(int i = 0; i < 4; i++){
-    if(i+2 == mmLayerY) continue;
-    straw_vs_mm_spatial_corr.emplace(i+2, make_shared<TH2F>(Form("straw_vs_mm%d_spatial_corr", i), Form("%s: microMegas %d vs straw spatial correaltion;straw ch;MM ch", file.Data(), i),
-                                                            detMax.at(1) - detMin.at(1) + 1, detMin.at(1), detMax.at(1) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
-    straw_vs_mm_spatial_corr_3det.emplace(i+2, make_shared<TH2F>(Form("straw_vs_mm%d_spatial_corr_3det", i), Form("%s: microMegas %d vs straw spatial correaltion (corellated to scint);straw ch;MM ch", file.Data(), i),
-                                                            detMax.at(1) - detMin.at(1) + 1, detMin.at(1), detMax.at(1) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
-    straw_vs_mm_spatial_corr_3det_closestTime.emplace(i+2, make_shared<TH2F>(Form("straw_vs_mm%d_spatial_corr_3det_closestTime", i),
-                                                                             Form("%s: microMegas %d vs straw spatial correaltion (corellated to scint, MM hit with minimal time to scint);straw ch;MM ch", file.Data(), i),
-                                                                             detMax.at(1) - detMin.at(1) + 1, detMin.at(1), detMax.at(1) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
-  }
-  map<int, shared_ptr<TH2F>> addstraw_vs_mm_spatial_corr, addstraw_vs_mm_spatial_corr_3det;
-  if(detMax.at(6) >= 0){
-    for(int i = 0; i < 4; i++){
-      if(i+2 == mmLayerY) continue;
-      addstraw_vs_mm_spatial_corr.emplace(i+2, make_shared<TH2F>(Form("addstraw_vs_mm%d_spatial_corr", i), Form("%s: microMegas %d vs det 6 spatial correaltion;det 6 straw ch;MM ch", file.Data(), i),
-                                                                 detMax.at(6) - detMin.at(6) + 1, detMin.at(6), detMax.at(6) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
-      addstraw_vs_mm_spatial_corr_3det.emplace(i+2, make_shared<TH2F>(Form("addstraw_vs_mm%d_spatial_corr_3det", i),
-                                                                      Form("%s: microMegas %d vs det 6 spatial correaltion (corellated to scint);det 6 straw ch;MM ch", file.Data(), i),
-                                                                      detMax.at(6) - detMin.at(6) + 1, detMin.at(6), detMax.at(6) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
-    }
-  }
-  out->cd();
-
   vector<shared_ptr<TH1F>> hprofile;
   vector<shared_ptr<TH2F>> hChargeToT, hChargeSH;
   vector<shared_ptr<TH2F>> hTimeFine, hFullTime;
@@ -239,6 +204,41 @@ void tiger::Loop(unsigned long n)
     out->cd();
   }
   map<pair<int, int>, tigerHitTL> prevHit;
+
+  out->mkdir(Form("deltaT_sci"))->cd();
+  auto straw_vs_sci = make_shared<TH1F>("straw_vs_sci", Form("%s: straw vs scint;#Deltat, ns", file.Data()), 1000, -500, 500);
+  map<int, shared_ptr<TH1F>> straw_vs_mm, mm_vs_sci, mm_vs_sciCoarse;
+  for(int i = 0; i < 4; i++){
+    straw_vs_mm.emplace(i+2, make_shared<TH1F>(Form("straw_vs_mm%d", i), Form("%s: straw vs microMegas %d;#Deltat, ns", file.Data(), i), 1000, -500, 500));
+    mm_vs_sci.emplace(i+2, make_shared<TH1F>(Form("mm%d_vs_sci", i), Form("%s: microMegas %d vs scint;#Deltat, ns", file.Data(), i), 1000, -500, 500));
+    mm_vs_sciCoarse.emplace(i+2, make_shared<TH1F>(Form("mm%d_vs_sci_coarse", i), Form("%s: microMegas %d vs scint (coarse time);#DeltaT, ns", file.Data(), i), 160, -500, 500));
+  }
+  out->cd();
+  out->mkdir(Form("mm_vs_straw"))->cd();
+  map<int, shared_ptr<TH2F>> straw_vs_mm_spatial_corr, straw_vs_mm_spatial_corr_3det;
+  map<int, shared_ptr<TH2F>> straw_vs_mm_spatial_corr_3det_closestTime;
+  for(int i = 0; i < 4; i++){
+    if(i+2 == mmLayerY) continue;
+    straw_vs_mm_spatial_corr.emplace(i+2, make_shared<TH2F>(Form("straw_vs_mm%d_spatial_corr", i), Form("%s: microMegas %d vs straw spatial correaltion;straw ch;MM ch", file.Data(), i),
+                                                            detMax.at(1) - detMin.at(1) + 1, detMin.at(1), detMax.at(1) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
+    straw_vs_mm_spatial_corr_3det.emplace(i+2, make_shared<TH2F>(Form("straw_vs_mm%d_spatial_corr_3det", i), Form("%s: microMegas %d vs straw spatial correaltion (corellated to scint);straw ch;MM ch", file.Data(), i),
+                                                            detMax.at(1) - detMin.at(1) + 1, detMin.at(1), detMax.at(1) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
+    straw_vs_mm_spatial_corr_3det_closestTime.emplace(i+2, make_shared<TH2F>(Form("straw_vs_mm%d_spatial_corr_3det_closestTime", i),
+                                                                             Form("%s: microMegas %d vs straw spatial correaltion (corellated to scint, MM hit with minimal time to scint);straw ch;MM ch", file.Data(), i),
+                                                                             detMax.at(1) - detMin.at(1) + 1, detMin.at(1), detMax.at(1) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
+  }
+  map<int, shared_ptr<TH2F>> addstraw_vs_mm_spatial_corr, addstraw_vs_mm_spatial_corr_3det;
+  if(detMax.at(6) >= 0){
+    for(int i = 0; i < 4; i++){
+      if(i+2 == mmLayerY) continue;
+      addstraw_vs_mm_spatial_corr.emplace(i+2, make_shared<TH2F>(Form("addstraw_vs_mm%d_spatial_corr", i), Form("%s: microMegas %d vs det 6 spatial correaltion;det 6 straw ch;MM ch", file.Data(), i),
+                                                                 detMax.at(6) - detMin.at(6) + 1, detMin.at(6), detMax.at(6) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
+      addstraw_vs_mm_spatial_corr_3det.emplace(i+2, make_shared<TH2F>(Form("addstraw_vs_mm%d_spatial_corr_3det", i),
+                                                                      Form("%s: microMegas %d vs det 6 spatial correaltion (corellated to scint);det 6 straw ch;MM ch", file.Data(), i),
+                                                                      detMax.at(6) - detMin.at(6) + 1, detMin.at(6), detMax.at(6) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
+    }
+  }
+  out->cd();
 
   out->mkdir("straw_banana")->cd();
   map<int, shared_ptr<TH2F>> straw_banana ;
