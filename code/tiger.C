@@ -826,11 +826,12 @@ void tiger::FindClusters(unsigned long n)
                        std::back_inserter(clustersInLayer),
                        [i](auto c){ return constructClusterMM(c, i); });
         
+        if (clustersInLayer.size() > 1)
+          std::sort(clustersInLayer.begin(), clustersInLayer.end(), [](auto ca, auto cb){return ca.sumE() > cb.sumE();});
+
         filterClusterVector(clustersInLayer);
         if (!clustersInLayer.size())
           continue;
-        if (clustersInLayer.size() > 1)
-          std::sort(clustersInLayer.begin(), clustersInLayer.end(), [](auto ca, auto cb){return ca.sumE() > cb.sumE();});
 
         auto cluster = clustersInLayer.at(0);
         mm_clusters.emplace(cluster.layer, make_pair(cluster.center, cluster.centerE));
