@@ -702,7 +702,7 @@ void filterClusterVector(vector<mmCluster> &clusters, pair<int, int> clusterSize
 }
 
 template<typename T1, typename T2>
-mmCluster constructClusterMM(map<T1, T2> hits, int layer){
+mmCluster tiger::constructClusterMM(const map<T1, T2> &hits, int layer){
   double sum = 0, e_sum = 0;
   for (auto &hit_i : hits)
   {
@@ -719,6 +719,44 @@ mmCluster constructClusterMM(map<T1, T2> hits, int layer){
   }
   double mean_e = (hits.size() < 2) ? 0.5 : TMath::Sqrt(std_sq / e2_sum);
   return {layer, w_mean, mean_e, hits, 0};
+}
+
+// Generation MicroMegas clusters
+map<int, vector<mmCluster>> tiger::constructMMClusters(const map<int, map<int, tigerHitTL*>> &closestHitsInLayer, bool filter){
+  static map<int, vector<mmCluster>> selectedClusters;
+  static vector<mmCluster> clustersInLayer;
+  static map<double, double> hitsPerLayer;
+  selectedClusters.clear();
+  clustersInLayer.clear();
+  hitsPerLayer.clear();
+  for(auto i = 0; i < 4; i++){
+    auto idet = i+2;
+
+    if(!closestHitsInLayer.count(idet))
+      continue;
+
+    hitsPerLayer.clear();
+    for (auto &hit : closestHitsInLayer.at(idet))
+      hitsPerLayer.emplace(hit.first, hit.second->charge(energyMode));
+    auto hitsPerLayer_splited = splitByDistance(hitsPerLayer);
+
+    clustersInLayer.clear();
+    std::transform(hitsPerLayer_splited.cbegin(), hitsPerLayer_splited.cend(),
+                   std::back_inserter(clustersInLayer),
+                   [i](auto c){ return constructClusterMM(c, i); });
+
+    if (clustersInLayer.size() > 1)
+      std::sort(clustersInLayer.begin(), clustersInLayer.end(), [](auto ca, auto cb){return ca.sumE() > cb.sumE();});
+
+    if(filter)
+      filterClusterVector(clustersInLayer);
+
+    if (!clustersInLayer.size())
+      continue;
+
+    selectedClusters.emplace(idet, clustersInLayer);
+  }
+  return selectedClusters;
 }
 
 void tiger::FindClusters(unsigned long n)
@@ -750,8 +788,6 @@ void tiger::FindClusters(unsigned long n)
   Long64_t firstHitInWindow = 0;
   tigerHitTL *hitMain, *hitSecondary, hitFirst;
   map<int, map<int, tigerHitTL*>> closestHitsInLayer;
-  vector<mmCluster> clustersInLayer;
-  map<double, double> hitsPerLayer;
   for (Long64_t jentry = 0; jentry < nentries; jentry++)
   {
     if (!(jentry % 100000)){
@@ -808,34 +844,18 @@ void tiger::FindClusters(unsigned long n)
       straw_hits.clear();
       mm_clusters_all.clear();
 
+      auto constructedClusters = constructMMClusters(closestHitsInLayer);
       // TODO move to function. mb optimize
       for(auto i = 0; i < 4; i++)
       {
         auto idet = i + 2;
-
-        if(!closestHitsInLayer.count(idet))
+        if(!constructedClusters.count(idet))
           continue;
-
-        hitsPerLayer.clear();
-        for (auto &hit : closestHitsInLayer.at(idet))
-          hitsPerLayer.emplace(hit.first, hit.second->charge(energyMode));
-        auto hitsPerLayer_splited = splitByDistance(hitsPerLayer);
-
-        clustersInLayer.clear();
-        std::transform(hitsPerLayer_splited.cbegin(), hitsPerLayer_splited.cend(),
-                       std::back_inserter(clustersInLayer),
-                       [i](auto c){ return constructClusterMM(c, i); });
-        
-        if (clustersInLayer.size() > 1)
-          std::sort(clustersInLayer.begin(), clustersInLayer.end(), [](auto ca, auto cb){return ca.sumE() > cb.sumE();});
-
-        filterClusterVector(clustersInLayer);
-        if (!clustersInLayer.size())
-          continue;
-
-        auto cluster = clustersInLayer.at(0);
+        auto cluster = constructedClusters.at(idet).at(0);
         mm_clusters.emplace(cluster.layer, make_pair(cluster.center, cluster.centerE));
-        mm_clusters_all.insert(mm_clusters_all.end(), clustersInLayer.begin(), clustersInLayer.end());
+        for(auto j = 1; j < constructedClusters.at(idet).size(); j++)
+          constructedClusters.at(idet).at(j).quality = -1;
+        mm_clusters_all.insert(mm_clusters_all.end(), constructedClusters.at(idet).begin(), constructedClusters.at(idet).end());
       }
 
       bool threePointsTrack = true;

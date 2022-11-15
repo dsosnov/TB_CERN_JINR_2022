@@ -66,6 +66,8 @@ public :
   virtual void     Init() override;
   virtual void     Loop(unsigned long n = 0) override;
   void     FindClusters(unsigned long n = 0) ;
+  template<typename T1, typename T2> static mmCluster constructClusterMM(const map<T1, T2> &hits, int layer);
+  map<int, vector<mmCluster>> constructMMClusters(const map<int, map<int, tigerHitTL*>> &closestHitsInLayer, bool filter = true);
 
   bool energyCut(tigerHitTL* hit);
 
