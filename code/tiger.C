@@ -506,7 +506,7 @@ void tiger::Loop(unsigned long n)
             addstraw_vs_mm_spatial_corr_3det.at(idet)->Fill(getMappedChannel(closestHitsInLayer.at(6).at(0)), h.first);
             hitsPerLayerAndDet.emplace(h.first, h.second->charge(energyMode));
           }
-          auto clusters = constructMMClusters(hitsPerLayerAndDet, i);
+          auto clusters = constructMMClusters(hitsPerLayerAndDet, i, false);
           if(clusters.size()){
             hShipRTClusters.at(idet)->Fill(clusters.at(0).center, timeDifferenceFineNS(closestHitsInLayer.at(6).at(0), hitMain));
             addstraw_vs_mmClusters_spatial_corr_3det.at(idet)->Fill(getMappedChannel(closestHitsInLayer.at(6).at(0)), clusters.at(0).center);
@@ -540,7 +540,7 @@ void tiger::Loop(unsigned long n)
             straw_vs_mm_spatial_corr_3det_closestTime.at(idet)->Fill(getMappedChannel(straw.second), closest.value());
             straw_rt_closestTime.at(make_pair(getMappedChannel(straw.second), idet))->Fill(closest.value(), timeDifferenceFineNS(straw.second, hitMain));
             hStrawRT_closestTime.at(idet)->Fill(closest.value(), timeDifferenceFineNS(straw.second, hitMain));
-            auto clusters = constructMMClusters(hitsPerLayerAndDet, i);
+            auto clusters = constructMMClusters(hitsPerLayerAndDet, i, false);
             if(clusters.size()){
             straw_vs_mm_spatial_corr_3det_clusters.at(idet)->Fill(getMappedChannel(straw.second), clusters.at(0).center);
             straw_rt_clusters.at(make_pair(getMappedChannel(straw.second), idet))->Fill(clusters.at(0).center, timeDifferenceFineNS(straw.second, hitMain));
