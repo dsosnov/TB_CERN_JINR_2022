@@ -96,9 +96,9 @@ void tiger::Loop(unsigned long n)
     for(int t = 0; t < 8; t++){
       grD->mkdir(Form("tiger_%d", t))->cd();
       pair<int, int> m = {gr, t};
-      hTigerChargeToT.emplace(m, make_shared<TH2F>(Form("charge_tot_gr%d_t%d", gr, t), Form("%s: charge (Time over Threshold mode) for gemroc %d tiger %d;channel;charge", file.Data(), gr, t),
+      hTigerChargeToT.emplace(m, make_shared<TH2F>(Form("charge_tot_gr%d_t%d", gr, t), Form("%s: charge (Time over Threshold mode) for gemroc %d tiger %d;channel;Charge", file.Data(), gr, t),
                                                    64, 0, 64, 1025, 0, 1025));
-      hTigerChargeSH.emplace(m, make_shared<TH2F>(Form("charge_sh_gr%d_t%d", gr, t), Form("%s: charge (Sample and Hold mode) for gemroc %d tiger %d;channel;charge, fC", file.Data(), gr, t),
+      hTigerChargeSH.emplace(m, make_shared<TH2F>(Form("charge_sh_gr%d_t%d", gr, t), Form("%s: charge (Sample and Hold mode) for gemroc %d tiger %d;channel;Charge, fC", file.Data(), gr, t),
                                                   64, 0, 64, 1000, 0, 100));
       hTigerTimeFine.emplace(m, make_shared<TH2F>(Form("timeFine_gr%d_t%d", gr, t), Form("%s: timeFine for gemroc %d tiger %d;channel;time, ns", file.Data(), gr, t), 64, 0, 64, 4096, 0, 409600));
       hTigertCoarse.emplace(m, make_shared<TH2F>(Form("tCoarse_gr%d_t%d", gr, t), Form("%s: tCoarse for gemroc %d tiger %d;channel;tCoarse", file.Data(), gr, t), 64, 0, 64, 65536, 0, 65536));
@@ -144,9 +144,9 @@ void tiger::Loop(unsigned long n)
     auto d = out->mkdir(Form("det%d", i));
     d->cd();
     hprofile.push_back(make_shared<TH1F>(Form("profile_det%d", i), Form("%s: profile for detector %d;channel", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1));
-    hChargeToT.push_back(make_shared<TH2F>(Form("charge_tot_det%d", i), Form("%s: charge (Time over Threshold mode) for detector %d;channel;charge", file.Data(), i),
+    hChargeToT.push_back(make_shared<TH2F>(Form("charge_tot_det%d", i), Form("%s: charge (Time over Threshold mode) for detector %d;channel;Charge", file.Data(), i),
                                            detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 1025, 0, 1025));
-    hChargeSH.push_back(make_shared<TH2F>(Form("charge_sh_det%d", i), Form("%s: charge (Sample and Hold mode) for detector %d;channel;charge, fC", file.Data(), i),
+    hChargeSH.push_back(make_shared<TH2F>(Form("charge_sh_det%d", i), Form("%s: charge (Sample and Hold mode) for detector %d;channel;Charge, fC", file.Data(), i),
                                           detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 1000, 0, 100));
     hTimeFine.push_back(make_shared<TH2F>(Form("timeFine_det%d", i), Form("%s: timeFine for detector %d;channel;time, ns", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 4096, 0, 409600));
     htCoarse.push_back(make_shared<TH2F>(Form("tCoarse_det%d", i), Form("%s: tCoarse for detector %d;channel;tCoarse", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 65536, 0, 65536));
@@ -294,11 +294,29 @@ void tiger::Loop(unsigned long n)
   
   out->mkdir("dt_vs_sci")->cd();
   map<int, shared_ptr<TH1F>> hSciTimeToDet, hSciTimeToDetCoarse;
-  map<int, shared_ptr<TH2F>> hSciTimeToDetCoarsePerTime;
-  for(int i = 1; i <= nDetectorTypes; i++){
+  map<int, shared_ptr<TH2F>> hSciTimeToDetCoarsePerTime, hSciTimeToDetCoarsePerCharge;
+  map<int, shared_ptr<TH2F>> hSciTimeToDetCoarsePerChannel;
+  for(int i = 1; i < nDetectorTypes; i++){
+    if(detMax.at(i) < 0)
+      continue;
     hSciTimeToDet.emplace(i, make_shared<TH1F>(Form("sci_vs_det%d", i), Form("%s: T_{det %d} - T_{scint};#Deltat, ns", file.Data(), i), 1000, -500, 500));
     hSciTimeToDetCoarse.emplace(i, make_shared<TH1F>(Form("sci_vs_det%d_coarse", i), Form("%s: T_{det %d} - T_{scint} (coarse time);#DeltaT, ns", file.Data(), i), 160, -500, 500));
     hSciTimeToDetCoarsePerTime.emplace(i, make_shared<TH2F>(Form("sci_vs_det%d_coarse_per_time", i), Form("%s: T_{det %d} - T_{scint} (coarse time);time, s; #DeltaT, ns", file.Data(), i), 600, 0, 60, 160, -500, 500));
+    hSciTimeToDetCoarsePerChannel.emplace(i, make_shared<TH2F>(Form("sci_vs_det%d_coarse_per_channel", i), Form("%s: T_{det %d} - T_{scint} (coarse time);#DeltaT, ns;channel", file.Data(), i),
+                                                               160, -500, 500, detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1));
+    if(energyMode == TigerEnergyMode::SampleAndHold){
+      hSciTimeToDetCoarsePerCharge.emplace(i,
+                                           make_shared<TH2F>(Form("sci_vs_det%d_coarse_per_charge", i),
+                                                             Form("%s: T_{det %d} - T_{scint} (coarse time); #DeltaT, ns; Charge, fC", file.Data(), i),
+                                                             160, -500, 500,
+                                                             500, 15, 65));
+    }else{
+      hSciTimeToDetCoarsePerCharge.emplace(i,
+                                           make_shared<TH2F>(Form("sci_vs_det%d_coarse_per_charge", i),
+                                                             Form("%s: T_{det %d} - T_{scint} (coarse time); #DeltaT, ns; Charge", file.Data(), i),
+                                                             160, -500, 500,
+                                                             1024, 0, 1024));
+    }
   }
   map<int, shared_ptr<TH1F>> hSciVsSci, hSciVsSciCoarse;
   map<int, shared_ptr<TH2F>> hSciVsSciCoarsePerTime;
@@ -572,6 +590,8 @@ void tiger::Loop(unsigned long n)
             hSciTimeToDet.at(i)->Fill(timeDifferenceFineNS(h.second, hitMain));
             hSciTimeToDetCoarse.at(i)->Fill(timeDifferenceCoarsePS(h.second, hitMain)/1E3);
             hSciTimeToDetCoarsePerTime.at(i)->Fill(timeSinceStart, timeDifferenceCoarsePS(h.second, hitMain)/1E3);
+            hSciTimeToDetCoarsePerCharge.at(i)->Fill(timeDifferenceCoarsePS(h.second, hitMain)/1E3, h.second->charge(energyMode));
+            hSciTimeToDetCoarsePerChannel.at(i)->Fill(timeDifferenceCoarsePS(h.second, hitMain)/1E3, h.first);
           }
         }
         if(i == 1 && hSciTimeToDet.count(i)){

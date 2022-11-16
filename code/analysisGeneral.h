@@ -120,7 +120,7 @@ public :
     double timeToScint;
   };
   virtual vector<hitParam> getHits(unsigned long){return {};}
-  enum class TestBeams { TB22_April, TB22_July, TB22_August, TB22_October };
+  enum class TestBeams { TB22_April, TB22_July, TB22_August, TB22_October, TB22_November};
   TestBeams testbeamType = TestBeams::TB22_October;
 };
 
