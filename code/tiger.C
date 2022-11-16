@@ -223,13 +223,13 @@ void tiger::Loop(unsigned long n)
     straw_vs_mm_spatial_corr.emplace(i+2, make_shared<TH2F>(Form("straw_vs_mm%d_spatial_corr", i), Form("%s: microMegas %d vs straw spatial correaltion;straw ch;MM ch", file.Data(), i),
                                                             detMax.at(1) - detMin.at(1) + 1, detMin.at(1), detMax.at(1) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
     straw_vs_mm_spatial_corr_3det.emplace(i+2, make_shared<TH2F>(Form("straw_vs_mm%d_spatial_corr_3det", i), Form("%s: microMegas %d vs straw spatial correaltion (corellated to scint);straw ch;MM ch", file.Data(), i),
-                                                            detMax.at(1) - detMin.at(1) + 1, detMin.at(1), detMax.at(1) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
+                                                                 detMax.at(1) - detMin.at(1) + 1, detMin.at(1), detMax.at(1) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
     straw_vs_mm_spatial_corr_3det_closestTime.emplace(i+2, make_shared<TH2F>(Form("straw_vs_mm%d_spatial_corr_3det_closestTime", i),
                                                                              Form("%s: microMegas %d vs straw spatial correaltion (corellated to scint, MM hit with minimal time to scint);straw ch;MM ch", file.Data(), i),
                                                                              detMax.at(1) - detMin.at(1) + 1, detMin.at(1), detMax.at(1) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
-    straw_vs_mm_spatial_corr_3det_clusters.emplace(i+2, make_shared<TH2F>(Form("straw_vs_mm%d_clusters_spatial_corr_3det_closestTime", i),
-                                                                             Form("%s: clusters in microMegas %d vs straw spatial correaltion (corellated to scint);MM cluster center;MM ch", file.Data(), i),
-                                                                             detMax.at(1) - detMin.at(1) + 1, detMin.at(1), detMax.at(1) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
+    straw_vs_mm_spatial_corr_3det_clusters.emplace(i+2, make_shared<TH2F>(Form("straw_vs_mm%d_spatial_corr_3det_clusters", i),
+                                                                          Form("%s: clusters in microMegas %d vs straw spatial correaltion (corellated to scint);MM cluster center;MM ch", file.Data(), i),
+                                                                          detMax.at(1) - detMin.at(1) + 1, detMin.at(1), detMax.at(1) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
   }
   map<int, shared_ptr<TH2F>> addstraw_vs_mm_spatial_corr, addstraw_vs_mm_spatial_corr_3det;
   map<int, shared_ptr<TH2F>> addstraw_vs_mmClusters_spatial_corr_3det;
@@ -242,8 +242,8 @@ void tiger::Loop(unsigned long n)
                                                                       Form("%s: microMegas %d vs det 6 spatial correaltion (corellated to scint);det 6 straw ch;MM ch", file.Data(), i),
                                                                       detMax.at(6) - detMin.at(6) + 1, detMin.at(6), detMax.at(6) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
       addstraw_vs_mmClusters_spatial_corr_3det.emplace(i+2, make_shared<TH2F>(Form("addstraw_vs_mm%d_clusters_spatial_corr_3det", i),
-                                                                      Form("%s: clusters in microMegas %d vs det 6 spatial correaltion (corellated to scint);det 6 straw ch;MM cluster center", file.Data(), i),
-                                                                      detMax.at(6) - detMin.at(6) + 1, detMin.at(6), detMax.at(6) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
+                                                                              Form("%s: clusters in microMegas %d vs det 6 spatial correaltion (corellated to scint);det 6 straw ch;MM cluster center", file.Data(), i),
+                                                                              detMax.at(6) - detMin.at(6) + 1, detMin.at(6), detMax.at(6) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
     }
   }
   out->cd();
@@ -265,8 +265,8 @@ void tiger::Loop(unsigned long n)
                         make_shared<TH1F>(Form("straw%d_vs_straw%d", i, i+1),
                                           Form("%s: straw%d_vs_straw%d;T_{straw%d} - T_{straw%d}", file.Data(), i, i+1, i, i+1), 1000, -500, 500));
     straw_straw_sci.emplace(i,
-                        make_shared<TH1F>(Form("straw%d_vs_straw%d_vs_sci", i, i+1),
-                                          Form("%s: straw%d_vs_straw%d;T_{straw%d} - T_{straw%d}, corellated to sci", file.Data(), i, i+1, i, i+1), 1000, -500, 500));
+                            make_shared<TH1F>(Form("straw%d_vs_straw%d_vs_sci", i, i+1),
+                                              Form("%s: straw%d_vs_straw%d;T_{straw%d} - T_{straw%d}, corellated to sci", file.Data(), i, i+1, i, i+1), 1000, -500, 500));
   }
   out->cd();
 
@@ -357,7 +357,7 @@ void tiger::Loop(unsigned long n)
       hStrawRTCoarse.emplace(i, make_shared<TH2F>(Form("straw_rt_vs_mm%d_coarse", i-2), Form("%s: RT for straws and MM %d (coarse time);strip;#DeltaT (coarse), ns", file.Data(), i-2),
                                                   detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i), 96, -300, 300));
       hStrawRT_closestTime.emplace(i, make_shared<TH2F>(Form("straw_rt_vs_mm%d_closestTime", i-2), Form("%s: RT for straws and MM %d, MM closest hit to scint;strip;#DeltaT, ns", file.Data(), i-2),
-                                            detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i), 600, -300, 300));
+                                                        detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i), 600, -300, 300));
       hStrawRT_clusters.emplace(i, make_shared<TH2F>(Form("straw_rt_vs_mm%d_clusters", i-2), Form("%s: RT for straws and clusters in MM %d;MM cluster center;#DeltaT, ns", file.Data(), i-2),
                                                      detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i), 600, -300, 300));
       hStrawRTCoarse_clusters.emplace(i, make_shared<TH2F>(Form("straw_rt_vs_mm%d_clusters_coarse", i-2), Form("%s: RT for straws and clusters in MM %d (coarse time);MM cluster center;#DeltaT (coarse), ns", file.Data(), i-2),
@@ -374,13 +374,13 @@ void tiger::Loop(unsigned long n)
                                          Form("%s: straw %d v-shape against MM%d;MM strip;T, ns", file.Data(), i, j),
                                          detMax.at(j+2) - detMin.at(j+2) + 1, detMin.at(j+2), detMax.at(j+2) + 1, 600, -300, 300));
       straw_rt_closestTime.emplace(make_pair(i,j+2),
-                       make_shared<TH2F>(Form("straw%d_rt_det%d_closestTime", i, j+2),
-                                         Form("%s: straw %d v-shape against MM%d, MM closest hit to scint;MM strip;T, ns", file.Data(), i, j),
-                                         detMax.at(j+2) - detMin.at(j+2) + 1, detMin.at(j+2), detMax.at(j+2) + 1, 600, -300, 300));
+                                   make_shared<TH2F>(Form("straw%d_rt_det%d_closestTime", i, j+2),
+                                                     Form("%s: straw %d v-shape against MM%d, MM closest hit to scint;MM strip;T, ns", file.Data(), i, j),
+                                                     detMax.at(j+2) - detMin.at(j+2) + 1, detMin.at(j+2), detMax.at(j+2) + 1, 600, -300, 300));
       straw_rt_clusters.emplace(make_pair(i,j+2),
-                       make_shared<TH2F>(Form("straw%d_rt_det%d_clusters", i, j+2),
-                                         Form("%s: straw %d v-shape against clusters in MM%d;MM cluster center ;T, ns", file.Data(), i, j),
-                                         detMax.at(j+2) - detMin.at(j+2) + 1, detMin.at(j+2), detMax.at(j+2) + 1, 600, -300, 300));
+                                make_shared<TH2F>(Form("straw%d_rt_det%d_clusters", i, j+2),
+                                                  Form("%s: straw %d v-shape against clusters in MM%d;MM cluster center ;T, ns", file.Data(), i, j),
+                                                  detMax.at(j+2) - detMin.at(j+2) + 1, detMin.at(j+2), detMax.at(j+2) + 1, 600, -300, 300));
     }
   }
   map<int, shared_ptr<TH2F>> hShipRT, hShipRTClusters;
@@ -390,7 +390,7 @@ void tiger::Loop(unsigned long n)
       hShipRT.emplace(i, make_shared<TH2F>(Form("ship_rt_vs_mm%d", i-2), Form("%s: RT for SHiP straw and MM %d;strip;#DeltaT, ns", file.Data(), i-2),
                                            detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i), 6000, -100, 500));
       hShipRTClusters.emplace(i, make_shared<TH2F>(Form("ship_rt_vs_mm%d_clusters", i-2), Form("%s: RT for SHiP straw and clusters in MM %d;MM cluster center;#DeltaT, ns", file.Data(), i-2),
-                                           detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i), 6000, -100, 500));
+                                                   detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i), 6000, -100, 500));
     }
   }
   out->cd();
@@ -553,16 +553,17 @@ void tiger::Loop(unsigned long n)
               hStrawRTCoarse.at(idet)->Fill(h.first, timeDifferenceCoarsePS(straw.second, hitMain) / 1E3);
               straw_vs_mm_spatial_corr_3det.at(idet)->Fill(getMappedChannel(straw.second), h.first);
               straw_rt.at(make_pair(getMappedChannel(straw.second), idet))->Fill(h.first, timeDifferenceFineNS(straw.second, hitMain));
-            hitsPerLayerAndDet.emplace(h.first, h.second->charge(energyMode));
+              hitsPerLayerAndDet.emplace(h.first, h.second->charge(energyMode));
             }
             straw_vs_mm_spatial_corr_3det_closestTime.at(idet)->Fill(getMappedChannel(straw.second), closest.value());
             straw_rt_closestTime.at(make_pair(getMappedChannel(straw.second), idet))->Fill(closest.value(), timeDifferenceFineNS(straw.second, hitMain));
             hStrawRT_closestTime.at(idet)->Fill(closest.value(), timeDifferenceFineNS(straw.second, hitMain));
             auto clusters = constructMMClusters(hitsPerLayerAndDet, i, false);
             if(clusters.size()){
-            straw_vs_mm_spatial_corr_3det_clusters.at(idet)->Fill(getMappedChannel(straw.second), clusters.at(0).center);
-            straw_rt_clusters.at(make_pair(getMappedChannel(straw.second), idet))->Fill(clusters.at(0).center, timeDifferenceFineNS(straw.second, hitMain));
-            hStrawRT_clusters.at(idet)->Fill(clusters.at(0).center, timeDifferenceFineNS(straw.second, hitMain));
+              straw_vs_mm_spatial_corr_3det_clusters.at(idet)->Fill(getMappedChannel(straw.second), clusters.at(0).center);
+              straw_rt_clusters.at(make_pair(getMappedChannel(straw.second), idet))->Fill(clusters.at(0).center, timeDifferenceFineNS(straw.second, hitMain));
+              hStrawRT_clusters.at(idet)->Fill(clusters.at(0).center, timeDifferenceFineNS(straw.second, hitMain));
+              hStrawRTCoarse_clusters.at(idet)->Fill(clusters.at(0).center, timeDifferenceCoarsePS(straw.second, hitMain) / 1E3);
             }
 
           }
@@ -727,10 +728,10 @@ bool inTimeWindow(int detector, double deltaTNS){
       return (-140 < deltaTNS && deltaTNS < 320);
       break;
     case 6:
-  return false;
+      return false;
       break;
     case 7:
-  return false;
+      return false;
       break;
     default:
       break;
