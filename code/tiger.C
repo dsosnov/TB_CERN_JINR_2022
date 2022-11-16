@@ -721,13 +721,33 @@ mmCluster tiger::constructClusterMM(const map<T1, T2> &hits, int layer){
   return {layer, w_mean, mean_e, hits, 0};
 }
 
-// Generation MicroMegas clusters
-map<int, vector<mmCluster>> tiger::constructMMClusters(const map<int, map<int, tigerHitTL*>> &closestHitsInLayer, bool filter){
-  static map<int, vector<mmCluster>> selectedClusters;
+// Generation MicroMegas clusters per one layer
+template<typename T1, typename T2>
+vector<mmCluster> tiger::constructMMClusters(const map<T1, T2> &hitsPerLayer, int layer, bool filter) const {
   static vector<mmCluster> clustersInLayer;
+  clustersInLayer.clear();
+
+  auto hitsPerLayer_splited = splitByDistance(hitsPerLayer);
+
+  clustersInLayer.clear();
+  std::transform(hitsPerLayer_splited.cbegin(), hitsPerLayer_splited.cend(),
+                 std::back_inserter(clustersInLayer),
+                 [layer](auto c){ return constructClusterMM(c, layer); });
+
+  if (clustersInLayer.size() > 1)
+    std::sort(clustersInLayer.begin(), clustersInLayer.end(), [](auto ca, auto cb){return ca.sumE() > cb.sumE();});
+
+  if(filter)
+    filterClusterVector(clustersInLayer);
+
+  return clustersInLayer;
+}
+
+// Generation MicroMegas clusters
+map<int, vector<mmCluster>> tiger::constructMMClusters(const map<int, map<int, tigerHitTL*>> &closestHitsInLayer, bool filter) const {
+  static map<int, vector<mmCluster>> selectedClusters;
   static map<double, double> hitsPerLayer;
   selectedClusters.clear();
-  clustersInLayer.clear();
   hitsPerLayer.clear();
   for(auto i = 0; i < 4; i++){
     auto idet = i+2;
@@ -738,18 +758,8 @@ map<int, vector<mmCluster>> tiger::constructMMClusters(const map<int, map<int, t
     hitsPerLayer.clear();
     for (auto &hit : closestHitsInLayer.at(idet))
       hitsPerLayer.emplace(hit.first, hit.second->charge(energyMode));
-    auto hitsPerLayer_splited = splitByDistance(hitsPerLayer);
 
-    clustersInLayer.clear();
-    std::transform(hitsPerLayer_splited.cbegin(), hitsPerLayer_splited.cend(),
-                   std::back_inserter(clustersInLayer),
-                   [i](auto c){ return constructClusterMM(c, i); });
-
-    if (clustersInLayer.size() > 1)
-      std::sort(clustersInLayer.begin(), clustersInLayer.end(), [](auto ca, auto cb){return ca.sumE() > cb.sumE();});
-
-    if(filter)
-      filterClusterVector(clustersInLayer);
+    auto clustersInLayer = constructMMClusters(hitsPerLayer, i, filter);
 
     if (!clustersInLayer.size())
       continue;
