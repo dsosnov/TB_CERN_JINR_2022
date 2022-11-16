@@ -119,17 +119,6 @@ public :
   tigerHitTL getTigerHitTLCurrent() const;
   void updateTigerHitTLCurrent(tigerHitTL &hit) const;
 
-  // map<pair<int, int>, float> strawCenterMM = {
-  //   {{1,24}, 156}, // 213 - 21 - 24/1.0 - 12
-  //   {{1,25}, 165}, // 213 - 21 - 24/2.0 - 15
-  //   {{1,26}, 181}, // 213 - 21 - 12 + 1
-  //   {{1,27}, 189}, // 213 - 21 + 24/2.0 - 15
-  //   {{1,28}, 204}, // 213 - 21 + 24/1.0 - 12
-  //   {{1,29}, 216}, // 213 - 21 + 24/1.5 - 12
-  //   {{6, 0}, 198}, // SHiP Straw // 170 before June 1st, 198 after
-  //   {{6, 1}, 180}, // Netron Straw
-  // };
-
   int nDetectorTypes, mmLayerY ;
   map<long long, pair<tigerHitTL, bool>> hitsMap;
   tigerHitTL* getHitFromTree(long long, bool force = false);
