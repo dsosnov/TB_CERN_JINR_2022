@@ -316,8 +316,8 @@ void tiger::updateTigerHitTLCurrent(tigerHitTL &hit) const{
   hit.frameCountLoops = frameCountLoops;
 
   hit.counterWord = counterWord;
-  hit.tFineLimits = (tFineCalibration.count({gemrocID, tigerID, channelID, tacID})) ?
-    tFineCalibration.at({gemrocID, tigerID, channelID, tacID}) : make_pair(0, 1023);
+  if(tFineCalibration.count({gemrocID, tigerID, channelID, tacID}))
+  hit.tFineLimits = tFineCalibration.at({gemrocID, tigerID, channelID, tacID});
   if(eFineCalibrationSH.count({gemrocID, tigerID, channelID}))
     hit.eFineCalibrationSH = eFineCalibrationSH.at({gemrocID, tigerID, channelID});
 }
