@@ -137,7 +137,7 @@ public :
 tiger::tiger(TString filename, TString runFolder_, TString mapFile_, TString eFineNoiseFile_, TString tFineFile_, TString eFineSHFile_, short energyMode_) : runFolder(runFolder_),
                                                                                                                                                              mapFile(mapFile_), efineNoiseFile(eFineNoiseFile_),
                                                                                                                                                              tfineFile(tFineFile_), efineSHFile(eFineSHFile_),
-                                                                                                                                  energyMode(static_cast<TigerEnergyMode>(energyMode_))
+                                                                                                                                                             energyMode(static_cast<TigerEnergyMode>(energyMode_))
 {
   file = filename;
   folder = "../data/tiger/" + runFolder + "/";
@@ -317,7 +317,7 @@ void tiger::updateTigerHitTLCurrent(tigerHitTL &hit) const{
 
   hit.counterWord = counterWord;
   if(tFineCalibration.count({gemrocID, tigerID, channelID, tacID}))
-  hit.tFineLimits = tFineCalibration.at({gemrocID, tigerID, channelID, tacID});
+    hit.tFineLimits = tFineCalibration.at({gemrocID, tigerID, channelID, tacID});
   if(eFineCalibrationSH.count({gemrocID, tigerID, channelID}))
     hit.eFineCalibrationSH = eFineCalibrationSH.at({gemrocID, tigerID, channelID});
 }
