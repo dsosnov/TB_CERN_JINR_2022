@@ -113,7 +113,7 @@ public :
   void addEFineNoiseLimits(TString filename, bool verbose = false);
   map<tuple<int,int,int,int>, pair<int, int>> tFineCalibration;
   void addCalibrationTFine(TString filename, bool verbose = false);
-  map<tuple<int,int,int>, tuple<double, int, int, int>> eFineCalibrationSH; // saturation_value vcasp thr maximum_efine
+  map<tuple<int,int,int>, pair<double, double>> eFineCalibrationSH; // saturation_value vcasp thr maximum_efine
   void addCalibrationEFineSH(TString filename, bool verbose = false);
 
   tigerHitTL getTigerHitTLCurrent() const;
@@ -278,18 +278,17 @@ void tiger::addCalibrationEFineSH(TString filename, bool verbose){
   }
   std::string line;
   int gr, t, ch;
-  double saturationValue;
-  int vcasp, thr, maximumEFine;
+  double p0, p1; // Since Q = p0 + p1 * eFine, p0 is saturation value
   while (std::getline(infile, line))
   {
     std::istringstream iss(line);
     if(iss.str().substr(0, 1) == string("#")) // in c++20 there is starts_with("#")
       continue;
-    if (!(iss >> gr >> t >> ch >> saturationValue >> vcasp >> thr >> maximumEFine))
+    if (!(iss >> gr >> t >> ch >> p0 >>p1))
       break; // error
     if(verbose)
-      printf("eFine SH calibration: %d %d %d: %g, %d, %d %d\n", gr, t, ch, saturationValue, vcasp, thr, maximumEFine);
-    eFineCalibrationSH.emplace(make_tuple(gr,t, ch), make_tuple(saturationValue, vcasp, thr, maximumEFine));
+      printf("eFine SH calibration: %d %d %d: %g, %g\n", gr, t, ch, p0, p1);
+    eFineCalibrationSH.emplace(make_tuple(gr,t, ch), make_pair(p0, p1));
   }
 }
 
@@ -311,11 +310,10 @@ void tiger::updateTigerHitTLCurrent(tigerHitTL &hit) const{
   hit.frameCountLoops = frameCountLoops;
 
   hit.counterWord = counterWord;
-  hit.tFineLimits = (tFineCalibration.count({gemrocID, tigerID, channelID, tacID})) ?
-    tFineCalibration.at({gemrocID, tigerID, channelID, tacID}) : make_pair(0, 1023);
-  hit.eFineCalibrationSH = eFineCalibrationSH.count({gemrocID, tigerID, channelID}) ?
-    eFineCalibrationSH.at({gemrocID, tigerID, channelID}) : make_tuple(45.0, 55, 63, 1007);
-
+  if(tFineCalibration.count({gemrocID, tigerID, channelID, tacID}))
+  hit.tFineLimits = tFineCalibration.at({gemrocID, tigerID, channelID, tacID});
+  if(eFineCalibrationSH.count({gemrocID, tigerID, channelID}))
+    hit.eFineCalibrationSH = eFineCalibrationSH.at({gemrocID, tigerID, channelID});
 }
 tigerHitTL tiger::getTigerHitTLCurrent() const{
   tigerHitTL hit;
