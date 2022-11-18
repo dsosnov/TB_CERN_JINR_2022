@@ -12,7 +12,6 @@ struct tigerHit {
   Char_t   channelID;       //  6 bit data -- "B" == Char_t   ==  int8_t
   virtual void print(bool hex = false) const;
   virtual double stepSize_fC(double VcaspVth) const;
-  virtual double convertEFineSHTofC(Short_t eFine, double saturationValue, Short_t vcasp, Short_t thrEFine, Short_t maximumEFine) const;
 };
 void tigerHit::print(bool hex) const {
   printf("TL hit: ");
@@ -25,12 +24,6 @@ void tigerHit::print(bool hex) const {
 double inline tigerHit::stepSize_fC(double VcaspVth) const {
   double gain = 12.25;
   return (VcaspVth * -0.621 + 39.224) / gain;
-};
-double inline tigerHit::convertEFineSHTofC(Short_t eFine, double saturationValue, Short_t vcasp, Short_t thrEFine, Short_t maximumEFine) const {
-  if(eFine > 1007)
-    return convertEFineSHTofC(eFine - 1024, saturationValue, vcasp, thrEFine, maximumEFine);
-  auto thrStep = stepSize_fC(vcasp);
-  return saturationValue - (static_cast<double>(eFine) / static_cast<double>(maximumEFine)) * (thrStep * thrEFine);
 };
 
 struct tigerHitTL : public tigerHit {
@@ -50,7 +43,8 @@ struct tigerHitTL : public tigerHit {
 
   std::pair<Short_t, Short_t> tFineLimits = {0, 1023};
   std::pair<Short_t, Short_t> eFineLimits = {0, 1023};
-  std::tuple<Double_t, Short_t, Short_t, Short_t> eFineCalibrationSH = {45.0, 55, 63, 1007};
+  // calibration: Q(eFine) = p0 + p1 * eFine; if eFine > 1007, then Q(eFine - 1024)
+  std::pair<Double_t, Double_t> eFineCalibrationSH = {45.0, -45.0 / 1007};
   double tFineCorrected() const;
   double eFineCorrected() const;
 
@@ -102,11 +96,10 @@ double tigerHitTL::chargeToT(const bool fine) const {
 }
 
 double tigerHitTL::chargeSH() const { // in fC
-  return convertEFineSHTofC(eFine,
-                   std::get<0>(eFineCalibrationSH),
-                   std::get<1>(eFineCalibrationSH),
-                   std::get<2>(eFineCalibrationSH),
-                   std::get<3>(eFineCalibrationSH));
+  auto p0 = eFineCalibrationSH.first;
+  auto p1 = eFineCalibrationSH.second;
+  auto eFineUsed = eFine - ( (eFine > 1007) ? 1024 : 0);
+  return p0 + p1 * eFineUsed;
 }
 
 double tigerHitTL::charge(const bool ToTMode) const {
