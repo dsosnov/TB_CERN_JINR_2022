@@ -113,7 +113,7 @@ def calib(run_number):
     p0 = v
     p1 = p0 / mean_p0_p1_ratio
     print(f'{gr} {tiger} {channel} (disabled) -> {p0}, {p1}')
-    print(f'{gr} {tiger} {channel} {p0}, {p1}', file=fout)
+    print(f'{gr} {tiger} {channel} {p0} {p1}', file=fout)
     foutbin.write(struct.pack('h', gr))
     foutbin.write(struct.pack('h', tiger))
     foutbin.write(struct.pack('h', channel))
