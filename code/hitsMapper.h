@@ -179,59 +179,59 @@ optional<pair<double, double>> getMeanPosition(map<int, int> hitsPerLayer, int l
  */
 int getLayerPosition(int layer, analysisGeneral::TestBeams tb){ // TODO do normally
   int y = 0;
-    switch(tb){
+  switch(tb){
     case analysisGeneral::TestBeams::TB22_October:
-    switch(layer){
-      case 2:
-        y += 195;
-      case -2:
-        y += 7;
-      case -1:
-        y += 233;
-      case 3:
-        y += 32;
-      case 1:
-        y += 332;
-      case 0:
-        y += 0;
-    }
+      switch(layer){
+        case 2:
+          y += 195;
+        case -2:
+          y += 7;
+        case -1:
+          y += 233;
+        case 3:
+          y += 32;
+        case 1:
+          y += 332;
+        case 0:
+          y += 0;
+      }
       break;
     case analysisGeneral::TestBeams::TB22_August:
       break;
     case analysisGeneral::TestBeams::TB22_July:
-    switch(layer){
-      case -2:
-        y += 7;
-      case -1:
-        y = -183;
-        break;
-      case 2:
-        y += 325;
-      case 3:
-      case 1:
-        y += 434;
-      case 0:
-        y += 0;
-        break;
-      default:
-        y += 0;
-        break;
-    }
+      switch(layer){
+        case -2:
+          y += 7;
+        case -1:
+          y = -183;
+          break;
+        case 2:
+          y += 325;
+        case 3:
+        case 1:
+          y += 434;
+        case 0:
+          y += 0;
+          break;
+        default:
+          y += 0;
+          break;
+      }
       break;
     case analysisGeneral::TestBeams::TB22_April:
-    switch(layer){
-      case -2:
-        y += 7;
-      case -1:
-      case 3:
-        y += 523;
-      case 2:
-        y += 345;
-      case 1:
-        y += 285;
-      case 0:
-        y += 0;
-    }
+      switch(layer){
+        case -2:
+          y += 7;
+        case -1:
+        case 3:
+          y += 523;
+        case 2:
+          y += 345;
+        case 1:
+          y += 285;
+        case 0:
+          y += 0;
+      }
       break;
     default:
       break;
