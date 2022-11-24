@@ -94,7 +94,7 @@ public :
   };
   virtual vector<hitParam> getHits(unsigned long){return {};}
   enum class TestBeams { TB22_April, TB22_July, TB22_August, TB22_October };
-  TestBeams testbeamType = TestBeams::TB22_October;
+  TestBeams testbeamType = TestBeams::TB22_July;
 };
 
 TChain* analysisGeneral::GetTree(TString filename, TString treeName){
