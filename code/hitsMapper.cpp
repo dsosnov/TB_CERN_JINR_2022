@@ -21,7 +21,12 @@ using std::map;
 using std::set;
 using std::optional, std::nullopt;
 
+
 map<pair<string, string>, pair<int, int>> firstPulserMap = {
+    {{"run_0087", "run43"}, {99638, 143}}, //July
+    {{"run_0091", "run47"}, {207153, 7147}}, //July
+    {{"run_0093", "run49"}, {235343, 4103}}, //July
+
     {{"run_0832", "run423"}, {180059, 7042}}, // First APV vs VMM dt = 23209318 or 2320 pulses
     {{"run_0832_cut", "run423_cut"}, {180059, 7042}}, // First APV vs VMM dt = 23209318 or 2320 pulses
     {{"run_0832_cut10m", "run423_cut10m"}, {180059, 7042}}, // First APV vs VMM dt = 23209318 or 2320 pulses
