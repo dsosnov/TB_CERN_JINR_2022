@@ -340,6 +340,22 @@ optional<int> calculateVMMNPulsers(int bcidDiff, int maxDiff = 2, int maxNPulser
     return nullopt;
 }
 
+// Long should be enough (4 bytes), but to be sure we can use long long (8 bytes)
+int calculateAPVNPulsers(long long TimeStampDiff, int maxDiff = 100, int maxNPulsers = 1000) // 1000 puslesr = 10s
+{
+    static constexpr long long maxCounter = static_cast<long long>(1<<24);
+    static constexpr double pulserLength = 400036.0;
+    TimeStampDiff += (TimeStampDiff > 0) ? 0 : maxCounter;
+    long long predicted;
+    for(auto i = 1; i <= maxNPulsers; i++)
+    {
+        predicted = static_cast<long long>(round(pulserLength * i)) % maxCounter;
+        if(abs(predicted - TimeStampDiff) <= maxDiff)
+            return i;
+    }
+    return -1;
+}
+
 // IMPORTANT change: fixSRSTime
 // return: time, us
 double apvTimeFromSRSTimestamp(int diff, bool fixSRSTime = false){
