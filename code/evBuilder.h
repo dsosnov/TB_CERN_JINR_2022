@@ -77,59 +77,23 @@ public :
   std::function<bool(int)> pulserPdoAccepted;
 };
 
-evBuilder::evBuilder(TString filename, TString runType_, TString mapFile_)
+evBuilder::evBuilder(TString filename, TString runType_, TString mapFile_) : vmm(filename, runType_, mapFile_)
 {
-  runType = runType;
-  mapFile = mapFile_;
-  triggerTimeStamp = nullptr; triggerCounter = nullptr;
-  boardId = nullptr; chip = nullptr; eventSize = nullptr;
-  daq_timestamp_s = nullptr; daq_timestamp_ns = nullptr;
-  tdo = nullptr; pdo = nullptr; flag = nullptr; threshold = nullptr;
-  bcid = nullptr; relbcid = nullptr; overflow = nullptr; orbitCount = nullptr; grayDecoded = nullptr;
-  channel = nullptr; febChannel = nullptr; mappedChannel = nullptr;
-  art_valid = nullptr; art = nullptr; art_trigger = nullptr;
-  
-  file = filename;
-  fChain = GetTree(filename);
   Init();
 }
-evBuilder::evBuilder(vector<TString> filenames, TString runType_, TString mapFile_)
+evBuilder::evBuilder(vector<TString> filenames, TString runType_, TString mapFile_): vmm(filenames, runType_, mapFile_)
 {
-  runType = runType;
-  mapFile = mapFile_;
-  triggerTimeStamp = nullptr; triggerCounter = nullptr;
-  boardId = nullptr; chip = nullptr; eventSize = nullptr;
-  daq_timestamp_s = nullptr; daq_timestamp_ns = nullptr;
-  tdo = nullptr; pdo = nullptr; flag = nullptr; threshold = nullptr;
-  bcid = nullptr; relbcid = nullptr; overflow = nullptr; orbitCount = nullptr; grayDecoded = nullptr;
-  channel = nullptr; febChannel = nullptr; mappedChannel = nullptr;
-  art_valid = nullptr; art = nullptr; art_trigger = nullptr;
-  
-  file = filenames.at(0);
-  fChain = GetTree(filenames.at(0));
-  for(auto i = 1; i < filenames.size(); i++)
-    fChain->Add(folder + filenames.at(i) + ending);
   Init();
 }
 
-evBuilder::evBuilder(TChain *tree, TString runType_, TString mapFile_) : vmm(tree)
+evBuilder::evBuilder(TChain *tree, TString runType_, TString mapFile_) : vmm(tree, runType_, mapFile_)
 {
-  runType = runType;
-  mapFile = mapFile_;
-  triggerTimeStamp = nullptr; triggerCounter = nullptr;
-  boardId = nullptr; chip = nullptr; eventSize = nullptr;
-  daq_timestamp_s = nullptr; daq_timestamp_ns = nullptr;
-  tdo = nullptr; pdo = nullptr; flag = nullptr; threshold = nullptr;
-  bcid = nullptr; relbcid = nullptr; overflow = nullptr; orbitCount = nullptr; grayDecoded = nullptr;
-  channel = nullptr; febChannel = nullptr; mappedChannel = nullptr;
-  art_valid = nullptr; art = nullptr; art_trigger = nullptr;
-  
-  fChain = (tree == nullptr) ? GetTree("") : tree;
   Init();
 }
 
 evBuilder::~evBuilder()
 {
+  Init();
 }
 
 void evBuilder::Init(){
