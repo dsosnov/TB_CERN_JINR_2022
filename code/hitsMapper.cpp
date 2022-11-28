@@ -1,3 +1,4 @@
+#include "analysisGeneral.h"
 #include "apv.C"
 #include "evBuilder.C"
 #include <iostream>
@@ -133,6 +134,9 @@ double weightedMean(vector<pair<int, int>> hits){
     return center;
 }
 
+constexpr int layerStrawOdd = -1;
+constexpr int layerStrawEven = -2;
+constexpr int layerDR = -3;
 /*
  * positions (april measurements):
  * L0 - L1: 285
@@ -144,39 +148,57 @@ double weightedMean(vector<pair<int, int>> hits){
  * 434 - mm0-mm1 - mm layer 3 (y) was connected to mm layer 1
  * 325 - mm3-mm2
  *
+ * Layers layerStrawOdd and layerStrawEven are uned for straws (odd and even-numbered)
+ * Layer layerDR is for auto-selection double read-out layer
  * return: position in mm, from Layer 0
  */
-int getLayerPosition(int layer, bool aprilTB = false){ // TODO do normally
+int getLayerPosition(int layer){
+  auto tb = analysisGeneral::GetTestBeam();
   int y = 0;
-  if(!aprilTB){
-    switch(layer){
-      case -1:
-        y = -183;
-        break;
-      case 2:
-        y += 325;
-      case 3:
-        y += 32;
-      case 1:
-        y += 434;
-      case 0:
-        y += 0;
-        break;
-      default:
-        y += 0;
-        break;
-    }
-  }else{
-    switch(layer){
-      case 3:
-        y += 523;
-      case 2:
-        y += 345;
-      case 1:
-        y += 285;
-      case 0:
-        y += 0;
-    }
+
+  switch(tb){
+    case analysisGeneral::TestBeams::TB22_April:
+      switch(layer){
+        case layerStrawEven:
+        case layerStrawOdd:
+        case 3:
+          y += 523;
+        case layerDR:
+        case 2:
+          y += 345;
+        case 1:
+          y += 285;
+        case 0:
+          y += 0;
+      }
+      break;
+    case analysisGeneral::TestBeams::TB22_July:
+      switch(layer){
+        case layerStrawEven:
+        case layerStrawOdd:
+          y = -183;
+          break;
+        case 2:
+          y += 325;
+        case 3:
+          y += 32;
+        case 1:
+          y += 434;
+        case layerDR:
+        case 0:
+          y += 0;
+          break;
+        default:
+          y += 0;
+          break;
+      }
+      break;
+    case analysisGeneral::TestBeams::TB22_August:
+      break;
+    case analysisGeneral::TestBeams::TB22_October:
+      break;
+    default:
+      break;
   }
   return y;
 }
