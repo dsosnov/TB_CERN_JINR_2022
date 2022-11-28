@@ -203,6 +203,56 @@ int getLayerPosition(int layer){
   return y;
 }
 
+double correctAlignment(int strip, int layer){
+  auto tb = analysisGeneral::GetTestBeam();
+  double stripD = 0;
+  switch(tb){
+    case analysisGeneral::TestBeams::TB22_October:
+      break;
+    case analysisGeneral::TestBeams::TB22_August:
+      break;
+    case analysisGeneral::TestBeams::TB22_July:
+      switch(layer){
+        case layerDR:
+        case 0:
+          stripD = static_cast<double>(strip) * 1.09 - 6.16;
+          break;
+        case 1:
+          stripD = static_cast<double>(strip);
+          break;
+        case 2:
+          stripD = static_cast<double>(strip) * 1.01 + 3.77;
+          break;
+        default:
+          stripD = static_cast<double>(strip);
+          break;
+      }
+      break;
+    case analysisGeneral::TestBeams::TB22_April:
+      // shifts from Stefano
+      switch(layer){
+        case 0:
+          stripD = static_cast<double>(strip);
+          break;
+        case 1:
+          stripD = static_cast<double>(strip) * (1 - 2.29e-3) - 2.412 / 0.25;
+          break;
+        case layerDR:
+        case 2:
+          stripD = static_cast<double>(strip) * (1 - 8e-3) - 8.46 / 0.25;
+          break;
+        default:
+          stripD = static_cast<double>(strip);
+          break;
+      }
+      break;
+    default:
+      break;
+  }
+  return stripD;
+}
+
+
 pair<double, double> getEstimatedTrack(map<int, double> positions){
   int n = 0;
   double sumXY = 0, sumX = 0, sumY = 0, sumX2 = 0, sumY2 = 0;
@@ -650,7 +700,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = true, int nAll = 50, int n
                 // out_APV << "------- APV Period " << nPeriodsAPV << " -------- \n";
                 for (auto &h : hit_apv.hitsPerLayer.at(0))
                 {
-                    strip = h.first * 1.09 - 6.16; // TODO add dependency on testbeam
+                    strip = correctAlignment(h.first, 0);
                     pdo = h.second;
                     apv0_strips->Fill(strip);
                     if (strip > 161 && strip < 198)
@@ -658,7 +708,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = true, int nAll = 50, int n
                 }
                 for (auto &h : hit_apv.hitsPerLayer.at(1))
                 {
-                    strip = h.first; // TODO add dependency on testbeam
+                    strip = correctAlignment(h.first, 1);
                     pdo = h.second;
                     apv1_strips->Fill(strip);
                     if (strip > 161 && strip < 198)
@@ -666,7 +716,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = true, int nAll = 50, int n
                 }
                 for (auto &h : hit_apv.hitsPerLayer.at(2))
                 {
-                    strip = h.first * 1.01 + 3.77; // TODO add dependency on testbeam
+                    strip = correctAlignment(h.first, 2);
                     pdo = h.second;
                     apv2_strips->Fill(strip);
                     if (strip > 161 && strip < 198)
@@ -797,7 +847,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = true, int nAll = 50, int n
 
                     for (auto it = currEvent->hitsX.begin(); it != currEvent->hitsX.end(); ++it)
                     {
-                        strip = it->first * 1.09 - 6.16; // TODO add dependency on testbeam
+                        strip = correctAlignment(it->first, layerDR);
                         pdo = it->second;
                         vmm_strips->Fill(strip);
                         if (pdo < thrPerStrip(it->first))
