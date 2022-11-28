@@ -252,32 +252,42 @@ double correctAlignment(int strip, int layer){
   return stripD;
 }
 
-pair<double, double> getEstimatedTrack(map<int, double> positions){
+pair<double, double> getEstimatedTrack(map<int, pair<double, double>> positions){
   int n = 0;
-  double sumXY = 0, sumX = 0, sumY = 0, sumX2 = 0, sumY2 = 0;
-  int y; double x; // x: horizontal, y - vertical coordinate
+  double sumWXY = 0, sumWX = 0, sumWY = 0, sumWX2 = 0, sumY2 = 0, sumW = 0;
+  double y, x, w, yE; // x: horizontal, y - vertical coordinate
   for(auto &pos: positions){
-    y = getLayerPosition(pos.first);
-    x = pos.second;
-    sumXY += x * y;
-    sumX += x;
-    sumY += y;
-    sumX2 += x * x;
+    x = getLayerPosition(pos.first);
+    y = pos.second.first;
+    yE = pos.second.second;
+    w = 1.0 / yE;
+    sumW += w;
+    sumWXY += w * x * y;
+    sumWX += w * x;
+    sumWY += w * y;
+    sumWX2 += w * x * x;
     // sumY2 += y * y;
     n++;
   }
-  double a0 = (n * sumXY - sumX * sumY)/(n * sumX2 - sumX * sumX);
-  double b0 = (sumY - a0*sumX)/n;
-  // double b1 = (sumX2 * sumY - sumXY * sumX) / (n * sumX2 - sumX * sumX);
-  // double a1 = (sumY - n*b1) / sumX;
-  // printf("%d layers -- a0: %g, b0: %g; a1: %g, b1: %g;\n", n, a0, b0, a1, b1);
+  double d = sumW * sumWX2 - sumWX * sumWX;
+  double a0 = (sumW*sumWXY - sumWX*sumWY) / d;
+  double b0 = (sumWX2 * sumWY - sumWX*sumWXY)/d;
+  double sigmaa = sqrt(sumW/d);
+  double sigmab = sqrt(sumWX2/d);
   return {a0, b0};
+}
+pair<double, double> getEstimatedTrack(map<int, double> positions){
+  map<int, pair<double, double>> positionsW;  
+  for(auto &pos: positions){
+    positionsW.emplace(pos.first, make_pair(pos.second, 1.0));
+  }
+  return getEstimatedTrack(positionsW);
 }
 
 double estimatePositionInLayer(pair<double, double> trackAB, int layer){
-  double y = getLayerPosition(layer);
-  double x = (y - trackAB.second) / trackAB.first;
-  return x;
+  double x = getLayerPosition(layer);
+  double y = trackAB.first * x + trackAB.second;
+  return y;
 }
 
 map<pair<string, string>, pair<int, int>> firstPulserMap = {
