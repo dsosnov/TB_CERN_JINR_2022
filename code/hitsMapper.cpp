@@ -420,7 +420,6 @@ void hitsMapper(bool tight = false, bool fixSRSTime = true, int nAll = 50, int n
     // if time between two syncs larger then multiple pulser periods, merging fails due to calculation N periods for APV from pulser time only
     long long nPeriodsAPV_corrected = 0;
 
-
     int prevSRS = -1;
     int prev_pulse_SRS = -1;
     long long prev_pulse_time_s, prev_pulse_time_ms = 0;

@@ -133,6 +133,7 @@ evBuilder::~evBuilder()
 }
 
 void evBuilder::Init(){
+  printf("evBuilder::Init\n");
   switch(GetTestBeam()){
     case analysisGeneral::TestBeams::TB22_October:
     case analysisGeneral::TestBeams::TB22_August:

@@ -271,6 +271,7 @@ analysisGeneral::mm2CenterHitParameters evBuilder::GetCentralHitsData(unsigned l
     long prevbcid63 = -1;
     int syncBcid = 0;
     int syncPDO = 0;
+
     for (int j = 0; j < channel->at(0).size(); j++)
     {
       int fch = channel->at(0).at(j);
