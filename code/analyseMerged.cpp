@@ -1,11 +1,4 @@
-
-#include "evBuilder.C"
-#include "apv.C"
-
-#include <optional>
-#include <utility>
-#include <algorithm>
-
+#include "hitsMapper.h"
 
 using std::optional, std::nullopt;
 using std::pair, std::make_pair;
@@ -21,20 +14,7 @@ optional<pair<double, double>> getMeanPosition(map<int, int> hitsPerLayer, int l
     if(!vmmHits && (h.first <= 118 || h.first >= 172))
       continue; // TODO check why
     // shifts from Stefano // TODO add dependency on testbeam
-    switch(layer){
-      case 0:
-        strip = h.first; // TODO add dependency on testbeam
-        break;
-      case 1:
-        strip = h.first * (1 - 2.29e-3) - 2.412 / 0.25; // TODO add dependency on testbeam
-        break;        
-      case 2:
-        strip = h.first * (1 - 8e-3) - 8.46 / 0.25; // TODO add dependency on testbeam
-        break;
-      default:
-        strip = h.first;
-        break;
-    }
+    strip = correctAlignment(h.first, vmmHits ? layerDR : layer);
     if(!min || min.value() < strip) min = {strip};
     if(!max || max.value() > strip) max = {strip};
     if(layer == 0)
@@ -50,66 +30,6 @@ optional<pair<double, double>> getMeanPosition(map<int, int> hitsPerLayer, int l
                              std::max(fabs(centerV-min.value()), fabs(centerV-max.value()))));
   }
   return center;
-}
-
-/*
- * positions:
- * L0 - L1: 285
- * L1 - L2: 345
- * L2 - Straw: 523
- * return: position in mm, from Layer 0
- */
-int getLayerPosition(int layer){ // TODO move to header; merge with hitsmapper
-  int y = 0;
-  switch(layer){
-    case 3:
-      y += 523;
-    case 2:
-      y += 345;
-    case 1:
-      y += 285;
-    case 0:
-      y += 0;
-  }
-  return y;
-}
-
-pair<double, double> getEstimatedTrack(map<int, pair<double, double>> positions){ // TODO
-  int n = 0;
-  double sumWXY = 0, sumWX = 0, sumWY = 0, sumWX2 = 0, sumY2 = 0, sumW = 0;
-  double y, x, w, yE; // x: horizontal, y - vertical coordinate
-  for(auto &pos: positions){
-    x = getLayerPosition(pos.first);
-    y = pos.second.first;
-    yE = pos.second.second;
-    w = 1.0 / yE;
-    sumW += w;
-    sumWXY += w * x * y;
-    sumWX += w * x;
-    sumWY += w * y;
-    sumWX2 += w * x * x;
-    // sumY2 += y * y;
-    n++;
-  }
-  double d = sumW * sumWX2 - sumWX * sumWX;
-  double a0 = (sumW*sumWXY - sumWX*sumWY) / d;
-  double b0 = (sumWX2 * sumWY - sumWX*sumWXY)/d;
-  double sigmaa = sqrt(sumW/d);
-  double sigmab = sqrt(sumWX2/d);
-  // printf("%d layers -- a0: %g, b0: %g; a1: %g, b1: %g;\n", n, a0, b0, a1, b1);
-  for(auto &pos: positions){
-    x = getLayerPosition(pos.first);
-    y = pos.second.first;
-    yE = pos.second.second;
-    printf("X = %g; y = %g; y_calc = %g\t\tyE = %g\n", x, y, a0 * x + b0, yE);
-  }
-  return {a0, b0};
-}
-
-double estimatePositionInLayer(pair<double, double> trackAB, int layer){
-  double x = getLayerPosition(layer);
-  double y = trackAB.first * x + trackAB.second;
-  return y;
 }
 
 TH2F* renormToUnityByY(TH2F* histIn){
