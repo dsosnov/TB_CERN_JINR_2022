@@ -119,7 +119,7 @@ long long loadNextVMM(long long firstElement,
     return elementVector.size(); // next start index
 }
 
-double weightedMean(vector<pair<int, int>> hits){
+double weightedMean(vector<pair<int, int>> hits){ // TODO correct to pair of position and error
     long long sum = 0, sumWeights = 0, nHits = 0;
     for(auto &h: hits){
         long long strip = h.first;
@@ -252,7 +252,6 @@ double correctAlignment(int strip, int layer){
   return stripD;
 }
 
-
 pair<double, double> getEstimatedTrack(map<int, double> positions){
   int n = 0;
   double sumXY = 0, sumX = 0, sumY = 0, sumX2 = 0, sumY2 = 0;
@@ -363,6 +362,27 @@ constexpr bool reloopVMMFile = false;
 // AlternativeStart -- first VMM selected as first good VMM pulser in case the difference between first good APV and VMM is about 33ms
 void hitsMapper(bool tight = false, bool fixSRSTime = true, int nAll = 50, int n = 0, string runVMM="0093", string runAPV = "49", bool alternativeStart = false, int mergeTimeWindow = 1000)
 {
+    static const auto tb = analysisGeneral::GetTestBeam();
+    unsigned int maximumVMMPeriods = 256;
+    unsigned int apvSRSTolerance = 100;
+    switch(tb){
+      case analysisGeneral::TestBeams::TB22_October:
+        break;
+      case analysisGeneral::TestBeams::TB22_August:
+        break;
+      case analysisGeneral::TestBeams::TB22_July:
+        maximumVMMPeriods = 90;
+        apvSRSTolerance = 100;
+        break;
+      case analysisGeneral::TestBeams::TB22_April:
+        maximumVMMPeriods = 4;
+        apvSRSTolerance = 100;
+        break;
+      default:
+        break;
+    }
+
+
     pair<string, string> run_pair = {Form("run_%s", runVMM.c_str()), Form("run%s", runAPV.c_str())};
     if(!firstPulserMap.count(run_pair))
     {
@@ -594,7 +614,6 @@ void hitsMapper(bool tight = false, bool fixSRSTime = true, int nAll = 50, int n
     int Tvmm_ = 0;
     int prevTvmm_ = 0;
 
-
     int maxAPVPulserCountDifference = tight ? 0 : 1;
     bool ignoreNextSync = true;
 
@@ -630,7 +649,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = true, int nAll = 50, int n
                 // nPeriodsAPV += round((T_apv - T_apv_pulse_prev) * 1.0 / 1e4);
 
                 long long srsDiff = (hit_apv.timeSrs - prev_pulse_SRS) + ((prev_pulse_SRS > hit_apv.timeSrs)?16777216:0);
-                int nPulsers = calculateAPVNPulsers(srsDiff, 1, 500);
+                int nPulsers = calculateAPVNPulsers(srsDiff, apvSRSTolerance, 500);
                 if (nPulsers == -1)
                 {
                     continue;
@@ -726,14 +745,27 @@ void hitsMapper(bool tight = false, bool fixSRSTime = true, int nAll = 50, int n
                 if (apv_hits_vec_l1.size() && apv_hits_vec.size())
                     tracksPerTime->Fill((T_apv - startT_apv)/1E6);
                 
-                if (!apv_hits_vec.size() || !apv_hits_vec_l0.size() || !apv_hits_vec_l1.size())
+                if (!apv_hits_vec.size() || !apv_hits_vec_l0.size() || !apv_hits_vec_l1.size()) // TODO maybe loose requirement
                     continue;
 
 
-                map<int, double> means = {{1, weightedMean(apv_hits_vec_l1)}, {2, weightedMean(apv_hits_vec)}}; // TODO add dependency on testbeam
+                map<int, double> means;
+                switch(tb){
+                  case analysisGeneral::TestBeams::TB22_October:
+                    break;
+                  case analysisGeneral::TestBeams::TB22_August:
+                    break;
+                  case analysisGeneral::TestBeams::TB22_July:
+                    means = {{1, weightedMean(apv_hits_vec_l1)}, {2, weightedMean(apv_hits_vec)}};
+                    break;
+                  case analysisGeneral::TestBeams::TB22_April:
+                    means = {{0, weightedMean(apv_hits_vec_l0)}, {1, weightedMean(apv_hits_vec_l1)}};
+                    break;
+                  default:
+                    break;
+                }
                 auto tr = getEstimatedTrack(means);
-                int propogated = static_cast<int>(round(estimatePositionInLayer(tr, 0)));
-                // int propogated = (weightedMean(apv_hits_vec_l1) + weightedMean(apv_hits_vec)) / 2;
+                int propogated = static_cast<int>(round(estimatePositionInLayer(tr, layerDR)));
 
                 vmm_hits_vec.clear();
 
@@ -781,7 +813,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = true, int nAll = 50, int n
                             diff = (currEvent->bcid - prevSyncBcid > 0) ? currEvent->bcid - prevSyncBcid : currEvent->bcid + 4096 - prevSyncBcid;
                             diffDiff = (currEvent->bcid - prevPrevSyncBcid > 0) ? currEvent->bcid - prevPrevSyncBcid: currEvent->bcid + 4096 - prevPrevSyncBcid;
                             
-                            nPeriodsAdd = calculateVMMNPulsers(diff, 1, 90); // TODO add dependency on testbeam
+                            nPeriodsAdd = calculateVMMNPulsers(diff, 1, maximumVMMPeriods);
 
                             diffTvmm = T_vmm-T_vmm_pulse_prev;
 
