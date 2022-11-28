@@ -93,7 +93,6 @@ evBuilder::evBuilder(TChain *tree, TString runType_, TString mapFile_) : vmm(tre
 
 evBuilder::~evBuilder()
 {
-  Init();
 }
 
 void evBuilder::Init(){
