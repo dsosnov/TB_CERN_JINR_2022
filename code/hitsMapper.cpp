@@ -153,7 +153,7 @@ constexpr int layerDR = -3;
  * return: position in mm, from Layer 0
  */
 int getLayerPosition(int layer){
-  auto tb = analysisGeneral::GetTestBeam();
+  static const auto tb = analysisGeneral::GetTestBeam();
   int y = 0;
 
   switch(tb){
@@ -204,7 +204,7 @@ int getLayerPosition(int layer){
 }
 
 double correctAlignment(int strip, int layer){
-  auto tb = analysisGeneral::GetTestBeam();
+  static const auto tb = analysisGeneral::GetTestBeam();
   double stripD = 0;
   switch(tb){
     case analysisGeneral::TestBeams::TB22_October:
