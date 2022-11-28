@@ -354,7 +354,7 @@ bool tiger::energyCut(tigerHitTL* hit){ // Only for SH mode
 
 void tiger::Init()
 {
-  switch(testbeamType){
+  switch(GetTestBeam()){
     case analysisGeneral::TestBeams::TB22_October:
       nDetectorTypes = 8;
       mmLayerY = 4;

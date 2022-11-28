@@ -251,7 +251,7 @@ apv::~apv(){
 
 void apv::Init(){
   enum class TestBeams { TB22_April, TB22_July, TB22_August, TB22_October };
-  switch(testbeamType){
+  switch(GetTestBeam()){
     case analysisGeneral::TestBeams::TB22_October:
     case analysisGeneral::TestBeams::TB22_August:
     case analysisGeneral::TestBeams::TB22_July:
