@@ -289,7 +289,7 @@ analysisGeneral::mm2CenterHitParameters evBuilder::GetCentralHitsData(unsigned l
         trigTime = getTime(fch, fbcid, ftdo, fpdoUC);
       }
       else if(fchD == 0 && fchM == 4){
-        if(fpdo > 650){
+        if(pulserPdoAccepted(fpdo)){
           if(prevbcid63 >= 0){
             auto bcidSincePrevious63 = (fbcid > prevbcid63) ? fbcid - prevbcid63 : fbcid - prevbcid63 + 4096;
             unsigned int maxDiffBCID = 5; // bcid
@@ -681,6 +681,12 @@ void evBuilder::Loop(unsigned long n)
   auto hits_in_cluster = new TH1D("hits_in_cluster", Form("%s: hits in microMegas per cluster;N", file.Data()), 100, 0, 100);
   auto mm_vs_sci = new TH1D("mm_vs_sci", Form("%s: microMegas vs scint;#Deltat, ns", file.Data()), 1000, -500, 500);
 
+  auto mm_pdo = new TH2D("mm_pdo",
+                               Form("%s: pdo for mm ; ch; pdo", file.Data()), 300, 0, 300, 120, 0, 1200);
+  auto mm_pdo_cor = new TH2D("mm_pdo_cor",
+                               Form("%s: corrected pdo for mm ; ch; pdo", file.Data()), 300, 0, 300, 120, 0, 1200);
+  auto VMM_Pulse_pdo = new TH1D("VMM_Pulse_pdo", Form("%s: VMM_Pulse_pdo;PDO", file.Data()), 1200, 0, 1200);
+
   auto sci0_vs_sci60 = new TH1D("sci0_vs_sci60", Form("%s: sci ch 0 vs sci ch 60;#Deltat, ns", file.Data()), 1000, -500, 500);
 
   auto straw_vs_sci_3det_corr = new TH1D("straw_vs_sci_3det_corr", Form("%s: 3-det correlations;#Deltat, ns", file.Data()), 1000, -500, 500);
@@ -865,6 +871,11 @@ void evBuilder::Loop(unsigned long n)
       if(fpdo < pdoThr) continue;
       if(fchD == -1) continue;
 
+      if(fchD == mmDoubleReadout) // All MM channels
+      {
+        mm_pdo->Fill(fchM, fpdoUC);
+        mm_pdo_cor->Fill(fchM, fpdo);
+      }
 
       if (fchD == 1) // All straw ch
       {

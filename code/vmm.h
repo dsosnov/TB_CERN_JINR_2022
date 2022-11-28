@@ -299,13 +299,20 @@ void vmm::Init()
    fChain->SetBranchAddress("art", &art, &b_art);
    fChain->SetBranchAddress("art_trigger", &art_trigger, &b_art_trigger);
 
-   if(runType.EndsWith("_p25_s100") || runType.EndsWith("_p25_s100-0&60")){
-     addLimits(100, "calibration_25_100_pdo100.txt");
-     addLimits(150, "calibration_25_100_pdo150.txt");
-     addLimits(200, "calibration_25_100_pdo200.txt");
-     addLimits(250, "calibration_25_100_pdo250.txt");
-     addLimits(300, "calibration_25_100_pdo300.txt");
-   } else {
+   // addLimits(1, "calibration_tdo_t@t_g1_p25_s100.txt");
+   if(runType.BeginsWith("g1_p25_s100")){
+     addLimits(100, "calibration_tdo_t@t_g1_p25_s100_pdo100.txt");
+     addLimits(150, "calibration_tdo_t@t_g1_p25_s100_pdo150.txt");
+     addLimits(200, "calibration_tdo_t@t_g1_p25_s100_pdo200.txt");
+     addLimits(250, "calibration_tdo_t@t_g1_p25_s100_pdo250.txt");
+     addLimits(300, "calibration_tdo_t@t_g1_p25_s100_pdo300.txt");
+   } else if(runType.BeginsWith("g3_p25_s100")){
+     addLimits(150, "calibration_tdo_t@t_g3_p25_s100_pdo150.txt");
+     addLimits(200, "calibration_tdo_t@t_g3_p25_s100_pdo200.txt");
+     addLimits(280, "calibration_tdo_t@t_g3_p25_s100_pdo280.txt");
+     addLimits(420, "calibration_tdo_t@t_g3_p25_s100_pdo420.txt");
+     addLimits(570, "calibration_tdo_t@t_g3_p25_s100_pdo570.txt");
+     addLimits(710, "calibration_tdo_t@t_g3_p25_s100_pdo710.txt");
    }
    if(runType == "g1_p25_s100"){
      addPDOCorrection("calibration_pdo_t@t_g1_p25_s100.txt");

@@ -50,7 +50,7 @@ int calculateAPVNPulsers(long long TimeStampDiff, int maxDiff = 1, int maxNPulse
 // IMPORTANT change: fixSRSTime
 // return: time, us
 double apvTimeTimeSRSTimestamp(int diff, bool fixSRSTime = false){
-    return diff * 25.0 * (fixSRSTime ? 400000.0/400037.0 : 1.0) / 1000.0;
+    return diff * 25.0 * (fixSRSTime ? 400000.0/400037.0 : 1.0) / 1000.0;  // TODO add dependency on testbeam
 }
 
 int apv_time_from_SRS(int srs1, int srs2, bool fixSRSTime = false)
@@ -71,53 +71,6 @@ int apv_time_from_SRS(int srs1, int srs2, bool fixSRSTime = false)
     return round(apvTimeTimeSRSTimestamp(diff, fixSRSTime));
 }
 
-int vmmRemoveFirstNPuslers(vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>> &hits_vmm_v, int nRemoved = 637){
-    int firstSyncBcid = 0;
-    int index = -nRemoved; // 650; 665
-
-    unsigned long j = 0;
-    for (j = 0; j < hits_vmm_v.size() && index < 0; j++)
-    {
-        if (hits_vmm_v.at(j).second.sync)
-            index++;
-    }
-    hits_vmm_v.erase(hits_vmm_v.begin(), hits_vmm_v.begin() + j-1); // remove first j elements: from 0 to j-1
-    if (index == 0) // check if arways?
-    {
-        firstSyncBcid = hits_vmm_v.at(0).second.bcid;
-        hits_vmm_v.erase(hits_vmm_v.begin(), hits_vmm_v.begin()); // remove first elements
-    }
-    else if(index < 0)
-    {
-        cout << "Removed all VMM events due to incorrect index value" << endl;
-    }
-    return firstSyncBcid;
-}
-pair<int, int> vmmRemoveFirstNPuslers(TTree* hits_vmm_t, pair<unsigned long, analysisGeneral::mm2CenterHitParameters> *hits_vmm_event, int nRemoved = 637){
-    int firstSyncBcid = 0;
-    int index = -nRemoved; // 650; 665
-
-    unsigned long j = 0;
-    for (j = 0; j < hits_vmm_t->GetEntries() && index < 0; j++)
-    {
-        hits_vmm_t->GetEntry(j);
-        if (hits_vmm_event->second.sync)
-            index++;
-    }
-    if (index == 0) // check if arways?
-    {
-        hits_vmm_t->GetEntry(j);
-        firstSyncBcid = hits_vmm_event->second.bcid;
-        j++;
-        printf("First VMM sync-signal: %lu\n", hits_vmm_event->first);
-    }
-    else if(index < 0)
-    {
-        cout << "Removed all VMM events due to incorrect index value" << endl;
-    }
-    return make_pair(j, firstSyncBcid);
-}
-
 bool freeMemory(map<long long, vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>>> &hits_vmm_events_map, long long firstElement)
 {
     bool released = false;
@@ -132,37 +85,6 @@ bool freeMemory(map<long long, vector<pair<unsigned long, analysisGeneral::mm2Ce
     return released;
 }
 
-long long loadNextVMM(long long firstElement, map<long long, vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>>> &hits_vmm_events_map,
-                 TTree* hits_vmm_t, pair<unsigned long, analysisGeneral::mm2CenterHitParameters> *hits_vmm_event,
-                 long long nElements = 100000){
-    // printf("loadNextVMM(%lld, %p, %p, %p, %lld)\n", firstElement, &hits_vmm_events_map, hits_vmm_t, hits_vmm_event, nElements);
-    if(hits_vmm_events_map.count(firstElement))
-        return hits_vmm_events_map.at(firstElement).size();
-  
-    vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>> elementVector;
-    hits_vmm_t->GetEntry(firstElement);
-    if(!(hits_vmm_event->second.sync)){ // Not a sync event, it seems a problem!
-        printf("First loaded event not the sync!\n");
-        hits_vmm_t->GetEntry(firstElement-1);
-        if(hits_vmm_event->second.sync)
-            printf("First before First loaded is sync!\n");
-        hits_vmm_events_map.emplace(firstElement, elementVector);
-        return 0;
-    };
-    // hits_vmm_event->second.print();
-    long long lastSyncIndex = 0;
-    auto maxEntries = hits_vmm_t->GetEntries() - firstElement;
-    for(auto i = 0; i < maxEntries && lastSyncIndex < nElements; i++){
-        hits_vmm_t->GetEntry(firstElement + i);
-        elementVector.push_back(make_pair(hits_vmm_event->first, hits_vmm_event->second));
-        if(hits_vmm_event->second.sync)
-            lastSyncIndex = i;
-    }
-    // remove last sync and all after
-    elementVector.erase(elementVector.begin() + lastSyncIndex, elementVector.end());
-    hits_vmm_events_map.emplace(firstElement, elementVector);
-    return elementVector.size(); // next start index
-}
 long long loadNextVMM(long long firstElement,
                       map<long long, vector<pair<unsigned long, analysisGeneral::mm2CenterHitParameters>>> &hits_vmm_events_map,
                       evBuilder* vmman,
@@ -212,29 +134,49 @@ double weightedMean(vector<pair<int, int>> hits){
 }
 
 /*
+ * positions (april measurements):
+ * L0 - L1: 285
+ * L1 - L2: 345
+ * L2 - Straw: 523
+ *
  * Some distances (July measurements):
  * 183 - mm0-straw (layer -1 now)
  * 434 - mm0-mm1 - mm layer 3 (y) was connected to mm layer 1
  * 325 - mm3-mm2
+ *
  * return: position in mm, from Layer 0
  */
-int getLayerPosition(int layer){
+int getLayerPosition(int layer, bool aprilTB = false){ // TODO do normally
   int y = 0;
-  switch(layer){
-    case -1:
-      y = -183;
-      break;
-    case 2:
-      y += 325;
-    case 3:
-    case 1:
-      y += 434;
-    case 0:
-      y += 0;
-      break;
-    default:
-      y += 0;
-      break;
+  if(!aprilTB){
+    switch(layer){
+      case -1:
+        y = -183;
+        break;
+      case 2:
+        y += 325;
+      case 3:
+        y += 32;
+      case 1:
+        y += 434;
+      case 0:
+        y += 0;
+        break;
+      default:
+        y += 0;
+        break;
+    }
+  }else{
+    switch(layer){
+      case 3:
+        y += 523;
+      case 2:
+        y += 345;
+      case 1:
+        y += 285;
+      case 0:
+        y += 0;
+    }
   }
   return y;
 }
@@ -686,7 +628,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = true, int nAll = 50, int n
                 // out_APV << "------- APV Period " << nPeriodsAPV << " -------- \n";
                 for (auto &h : hit_apv.hitsPerLayer.at(0))
                 {
-                    strip = h.first * 1.09 - 6.16;
+                    strip = h.first * 1.09 - 6.16; // TODO add dependency on testbeam
                     pdo = h.second;
                     apv0_strips->Fill(strip);
                     if (strip > 161 && strip < 198)
@@ -694,7 +636,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = true, int nAll = 50, int n
                 }
                 for (auto &h : hit_apv.hitsPerLayer.at(1))
                 {
-                    strip = h.first;
+                    strip = h.first; // TODO add dependency on testbeam
                     pdo = h.second;
                     apv1_strips->Fill(strip);
                     if (strip > 161 && strip < 198)
@@ -702,7 +644,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = true, int nAll = 50, int n
                 }
                 for (auto &h : hit_apv.hitsPerLayer.at(2))
                 {
-                    strip = h.first * 1.01 + 3.77;
+                    strip = h.first * 1.01 + 3.77; // TODO add dependency on testbeam
                     pdo = h.second;
                     apv2_strips->Fill(strip);
                     if (strip > 161 && strip < 198)
@@ -716,7 +658,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = true, int nAll = 50, int n
                     continue;
 
 
-                map<int, double> means = {{1, weightedMean(apv_hits_vec_l1)}, {2, weightedMean(apv_hits_vec)}};
+                map<int, double> means = {{1, weightedMean(apv_hits_vec_l1)}, {2, weightedMean(apv_hits_vec)}}; // TODO add dependency on testbeam
                 auto tr = getEstimatedTrack(means);
                 int propogated = static_cast<int>(round(estimatePositionInLayer(tr, 0)));
                 // int propogated = (weightedMean(apv_hits_vec_l1) + weightedMean(apv_hits_vec)) / 2;
@@ -767,7 +709,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = true, int nAll = 50, int n
                             diff = (currEvent->bcid - prevSyncBcid > 0) ? currEvent->bcid - prevSyncBcid : currEvent->bcid + 4096 - prevSyncBcid;
                             diffDiff = (currEvent->bcid - prevPrevSyncBcid > 0) ? currEvent->bcid - prevPrevSyncBcid: currEvent->bcid + 4096 - prevPrevSyncBcid;
                             
-                            nPeriodsAdd = calculateVMMNPulsers(diff, 1, 90);
+                            nPeriodsAdd = calculateVMMNPulsers(diff, 1, 90); // TODO add dependency on testbeam
 
                             diffTvmm = T_vmm-T_vmm_pulse_prev;
 
@@ -833,7 +775,7 @@ void hitsMapper(bool tight = false, bool fixSRSTime = true, int nAll = 50, int n
 
                     for (auto it = currEvent->hitsX.begin(); it != currEvent->hitsX.end(); ++it)
                     {
-                        strip = it->first * 1.09 - 6.16;
+                        strip = it->first * 1.09 - 6.16; // TODO add dependency on testbeam
                         pdo = it->second;
                         vmm_strips->Fill(strip);
                         if (pdo < thrPerStrip(it->first))

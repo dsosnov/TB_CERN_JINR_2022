@@ -1,0 +1,30 @@
+On MM there are three connectors.
+All connectors has upper part connected straightforward to MM strips
+
+First (left) connector on bottom has 32 strips connected, then 6 GND, then 26 strips:
+(Numbers -- MM strip number)
+
+33                       32+64
+___________________________
+|                          |
+___________________________
+32 .. 1    | GND | 122 .. 97
+
+
+Second (central) connector on bottom has 27 strips connected, then 12 GND, then 25 strips:
+(Numbers -- MM strip number)
+
+150                      149+64
+___________________________
+|                          |
+___________________________
+149 .. 123 | GND | 238 .. 214
+
+Third (right) connector on bottom has 26 strips connected, then 6 GND, then 32 strips:
+(Numbers -- MM strip number)
+
+265                     264+64
+___________________________
+|                          |
+___________________________
+264 .. 239 | GND | 360 .. 329

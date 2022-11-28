@@ -62,11 +62,11 @@ void printNoise(string file="run_0358.root"){
   daqtimeDiff = daq_timestamp_sIn->at(nhits-1) * 1E9 + daq_timestamp_nsIn->at(nhits-1) - daqtimeDiff;
 
   double daqtimesecdiff = static_cast<double>(daqtimeDiff) / 1E9;
-  
+
   hchannel->Scale(1.0 / daqtimesecdiff);
 
   printf("File %s\n", file.c_str());
-  printf("Time difference %g sec:\n", daqtimesecdiff);  
+  printf("Time difference %g sec:\n", daqtimesecdiff);
   printf("Noise levels :\n");
   for(auto i = 1; i <= hchannel->GetNbinsX(); i++){
     int channel = static_cast<int>(TMath::Floor(hchannel->GetXaxis()->GetBinLowEdge(i)));
