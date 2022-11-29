@@ -18,6 +18,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <algorithm>
 
 #include "tigerTree.h"
 
@@ -64,6 +65,10 @@ public :
   virtual ~tiger();
   virtual void     Init() override;
   virtual void     Loop(unsigned long n = 0) override;
+  void     FindClusters(unsigned long n = 0) ;
+  template<typename T1, typename T2> static mmCluster constructClusterMM(const map<T1, T2> &hits, int layer);
+  template<typename T1, typename T2> vector<mmCluster> constructMMClusters(const map<T1, T2> &hitsPerLayer, int layer, bool filter = true) const;
+  map<int, vector<mmCluster>> constructMMClusters(const map<int, map<int, tigerHitTL*>> &closestHitsInLayer, bool filter = true) const;
 
   bool energyCut(tigerHitTL* hit);
 
@@ -113,17 +118,6 @@ public :
 
   tigerHitTL getTigerHitTLCurrent() const;
   void updateTigerHitTLCurrent(tigerHitTL &hit) const;
-
-  // map<pair<int, int>, float> strawCenterMM = {
-  //   {{1,24}, 156}, // 213 - 21 - 24/1.0 - 12
-  //   {{1,25}, 165}, // 213 - 21 - 24/2.0 - 15
-  //   {{1,26}, 181}, // 213 - 21 - 12 + 1
-  //   {{1,27}, 189}, // 213 - 21 + 24/2.0 - 15
-  //   {{1,28}, 204}, // 213 - 21 + 24/1.0 - 12
-  //   {{1,29}, 216}, // 213 - 21 + 24/1.5 - 12
-  //   {{6, 0}, 198}, // SHiP Straw // 170 before June 1st, 198 after
-  //   {{6, 1}, 180}, // Netron Straw
-  // };
 
   int nDetectorTypes, mmLayerY ;
   map<long long, pair<tigerHitTL, bool>> hitsMap;
@@ -449,4 +443,5 @@ void tiger::Init()
 
 #ifndef tiger_cxx
 void tiger::Loop(unsigned long n){}
+void tiger::FindClusters(unsigned long n){}
 #endif // #ifdef tiger_cxx

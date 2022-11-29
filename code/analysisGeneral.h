@@ -7,10 +7,47 @@
 #include <vector>
 #include <string>
 #include <map>
+#include <optional>
 
 using std::vector;
 using std::string;
 using std::map;
+using std::optional, std::nullopt;
+
+struct mmCluster {
+  int layer;
+  double center, centerE;
+  map<double, double> hits;
+  int quality;
+  double sumE() const {
+    double s = 0;
+    for(auto &h: hits) s += h.second;
+    return s;
+  }
+  double maxE() const {
+    optional<double> m = nullopt;
+    for(auto &h: hits)
+      if(!m || m < h.second)
+        m = h.second;
+    return m.value_or(0);
+  }
+  unsigned long size() const {
+    return hits.size();
+  }
+  double meanE() const {
+    return sumE() / size();
+  }  
+  double minE() const {
+    optional<double> m = nullopt;
+    for(auto &h: hits)
+      if(!m || m > h.second)
+        m = h.second;
+    return m.value_or(0);
+  }
+  void print() const{
+    printf("MM layer %d cluster with %lu hits, center at %g (%g), sumE is %g\n", layer, hits.size(), center, centerE, sumE());
+  }
+};
 
 class analysisGeneral {
 public :
