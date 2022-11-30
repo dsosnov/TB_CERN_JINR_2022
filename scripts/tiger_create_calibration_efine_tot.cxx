@@ -3,7 +3,7 @@
 #include <memory>
 using std::shared_ptr, std::make_shared;
 
-void tiger_create_calibration_tfine(TChain *chain){
+void tiger_create_calibration_efine_tot(TChain *chain){
   chain->SetBranchStatus("gemrocID",1);
   chain->SetBranchStatus("tigerID",1);
   chain->SetBranchStatus("channelID",1);
@@ -11,26 +11,23 @@ void tiger_create_calibration_tfine(TChain *chain){
   chain->SetBranchStatus("tacID",1);
 
   auto gemroc = 0;
-  chain->Draw("(tigerID * 64 + channelID) * 4 + tacID:tFine >> h_tfine(1024, 0, 1024, 2048, 0, 2048)", Form("gemrocID == %d", gemroc));
-  auto h = static_cast<TH2F*>(gDirectory->Get("h_tfine"));
-  
+  chain->Draw("tigerID * 64 + channelID:tFine >> h_tfine(1024, 0, 1024, 512, 0, 512)", Form("gemrocID == %d", gemroc));
+  auto h = static_cast<TH2F*>(gDirectory->Get("h_tfine"));  
 
-  auto fout = fopen("../out/tiger_tfine_calibration.txt", "w");
+  auto fout = fopen("../out/tiger_efine_calibration_tot.txt", "w");
   for(auto t = 0; t < 8; t++){
     printf("Tiger: %d\n", t);        
     for(auto ch = 0; ch < 64; ch++){
-      for(auto tac = 0; tac < 4; tac++){
-        auto bin = (t * 64 + ch) * 4 + tac + 1;
-        auto p = h->ProjectionX("", bin, bin);
-        auto max = p->GetMaximum();
-        auto firstBin = p->FindFirstBinAbove(max/2.0);
-        auto lastBin = p->FindLastBinAbove(max/2.0);
-        auto minTFine = static_cast<int>(p->GetXaxis()->GetBinLowEdge(firstBin));
-        auto maxTFine = static_cast<int>(p->GetXaxis()->GetBinUpEdge(lastBin));
-        if(minTFine >= 0 && maxTFine >= 0){
-          fprintf(fout, "%d %d %d %d %d %d\n", gemroc, t, ch, tac, minTFine, maxTFine);        
-          printf("%d %d %d %d %d %d\n", gemroc, t, ch, tac, minTFine, maxTFine);
-        }
+      auto bin = (t * 64 + ch) + 1;
+      auto p = h->ProjectionX("", bin, bin);
+      auto max = p->GetMaximum();
+      auto firstBin = p->FindFirstBinAbove(max/2.0);
+      auto lastBin = p->FindLastBinAbove(max/2.0);
+      auto minTFine = static_cast<int>(p->GetXaxis()->GetBinLowEdge(firstBin));
+      auto maxTFine = static_cast<int>(p->GetXaxis()->GetBinUpEdge(lastBin));
+      if(minTFine >= 0 && maxTFine >= 0){
+        fprintf(fout, "%d %d %d %d %d\n", gemroc, t, ch, minTFine, maxTFine);        
+        printf("%d %d %d %d %d\n", gemroc, t, ch, minTFine, maxTFine);
       }
     }
   }
@@ -78,7 +75,7 @@ void tiger_create_calibration_tfine(TChain *chain){
 // }
 
   
-void tiger_create_calibration(string path, bool directory = false, bool createTFine = true, bool createEFine = true){  
+void tiger_create_calibration_efine_tot(string path, bool directory = false, bool createTFine = true, bool createEFine = true){  
   auto chain = new TChain("tigerTL");
   if(directory)
     chain->Add((path + "/*.root").c_str());
@@ -105,55 +102,5 @@ void tiger_create_calibration(string path, bool directory = false, bool createTF
   chain->SetBranchAddress("tFine", &tFine);
   chain->SetBranchAddress("eFine", &eFine);
 
-  if(createTFine && !createEFine){
-    tiger_create_calibration_tfine(chain);
-    return;
-  // } else if(!createTFine && createEFine){
-  //   tiger_create_calibration_efine(chain);
-  //   return;
-  }
-
-
-  map<tuple<Char_t, Short_t, Char_t>, map<Char_t, shared_ptr<TH1D>>> tFines;
-  map<tuple<Char_t, Short_t, Char_t>, Short_t> eFineMax, eFineMin;
-  auto nEntries = chain->GetEntries();
-  for(auto i = 0; i < nEntries; i++){
-    if(!(i%10000000))
-      printf("Entry %d of %lld\n", i, nEntries);
-    chain->GetEntry(i);
-
-    if(!tFines.count({gemrocID, tigerID, channelID})){
-      for(auto j = 0; j < 4; j++)
-        tFines[{gemrocID, tigerID, channelID}].emplace(j, make_shared<TH1D>(Form("tfine_%d%d%d%d",gemrocID, tigerID, channelID, j), "", 1024, 0, 1024));
-    }
-    tFines.at({gemrocID, tigerID, channelID}).at(tacID)->Fill(tFine);
-    if(!eFineMax.count({gemrocID, tigerID, channelID}) || eFineMax.at({gemrocID, tigerID, channelID}) < eFine)
-      eFineMax[{gemrocID, tigerID, channelID}] = eFine;
-    if(!eFineMin.count({gemrocID, tigerID, channelID}) || eFineMin.at({gemrocID, tigerID, channelID}) > eFine)
-      eFineMin[{gemrocID, tigerID, channelID}] = eFine;
-  }
-
-  if(createTFine){
-    auto fout = fopen("../out/tiger_tfine_calibration.txt", "w");
-    fprintf(fout, "# Generated from %s\n", path.c_str());
-    for(auto &tfm: tFines){
-      for(auto &tf: tfm.second){
-        auto max = tf.second->GetMaximum();
-        auto firstBin = tf.second->FindFirstBinAbove(max/2.0);
-        auto lastBin = tf.second->FindLastBinAbove(max/2.0);
-        auto minTFine = static_cast<int>(tf.second->GetXaxis()->GetBinLowEdge(firstBin));
-        auto maxTFine = static_cast<int>(tf.second->GetXaxis()->GetBinUpEdge(lastBin));
-        fprintf(fout, "%d %d %d %d %d %d\n", get<0>(tfm.first), get<1>(tfm.first), get<2>(tfm.first), tf.first, minTFine, maxTFine);
-      }
-    }
-    fclose(fout);
-  }
-  if(createEFine){
-    auto fout = fopen("../out/tiger_efine_noise_limits.txt", "w");
-    fprintf(fout, "# Generated from %s\n", path.c_str());
-    for(auto &p: eFineMin){
-      fprintf(fout, "%d %d %d %d %d\n", get<0>(p.first), get<1>(p.first), get<2>(p.first), p.second, eFineMax.at(p.first));
-    }
-    fclose(fout);
-  }
+  tiger_create_calibration_efine_tot(chain);
 }
