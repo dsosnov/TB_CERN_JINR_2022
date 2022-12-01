@@ -7,16 +7,15 @@ void tiger_create_calibration_efine_tot(TChain *chain){
   chain->SetBranchStatus("gemrocID",1);
   chain->SetBranchStatus("tigerID",1);
   chain->SetBranchStatus("channelID",1);
-  chain->SetBranchStatus("tFine",1);
-  chain->SetBranchStatus("tacID",1);
+  chain->SetBranchStatus("eFine",1);
 
   auto gemroc = 0;
-  chain->Draw("tigerID * 64 + channelID:tFine >> h_tfine(1024, 0, 1024, 512, 0, 512)", Form("gemrocID == %d", gemroc));
-  auto h = static_cast<TH2F*>(gDirectory->Get("h_tfine"));  
+  chain->Draw("tigerID * 64 + channelID:eFine >> h_efine(1024, 0, 1024, 512, 0, 512)", Form("gemrocID == %d", gemroc));
+  auto h = static_cast<TH2F*>(gDirectory->Get("h_efine"));  
 
   auto fout = fopen("../out/tiger_efine_calibration_tot.txt", "w");
   for(auto t = 0; t < 8; t++){
-    printf("Tiger: %d\n", t);        
+    printf("Tiger: %d\n", t);
     for(auto ch = 0; ch < 64; ch++){
       auto bin = (t * 64 + ch) + 1;
       auto p = h->ProjectionX("", bin, bin);
@@ -26,7 +25,7 @@ void tiger_create_calibration_efine_tot(TChain *chain){
       auto minTFine = static_cast<int>(p->GetXaxis()->GetBinLowEdge(firstBin));
       auto maxTFine = static_cast<int>(p->GetXaxis()->GetBinUpEdge(lastBin));
       if(minTFine >= 0 && maxTFine >= 0){
-        fprintf(fout, "%d %d %d %d %d\n", gemroc, t, ch, minTFine, maxTFine);        
+        fprintf(fout, "%d %d %d %d %d\n", gemroc, t, ch, minTFine, maxTFine);
         printf("%d %d %d %d %d\n", gemroc, t, ch, minTFine, maxTFine);
       }
     }
@@ -36,71 +35,13 @@ void tiger_create_calibration_efine_tot(TChain *chain){
 }
 
 
-// for eFine:
-// 1. Define time between spills
-// tigerTL->Draw("tiger_fullTimeCoarse_auto(tCoarse,frameCount,frameCountLoops) >> h(60, 0, 60)", "tiger_fullTimeCoarse_auto(tCoarse,frameCount,frameCountLoops) < 60")
-// void tiger_create_calibration_efine(TChain *chain){
-//   chain->SetBranchStatus("gemrocID",1);
-//   chain->SetBranchStatus("tigerID",1);
-//   chain->SetBranchStatus("channelID",1);
-//   chain->SetBranchStatus("eFine",1);
-//   chain->SetBranchStatus("tCoarse",1);
-//   chain->SetBranchStatus("frameCount",1);
-//   chain->SetBranchStatus("frameCountLoops",1);
 
-//   auto gemroc = 0;
-//   // that can be done in interactive session
-//   chain->Draw("tigerID * 64 + channelID:eFine >> h_efine(1024, 0, 1024, 512, 0, 512)", Form("gemrocID == %d && tiger_fullTimeCoarse_auto(tCoarse,frameCount,frameCountLoops) > 8 && tiger_fullTimeCoarse_auto(tCoarse,frameCount,frameCountLoops) < 40", gemroc));
-//   auto h = static_cast<TH2F*>(gDirectory->Get("h_efine"));
-  // auto fout = fopen("../out/tiger_efine_calibration.txt", "w");
-  // for(auto t = 0; t < 8; t++){
-  //   printf("Tiger: %d\n", t);        
-  //   for(auto ch = 0; ch < 64; ch++){
-  //     auto bin = t * 64 + ch + 1;
-  //     auto p = h->ProjectionX("", bin, bin);
-  //     if(p->GetEntries() < 1000) continue;
-  //     auto max = p->GetMaximum();
-  //     auto firstBin = p->FindFirstBinAbove(max/2.0);
-  //     auto lastBin = p->FindLastBinAbove(max/2.0);
-  //     auto minTFine = static_cast<int>(p->GetXaxis()->GetBinLowEdge(firstBin));
-  //     auto maxTFine = static_cast<int>(p->GetXaxis()->GetBinUpEdge(lastBin));
-  //     if(minTFine >= 0 && maxTFine >= 0){
-  //       fprintf(fout, "%d %d %d %d %d\n", gemroc, t, ch, maxTFine, minTFine);        
-  //       printf("%d %d %d %d %d\n", gemroc, t, ch, minTFine, maxTFine);
-  //     }
-  //   }
-  // }
-  // fclose(fout);
-//   // h->SaveAs(Form("h_%d%d%d%d.root", gemroc, t, ch, tac));
-// }
-
-  
-void tiger_create_calibration_efine_tot(string path, bool directory = false, bool createTFine = true, bool createEFine = true){  
+void tiger_create_calibration_efine_tot(string path, bool directory = false){
   auto chain = new TChain("tigerTL");
   if(directory)
     chain->Add((path + "/*.root").c_str());
   else
     chain->Add(path.c_str());
-  
-  chain->SetBranchStatus("*",0);
-  chain->SetBranchStatus("gemrocID",1);
-  chain->SetBranchStatus("tigerID",1);
-  chain->SetBranchStatus("channelID",1);
-  chain->SetBranchStatus("tFine",1);
-  chain->SetBranchStatus("eFine",1);
-  chain->SetBranchStatus("tacID",1);
-  Char_t   gemrocID;        //                "B" == Char_t   ==  int8_t
-  Short_t  tigerID;         //  8 bit data -- "S" == Short_t  == int16_t
-  Char_t   channelID;       //  6 bit data -- "B" == Char_t   ==  int8_t
-  Short_t  tFine;           // 10 bit data -- "S" == Short_t  == int16_t
-  Short_t  eFine;           // 10 bit data -- "S" == Short_t  == int16_t
-  Char_t   tacID;           //  2 bit data -- "B" == Char_t   ==  int8_t
-  chain->SetBranchAddress("gemrocID", &gemrocID);
-  chain->SetBranchAddress("tigerID", &tigerID);
-  chain->SetBranchAddress("channelID", &channelID);
-  chain->SetBranchAddress("tacID", &tacID);
-  chain->SetBranchAddress("tFine", &tFine);
-  chain->SetBranchAddress("eFine", &eFine);
 
   tiger_create_calibration_efine_tot(chain);
 }
