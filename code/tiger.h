@@ -405,7 +405,8 @@ void tiger::freeHitMap(long long minEntry){
 // const auto count = std::erase_if(data, [](const auto& item) { auto const& [key, value] = item; return (key & 1) == 1;});
 }
 
-bool tiger::energyCut(tigerHitTL* hit){ // Only for SH mode
+// Checks if hit is "good"
+bool tiger::energyCut(tigerHitTL* hit){
   if(hit->energyMode == tigerHitTL::TigerEnergyMode::SampleAndHold){
     if(!eFineNoiseLimits.count({hit->gemrocID, hit->tigerID, hit->channelID}))
       return true;
@@ -418,17 +419,17 @@ bool tiger::energyCut(tigerHitTL* hit){ // Only for SH mode
     switch(getMappedDetector(hit)){
       case 0:
       case 1:
-        return hit->chargeToT() > 1007;
-        break;
+        // return hit->chargeToT() > 1007;
+        // break;
       case 2:
       case 3:
       case 4:
       case 5:
-        return hit->chargeToT() > 400;
-        break;
+        // return hit->chargeToT() > 400;
+        // break;
       case 6:
-        return hit->chargeToT() > 1007;
-        break;
+        // return hit->chargeToT() > 1007;
+        // break;
       case 7:
       default:
         return true;
