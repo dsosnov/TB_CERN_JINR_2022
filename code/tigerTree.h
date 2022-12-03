@@ -27,6 +27,7 @@ double inline tigerHit::stepSize_fC(double VcaspVth) const {
 };
 
 struct tigerHitTL : public tigerHit {
+  enum TigerEnergyMode : bool {SampleAndHold = 0, TimeOverThreshold = 1};
   Char_t   chipID;          //  2 bit data -- "B" == Char_t   ==  int8_t
   /* 4 TAC per shaper for event de-randomization */
   Char_t   tacID;           //  2 bit data -- "B" == Char_t   ==  int8_t
@@ -41,6 +42,8 @@ struct tigerHitTL : public tigerHit {
 
   Int_t    counterWord;     // 24 bit data -- "I" == Int_t    == int32_t
 
+  TigerEnergyMode energyMode = TigerEnergyMode::SampleAndHold;
+
   std::pair<Short_t, Short_t> tFineLimits = {0, 1023};
   std::pair<Short_t, Short_t> eFineLimits = {0, 1023};
   // calibration: Q(eFine) = p0 + p1 * eFine; if eFine > 1007, then Q(eFine - 1024)
@@ -51,7 +54,7 @@ struct tigerHitTL : public tigerHit {
   double timeFine() const; // ns
   double chargeToT(const bool fine = true) const;
   double chargeSH() const;
-  double charge(const bool ToTMode = false) const;
+  double charge() const;
   void print(bool hex = false) const override;
 
   friend bool isLater(const tigerHitTL hit1, const tigerHitTL hit2);
@@ -102,8 +105,8 @@ double tigerHitTL::chargeSH() const { // in fC
   return p0 + p1 * eFineUsed;
 }
 
-double tigerHitTL::charge(const bool ToTMode) const {
-  if(ToTMode)
+double tigerHitTL::charge() const {
+  if(energyMode == TigerEnergyMode::TimeOverThreshold)
     return chargeToT(true);
   else
     return chargeSH();

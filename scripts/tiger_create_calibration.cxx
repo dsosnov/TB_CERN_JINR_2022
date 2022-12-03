@@ -149,7 +149,7 @@ void tiger_create_calibration(string path, bool directory = false, bool createTF
     fclose(fout);
   }
   if(createEFine){
-    auto fout = fopen("../out/tiger_efine_calibration.txt", "w");
+    auto fout = fopen("../out/tiger_efine_noise_limits.txt", "w");
     fprintf(fout, "# Generated from %s\n", path.c_str());
     for(auto &p: eFineMin){
       fprintf(fout, "%d %d %d %d %d\n", get<0>(p.first), get<1>(p.first), get<2>(p.first), p.second, eFineMax.at(p.first));
