@@ -51,6 +51,8 @@ void tiger::Loop(unsigned long n)
       detMin.at(s.second.first) = s.second.second;
     if(detMax.at(s.second.first) < 0 || detMax.at(s.second.first) < s.second.second)
       detMax.at(s.second.first) = s.second.second;
+    if(!energyModes.count(s.second.first))
+      energyModes.emplace(s.second.first, energyModes.at(-1));
   }
   {
     printf("Scintillators (det 0):");
@@ -71,6 +73,10 @@ void tiger::Loop(unsigned long n)
     if(detMax.at(7) >= 0) printf(" %d-%d", detMin.at(7), detMax.at(7));
     printf("\n");
   }
+  
+  for(int i = 0; i < nDetectorTypes; i++)
+    if(energyModes.count(i))
+      printf("Energy mode for detector %d: %d\n", i, energyModes.at(i));
 
   auto out = make_shared<TFile>("../out/out_tiger_" + ((runFolder == "") ? "" : runFolder + "-") + file + ending, "RECREATE"); // PATH where to save out_*.root file
 
@@ -109,7 +115,7 @@ void tiger::Loop(unsigned long n)
       hTigerFullTime1D.emplace(m, make_shared<TH1F>(Form("fullTime1D_gr%d_t%d", gr, t), Form("%s: fullTime for gemroc %d tiger %d;time, s", file.Data(), gr, t), 600, 0, 60));
       hTigertFineCorrected.emplace(m, make_shared<TH2F>(Form("tFineCorrected_gr%d_t%d", gr, t), Form("%s: tFineCorrected for gemroc %d tiger %d;tFine", file.Data(), gr, t), 64, 0, 64, 100, 0, 1));
       for(auto j = 0; j < 64; j++){
-        if(energyMode == TigerEnergyMode::SampleAndHold){
+        if(energyModes.at(-1) == tigerHitTL::TigerEnergyMode::SampleAndHold){
           hTigerChargePerTime.emplace(make_tuple(gr, t, j),
                                       make_shared<TH2F>(Form("ChargePerTime_gr%d_t%d_ch%d", gr, t, j),
                                                         Form("%s: Charge for gemroc %d tiger %d channel %d;full time, s; charge, fC", file.Data(), gr, t, j),
@@ -160,7 +166,7 @@ void tiger::Loop(unsigned long n)
 
     if(detMax.at(i) >= 0){
       for(auto j = detMin.at(i); j <= detMax.at(i); j++){
-        if(energyMode == TigerEnergyMode::SampleAndHold){
+        if(energyModes.at(i) == tigerHitTL::TigerEnergyMode::SampleAndHold){
           hChargePerTime.emplace(make_pair(i, j),
                                  make_shared<TH2F>(Form("ChargePerTime_det%d_ch%d", i, j),
                                                    Form("%s: Charge for detector %d, channel %d;full time, s; charge, fC", file.Data(), i, j),
@@ -184,7 +190,7 @@ void tiger::Loop(unsigned long n)
         d->mkdir("deltaT")->cd();
         hDeltaTPrev.emplace(i, make_shared<TH2F>(Form("DeltaTPrev_det%d", i), Form("%s: #Delta T for detector %d;channel;#Delta T, #mus", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 10000, 0, 100000));
         for(auto j = detMin.at(i); j <= detMax.at(i); j++){
-          if(energyMode == TigerEnergyMode::SampleAndHold){
+          if(energyModes.at(i) == tigerHitTL::TigerEnergyMode::SampleAndHold){
             hDeltaTPrevPerCharge.emplace(make_pair(i, j),
                                          make_shared<TH2F>(Form("DeltaTPrevPerCharge_det%d_ch%d", i, j),
                                                            Form("%s: #Delta T for detector %d, channel %d;#Delta T, #mus; charge, fC", file.Data(), i, j),
@@ -304,7 +310,7 @@ void tiger::Loop(unsigned long n)
     hSciTimeToDetCoarsePerTime.emplace(i, make_shared<TH2F>(Form("sci_vs_det%d_coarse_per_time", i), Form("%s: T_{det %d} - T_{scint} (coarse time);time, s; #DeltaT, ns", file.Data(), i), 600, 0, 60, 160, -500, 500));
     hSciTimeToDetCoarsePerChannel.emplace(i, make_shared<TH2F>(Form("sci_vs_det%d_coarse_per_channel", i), Form("%s: T_{det %d} - T_{scint} (coarse time);#DeltaT, ns;channel", file.Data(), i),
                                                                160, -500, 500, detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1));
-    if(energyMode == TigerEnergyMode::SampleAndHold){
+    if(energyModes.at(i) == tigerHitTL::TigerEnergyMode::SampleAndHold){
       hSciTimeToDetCoarsePerCharge.emplace(i,
                                            make_shared<TH2F>(Form("sci_vs_det%d_coarse_per_charge", i),
                                                              Form("%s: T_{det %d} - T_{scint} (coarse time); #DeltaT, ns; Charge, fC", file.Data(), i),
@@ -422,7 +428,7 @@ void tiger::Loop(unsigned long n)
     }
     auto fchMapped = getMapped(hitMain);
     auto [fchD, fchM] = fchMapped;
-    auto charge = hitMain->charge(energyMode);
+    auto charge = hitMain->charge();
     auto timeSinceStart = timeDifferenceFineNS(hitMain, &hitFirst)  *  1E-9;
     { // per-tiger histograms
       hTigerProfile.at({hitMain->gemrocID, hitMain->tigerID})->Fill(hitMain->channelID);
@@ -437,7 +443,7 @@ void tiger::Loop(unsigned long n)
       hTigereFine.at({hitMain->gemrocID, hitMain->tigerID})->Fill(hitMain->channelID, hitMain->eFine);
       hTigerFullTime.at({hitMain->gemrocID, hitMain->tigerID})->Fill(hitMain->channelID, timeSinceStart);
       hTigerFullTime1D.at({hitMain->gemrocID, hitMain->tigerID})->Fill(timeSinceStart);
-      hTigerChargePerTime.at({hitMain->gemrocID, hitMain->tigerID, hitMain->channelID})->Fill(timeSinceStart, hitMain->charge(energyMode));
+      hTigerChargePerTime.at({hitMain->gemrocID, hitMain->tigerID, hitMain->channelID})->Fill(timeSinceStart, hitMain->charge());
       hTigereFinePerTime.at({hitMain->gemrocID, hitMain->tigerID, hitMain->channelID})->Fill(timeSinceStart, hitMain->eFine);        
       hTigerFullTimePerChannel.at({hitMain->gemrocID, hitMain->tigerID, hitMain->channelID})->Fill(timeSinceStart);
       hTigertFineCorrected.at({hitMain->gemrocID, hitMain->tigerID})->Fill(hitMain->channelID, hitMain->tFineCorrected());
@@ -458,7 +464,7 @@ void tiger::Loop(unsigned long n)
       hFullTime.at(fchD)->Fill(fchM, timeSinceStart);
       hFullTime1D.at(fchD)->Fill(timeSinceStart);
       hFullTimePerChannel.at(fchMapped)->Fill(timeSinceStart);
-      hChargePerTime.at(fchMapped)->Fill(timeSinceStart, hitMain->charge(energyMode));
+      hChargePerTime.at(fchMapped)->Fill(timeSinceStart, hitMain->charge());
       heFinePerTime.at(fchMapped)->Fill(timeSinceStart, hitMain->eFine);        
       if(!prevHit.count(fchMapped)){
         if(fchD == 0 || fchD == 7){
@@ -473,7 +479,7 @@ void tiger::Loop(unsigned long n)
         if(hDeltaTPrev.count(fchD))
           hDeltaTPrev.at(fchD)->Fill(fchM, timeDifferenceFineNS(hitMain, &prevHit.at(fchMapped)) * 1E-3);
         if(hDeltaTPrevPerCharge.count(fchMapped))
-          hDeltaTPrevPerCharge.at(fchMapped)->Fill(timeDifferenceFineNS(hitMain, &prevHit.at(fchMapped)) * 1E-3, hitMain->charge(energyMode));
+          hDeltaTPrevPerCharge.at(fchMapped)->Fill(timeDifferenceFineNS(hitMain, &prevHit.at(fchMapped)) * 1E-3, hitMain->charge());
         prevHit[fchMapped] = *hitMain;
       }
     }
@@ -522,7 +528,7 @@ void tiger::Loop(unsigned long n)
               continue;
             hShipRT.at(idet)->Fill(h.first, timeDifferenceFineNS(closestHitsInLayer.at(6).at(0), hitMain));
             addstraw_vs_mm_spatial_corr_3det.at(idet)->Fill(getMappedChannel(closestHitsInLayer.at(6).at(0)), h.first);
-            hitsPerLayerAndDet.emplace(h.first, h.second->charge(energyMode));
+            hitsPerLayerAndDet.emplace(h.first, h.second->charge());
           }
           auto clusters = constructMMClusters(hitsPerLayerAndDet, i, false);
           if(clusters.size()){
@@ -553,7 +559,7 @@ void tiger::Loop(unsigned long n)
               hStrawRTCoarse.at(idet)->Fill(h.first, timeDifferenceCoarsePS(straw.second, hitMain) / 1E3);
               straw_vs_mm_spatial_corr_3det.at(idet)->Fill(getMappedChannel(straw.second), h.first);
               straw_rt.at(make_pair(getMappedChannel(straw.second), idet))->Fill(h.first, timeDifferenceFineNS(straw.second, hitMain));
-              hitsPerLayerAndDet.emplace(h.first, h.second->charge(energyMode));
+              hitsPerLayerAndDet.emplace(h.first, h.second->charge());
             }
             straw_vs_mm_spatial_corr_3det_closestTime.at(idet)->Fill(getMappedChannel(straw.second), closest.value());
             straw_rt_closestTime.at(make_pair(getMappedChannel(straw.second), idet))->Fill(closest.value(), timeDifferenceFineNS(straw.second, hitMain));
@@ -591,7 +597,7 @@ void tiger::Loop(unsigned long n)
             hSciTimeToDet.at(i)->Fill(timeDifferenceFineNS(h.second, hitMain));
             hSciTimeToDetCoarse.at(i)->Fill(timeDifferenceCoarsePS(h.second, hitMain)/1E3);
             hSciTimeToDetCoarsePerTime.at(i)->Fill(timeSinceStart, timeDifferenceCoarsePS(h.second, hitMain)/1E3);
-            hSciTimeToDetCoarsePerCharge.at(i)->Fill(timeDifferenceCoarsePS(h.second, hitMain)/1E3, h.second->charge(energyMode));
+            hSciTimeToDetCoarsePerCharge.at(i)->Fill(timeDifferenceCoarsePS(h.second, hitMain)/1E3, h.second->charge());
             hSciTimeToDetCoarsePerChannel.at(i)->Fill(timeDifferenceCoarsePS(h.second, hitMain)/1E3, h.first);
           }
         }
@@ -822,7 +828,7 @@ map<int, vector<mmCluster>> tiger::constructMMClusters(const map<int, map<int, t
 
     hitsPerLayer.clear();
     for (auto &hit : closestHitsInLayer.at(idet))
-      hitsPerLayer.emplace(hit.first, hit.second->charge(energyMode));
+      hitsPerLayer.emplace(hit.first, hit.second->charge());
 
     auto clustersInLayer = constructMMClusters(hitsPerLayer, i, filter);
 
@@ -882,7 +888,7 @@ void tiger::FindClusters(unsigned long n)
     auto [fchD, fchM] = fchMapped;
     if (fchD < 0) continue; // unmapped channels
     
-    auto charge = hitMain->charge(energyMode);
+    auto charge = hitMain->charge();
     auto timeSinceStart = timeDifferenceFineNS(hitMain, &hitFirst)  *  1E-9;
 
     if(fchD == 0 && fchM == 0){ // Scintillator
