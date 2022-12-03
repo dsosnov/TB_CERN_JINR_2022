@@ -69,19 +69,23 @@ cd code
 ```c++
 root l
 .L tiger.C
-t = new tiger("SubRUN_1_GEMROC_0_TL", "RUN_1", "20221020", "20221019")
+t = new tiger("SubRUN_1_GEMROC_0_TL", "RUN_1", "20221020", "20221019", {})
 t->Loop()
 .q
 ```
 or, as oneliner:
 `
-root -b -q -e 'gROOT->ProcessLine(".L tiger.C"); gROOT->ProcessLine("(new tiger(\"SubRUN_1_GEMROC_0_TL\", \"RUN_1\", \"20221020\", \"20221020\"))->Loop()")'
+root -b -q -e 'gROOT->ProcessLine(".L tiger.C"); gROOT->ProcessLine("(new tiger(\"SubRUN_1_GEMROC_0_TL\", \"RUN_1\", \"20221020\", \"20221020\", {}))->Loop()")'
 `
 Options:
 1. File name without ".root" ending
 2. Directory name. If empty, files searched in data/tiger directory itself
 3. Mapping file (txt). Can be set as "map-tiger-20221019.txt", "map-tiger-20221019" or even "20221019"
-4. Calibration files (txt). Can be set as "20221019" for two files:
-   - "../configs/tiger_efine_calibration-20221019.txt"
-   - "../configs/tiger_tfine_calibration-20221019.txt"
-Or they can be set separately
+4. Calibration files (txt). Can be set as "20221019" for the files:
+   - "../configs/tiger_tfine_calibration-20221019.txt" (calibration for tFine value)
+   - "../configs/tiger_efine_calibration_SH-20221019.txt" (calibration for eFine values for hits saved in Sample-And-Hold mode)
+   - "../configs/tiger_efine_calibration_ToT-20221019.txt" (calibration for eFine values for hits saved in Time-over-Threshold mode)
+   - "../configs/tiger_efine_noise_limits-20221019.txt" (file with eFine for noise for hits in SH mode)
+5. Vector set the energy modes for each detector (0 is for Sample-And-Hold, 1 is for Time-over-Threshold)
+   First value in vector is "default", for detector not listed in vector. Value at position 1 - for detector 0, etc.
+   Default value is 0 (Sample-And-Hold) for all detectors
