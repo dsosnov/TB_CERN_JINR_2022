@@ -13,7 +13,7 @@ void tiger_create_calibration_efine_tot(TChain *chain){
   chain->Draw("tigerID * 64 + channelID:eFine >> h_efine(1024, 0, 1024, 512, 0, 512)", Form("gemrocID == %d", gemroc));
   auto h = static_cast<TH2F*>(gDirectory->Get("h_efine"));  
 
-  auto fout = fopen("../out/tiger_efine_calibration_tot.txt", "w");
+  auto fout = fopen("../out/tiger_efine_calibration_ToT.txt", "w");
   for(auto t = 0; t < 8; t++){
     printf("Tiger: %d\n", t);
     for(auto ch = 0; ch < 64; ch++){
