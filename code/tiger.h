@@ -57,10 +57,9 @@ public :
   Long64_t frameCountLoops; //                "L" == Long64_t == int64_t
   Int_t    counterWord;     // 24 bit data -- "I" == Int_t    == int32_t
 
-  tiger(TString, TString runFolder_, TString mapFile_, TString eFineNoiseFile_, TString tFineFile_, TString eFineSH_ = "", vector<short> energyModes_ = {});
   tiger(TString, TString runFolder_ = "", TString mapFile_ = "map-tiger-empty.txt", TString calibration = "",  vector<short> energyModes_ = {});
-  tiger(vector<TString>, TString runFolder_ = "", TString mapFile_ = "map-tiger-empty.txt", TString eFineNoiseFile_ = "", vector<short> energyModes_ = {});
-  tiger(TChain *tree = nullptr, TString mapFile_ = "map-tiger-empty.txt", TString eFineNoiseFile_ = "", vector<short> energyModes_ = {});
+  tiger(vector<TString>, TString runFolder_ = "", TString mapFile_ = "map-tiger-empty.txt", TString calibration = "", vector<short> energyModes_ = {});
+  tiger(TChain *tree = nullptr, TString mapFile_ = "map-tiger-empty.txt", TString calibration = "", vector<short> energyModes_ = {});
   virtual ~tiger();
   virtual void     Init() override;
   virtual void     Loop(unsigned long n = 0) override;
@@ -129,20 +128,6 @@ public :
 
 #endif
 
-tiger::tiger(TString filename, TString runFolder_, TString mapFile_, TString eFineNoiseFile_, TString tFineFile_, TString eFineSHFile_, vector<short> energyModes_) : runFolder(runFolder_),
-                                                                                                                                                             mapFile(mapFile_), efineNoiseFile(eFineNoiseFile_),
-                                                                                                                                                             tfineFile(tFineFile_), efineSHFile(eFineSHFile_)
-{
-  if(!energyModes_.size())
-    energyModes.emplace(-1, tigerHitTL::TigerEnergyMode::SampleAndHold);
-  else
-    for(auto i = 0; i < energyModes_.size(); i++)
-      energyModes.emplace(i-1, static_cast<tigerHitTL::TigerEnergyMode>(energyModes_.at(i)));
-  file = filename;
-  folder = "../data/tiger/" + runFolder + "/";
-  fChain = GetTree(filename, "tigerTL");
-  Init();
-}
 tiger::tiger(TString filename, TString runFolder_, TString mapFile_, TString calibration, vector<short> energyModes_) : runFolder(runFolder_), mapFile(mapFile_), efineNoiseFile(calibration),
                                                                                                                tfineFile(calibration), efineSHFile(calibration){
   if(!energyModes_.size())
