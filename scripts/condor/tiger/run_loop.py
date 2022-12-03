@@ -28,20 +28,22 @@ def shell_source(script):
 
 mappings = {
   'October': {
-    0: 'empty',
-    2: '20221020',
-    6: '20221024',
-    13: '20221025',
-    24: '20221026',
-    28: '20221027',
-    36: '20221028',
-    51: '20221031',
-    54: '20221101-s',
-    57: '20221101-s2',
-    59: '20221101-s3',
+    0: ('empty', '{}'),
+    2: ('20221020', '{}'),
+    6: ('20221024', '{}'),
+    13: ('20221025', '{}'),
+    24: ('20221026', '{}'),
+    28: ('20221027', '{}'),
+    36: ('20221028', '{}'),
+    51: ('20221031', '{}'),
+    54: ('20221101-s', '{}'),
+    57: ('20221101-s2', '{}'),
+    59: ('20221101-s3', '{}'),
   },
   'November': {
-    0: '20221031', # 'empty',
+    0: ('20221031', '{}'), # 'empty',
+    36: ('20221031', '{1}'),
+    37: ('20221031', '{1, 0, 1, 1, 1, 1, 1}'),
   }
 }  
 
@@ -75,14 +77,15 @@ def analyse():
 
   run_num = int(directory.split('_')[1])
   mapping = 'empty'
+  energy_mode = '{}'
   for k in sorted(mappings[tb_type].keys()):
     if run_num >= k:
-      mapping = mappings[tb_type][k]
+      mapping, energy_mode = mappings[tb_type][k]
     else:
       break;
 
-  # root_command = ['root', '-b', '-q', ] #'-e', f'gROOT->ProcessLine(".L tiger.C"); gROOT->ProcessLine("(new tiger(\\"{filename}\\", \\"{directory}\\", \\"{mapping}\\", \\"20221025\\"))->Loop()")']
-  root_command = ['root', '-b', '-q', f'process_tiger.cxx("{filename}", "{directory}", "{mapping}", "20221025")']
+  # root_command = ['root', '-b', '-q', ] #'-e', f'gROOT->ProcessLine(".L tiger.C"); gROOT->ProcessLine("(new tiger(\\"{filename}\\", \\"{directory}\\", \\"{mapping}\\", \\"20221025\\", {energy_mode}))->Loop()")']
+  root_command = ['root', '-b', '-q', f'process_tiger.cxx("{filename}", "{directory}", "{mapping}", "20221025", {energy_mode})']
   print(root_command)
   subprocess.run(root_command);
 
