@@ -13,6 +13,7 @@ import htcondor
 
 directory_to_run = sys.argv[1]
 tb_type = sys.argv[2] if len(sys.argv) > 2 else 'October'
+selection = sys.argv[3] if len(sys.argv) > 3 else ''
 if directory_to_run[:4] != 'RUN_':
   directory_to_run = 'RUN_' + directory_to_run
 
@@ -29,14 +30,14 @@ credd.add_user_cred(htcondor.CredTypes.Kerberos, None)
 
 sub = htcondor.Submit()
 sub['executable'] = 'hadd_run.sh'
-sub['error'] = os.path.join(logdir, f'hadd-{tb_type}-{directory_to_run}-$(ClusterId).$(ProcId).err')
-sub['output'] = os.path.join(logdir, f'hadd-{tb_type}-{directory_to_run}-$(ClusterId).$(ProcId).out')
-sub['log'] = os.path.join(logdir, f'hadd-{tb_type}-{directory_to_run}-$(ClusterId).log')
+sub['error'] = os.path.join(logdir, f'hadd-{tb_type}-{directory_to_run}-{selection}-$(ClusterId).$(ProcId).err')
+sub['output'] = os.path.join(logdir, f'hadd-{tb_type}-{directory_to_run}-{selection}-$(ClusterId).$(ProcId).out')
+sub['log'] = os.path.join(logdir, f'hadd-{tb_type}-{directory_to_run}-{selection}-$(ClusterId).log')
 sub['MY.SendCredential'] = True
 sub['+JobFlavour'] = '"microcentury"'
 sub['request_cpus'] = '1'
-sub['arguments'] = f'{directory_to_run} {outdir}'
-sub['+JobBatchName'] = f'"[{tb_type}] hadd tiger run folder {directory_to_run}"'
+sub['arguments'] = f'{directory_to_run} {outdir} {selection}'
+sub['+JobBatchName'] = f'"[{tb_type}] hadd tiger run folder {directory_to_run} {selection}"'
 
 print(sub)
 
