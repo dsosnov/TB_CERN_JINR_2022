@@ -3,6 +3,7 @@
 #include "Rtypes.h"
 #include <cstdio>
 #include <utility>
+#include <tuple>
 
 // For simplisity of calculation use signed-sized types with increased size.
 struct tigerHit {
@@ -10,6 +11,7 @@ struct tigerHit {
   Short_t  tigerID;         //  8 bit data -- "S" == Short_t  == int16_t
   Char_t   channelID;       //  6 bit data -- "B" == Char_t   ==  int8_t
   virtual void print(bool hex = false) const;
+  virtual double stepSize_fC(double VcaspVth) const;
 };
 void tigerHit::print(bool hex) const {
   printf("TL hit: ");
@@ -19,8 +21,13 @@ void tigerHit::print(bool hex) const {
     printf("[ROC %3d, TIGER %3d, ch %2d] ", gemrocID, tigerID, channelID);
   printf("\n");
 };
+double inline tigerHit::stepSize_fC(double VcaspVth) const {
+  double gain = 12.25;
+  return (VcaspVth * -0.621 + 39.224) / gain;
+};
 
 struct tigerHitTL : public tigerHit {
+  enum TigerEnergyMode : bool {SampleAndHold = 0, TimeOverThreshold = 1};
   Char_t   chipID;          //  2 bit data -- "B" == Char_t   ==  int8_t
   /* 4 TAC per shaper for event de-randomization */
   Char_t   tacID;           //  2 bit data -- "B" == Char_t   ==  int8_t
@@ -35,15 +42,19 @@ struct tigerHitTL : public tigerHit {
 
   Int_t    counterWord;     // 24 bit data -- "I" == Int_t    == int32_t
 
+  TigerEnergyMode energyMode = TigerEnergyMode::SampleAndHold;
+
   std::pair<Short_t, Short_t> tFineLimits = {0, 1023};
   std::pair<Short_t, Short_t> eFineLimits = {0, 1023};
+  // calibration: Q(eFine) = p0 + p1 * eFine; if eFine > 1007, then Q(eFine - 1024)
+  std::pair<Double_t, Double_t> eFineCalibrationSH = {45.0, -45.0 / 1007};
   double tFineCorrected() const;
   double eFineCorrected() const;
 
   double timeFine() const; // ns
   double chargeToT(const bool fine = true) const;
-  int chargeSH() const;
-  double charge(const bool ToTMode = false) const;
+  double chargeSH() const;
+  double charge() const;
   void print(bool hex = false) const override;
 
   friend bool isLater(const tigerHitTL hit1, const tigerHitTL hit2);
@@ -56,12 +67,8 @@ struct tigerHitTL : public tigerHit {
 
 inline double tigerHitTL::tFineCorrected() const {
   if(tFine < tFineLimits.first){
-    // printf("Hit tFine below limits! ");
-    // print();
     return 0;
   }else if(tFine > tFineLimits.second){
-    // printf("Hit tFine above limits! ");
-    // print();
     return 1.0;
   }else{
     return static_cast<double>(tFine - tFineLimits.first) / static_cast<double>(tFineLimits.second - tFineLimits.first + 1);
@@ -70,12 +77,8 @@ inline double tigerHitTL::tFineCorrected() const {
 
 inline double tigerHitTL::eFineCorrected() const {
   if(eFine < eFineLimits.first){
-    printf("Hit eFine below limits! ");
-    print();
     return 0;
   }else if(eFine > eFineLimits.second){
-    printf("Hit eFine above limits! ");
-    print();
     return 1.0;
   }else{
     return static_cast<double>(eFine - eFineLimits.first) / static_cast<double>(eFineLimits.second - eFineLimits.first + 1);
@@ -95,15 +98,18 @@ double tigerHitTL::chargeToT(const bool fine) const {
   return ediff;    
 }
 
-int tigerHitTL::chargeSH() const {
-  return 1024 - eFine; // TODO maybe use eFineCorrected()?
+double tigerHitTL::chargeSH() const { // in fC
+  auto p0 = eFineCalibrationSH.first;
+  auto p1 = eFineCalibrationSH.second;
+  auto eFineUsed = eFine - ( (eFine > 1007) ? 1024 : 0);
+  return p0 + p1 * eFineUsed;
 }
 
-double tigerHitTL::charge(const bool ToTMode) const {
-  if(ToTMode)
+double tigerHitTL::charge() const {
+  if(energyMode == TigerEnergyMode::TimeOverThreshold)
     return chargeToT(true);
   else
-    return static_cast<double>(chargeSH());
+    return chargeSH();
 }
 
 

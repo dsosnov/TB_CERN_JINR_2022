@@ -34,6 +34,11 @@ namespace {
 
   std::map<int, int> map_int_int;
   std::map<int, std::map<int, int>> map_int_map_int_int;
+  std::map<int, std::pair<double, double>> map_int_pair_double_double;
+  std::map<int, double> map_int_double;
+
+  mmCluster mm_cluster;
+  std::vector<mmCluster> vector_mm_cluster;
 
   analysisGeneral::mm2CenterHitParameters analysisGeneral_mm2CenterHitParameters;
   apv::doubleReadoutHits apv_doubleReadoutHits;

@@ -94,6 +94,7 @@ evBuilder::~evBuilder()
 
 void evBuilder::Init(){
   switch(testbeamType){
+    case analysisGeneral::TestBeams::TB22_November:
     case analysisGeneral::TestBeams::TB22_October:
     case analysisGeneral::TestBeams::TB22_August:
     case analysisGeneral::TestBeams::TB22_July:

@@ -51,6 +51,8 @@ void tiger::Loop(unsigned long n)
       detMin.at(s.second.first) = s.second.second;
     if(detMax.at(s.second.first) < 0 || detMax.at(s.second.first) < s.second.second)
       detMax.at(s.second.first) = s.second.second;
+    if(!energyModes.count(s.second.first))
+      energyModes.emplace(s.second.first, energyModes.at(-1));
   }
   {
     printf("Scintillators (det 0):");
@@ -71,6 +73,10 @@ void tiger::Loop(unsigned long n)
     if(detMax.at(7) >= 0) printf(" %d-%d", detMin.at(7), detMax.at(7));
     printf("\n");
   }
+  
+  for(int i = 0; i < nDetectorTypes; i++)
+    if(energyModes.count(i))
+      printf("Energy mode for detector %d: %d\n", i, energyModes.at(i));
 
   auto out = make_shared<TFile>("../out/out_tiger_" + ((runFolder == "") ? "" : runFolder + "-") + file + ending, "RECREATE"); // PATH where to save out_*.root file
 
@@ -96,10 +102,10 @@ void tiger::Loop(unsigned long n)
     for(int t = 0; t < 8; t++){
       grD->mkdir(Form("tiger_%d", t))->cd();
       pair<int, int> m = {gr, t};
-      hTigerChargeToT.emplace(m, make_shared<TH2F>(Form("charge_tot_gr%d_t%d", gr, t), Form("%s: charge (Time over Threshold mode) for gemroc %d tiger %d;channel;charge", file.Data(), gr, t),
+      hTigerChargeToT.emplace(m, make_shared<TH2F>(Form("charge_tot_gr%d_t%d", gr, t), Form("%s: charge (Time over Threshold mode) for gemroc %d tiger %d;channel;Charge", file.Data(), gr, t),
                                                    64, 0, 64, 1025, 0, 1025));
-      hTigerChargeSH.emplace(m, make_shared<TH2F>(Form("charge_sh_gr%d_t%d", gr, t), Form("%s: charge (Sample and Hold mode) for gemroc %d tiger %d;channel;charge", file.Data(), gr, t),
-                                                  64, 0, 64, 1025, 0, 1025));
+      hTigerChargeSH.emplace(m, make_shared<TH2F>(Form("charge_sh_gr%d_t%d", gr, t), Form("%s: charge (Sample and Hold mode) for gemroc %d tiger %d;channel;Charge, fC", file.Data(), gr, t),
+                                                  64, 0, 64, 1000, 0, 100));
       hTigerTimeFine.emplace(m, make_shared<TH2F>(Form("timeFine_gr%d_t%d", gr, t), Form("%s: timeFine for gemroc %d tiger %d;channel;time, ns", file.Data(), gr, t), 64, 0, 64, 4096, 0, 409600));
       hTigertCoarse.emplace(m, make_shared<TH2F>(Form("tCoarse_gr%d_t%d", gr, t), Form("%s: tCoarse for gemroc %d tiger %d;channel;tCoarse", file.Data(), gr, t), 64, 0, 64, 65536, 0, 65536));
       hTigereCoarse.emplace(m, make_shared<TH2F>(Form("eCoarse_gr%d_t%d", gr, t), Form("%s: eCoarse for gemroc %d tiger %d;channel;eCoarse", file.Data(), gr, t), 64, 0, 64, 512, 0, 1024));
@@ -109,10 +115,18 @@ void tiger::Loop(unsigned long n)
       hTigerFullTime1D.emplace(m, make_shared<TH1F>(Form("fullTime1D_gr%d_t%d", gr, t), Form("%s: fullTime for gemroc %d tiger %d;time, s", file.Data(), gr, t), 600, 0, 60));
       hTigertFineCorrected.emplace(m, make_shared<TH2F>(Form("tFineCorrected_gr%d_t%d", gr, t), Form("%s: tFineCorrected for gemroc %d tiger %d;tFine", file.Data(), gr, t), 64, 0, 64, 100, 0, 1));
       for(auto j = 0; j < 64; j++){
-        hTigerChargePerTime.emplace(make_tuple(gr, t, j),
-                                    make_shared<TH2F>(Form("ChargePerTime_gr%d_t%d_ch%d", gr, t, j),
-                                                      Form("%s: Charge for gemroc %d tiger %d channel %d;full time, s; charge%s", file.Data(), gr, t, j, ((energyMode == TigerEnergyMode::SampleAndHold) ? " = 1024 - eFine": "")),
-                                                      600, 0, 60, 512, 0, 1024));
+        if(energyModes.at(-1) == tigerHitTL::TigerEnergyMode::SampleAndHold){
+          hTigerChargePerTime.emplace(make_tuple(gr, t, j),
+                                      make_shared<TH2F>(Form("ChargePerTime_gr%d_t%d_ch%d", gr, t, j),
+                                                        Form("%s: Charge for gemroc %d tiger %d channel %d;full time, s; charge, fC", file.Data(), gr, t, j),
+                                                        600, 0, 60, 500, 15, 65));
+        }else{
+          hTigerChargePerTime.emplace(make_tuple(gr, t, j),
+                                      make_shared<TH2F>(Form("ChargePerTime_gr%d_t%d_ch%d", gr, t, j),
+                                                        Form("%s: Charge for gemroc %d tiger %d channel %d;full time, s; charge", file.Data(), gr, t, j),
+                                                        600, 0, 60, 512, 0, 1024));
+        }
+
         hTigereFinePerTime.emplace(make_tuple(gr, t, j),
                                    make_shared<TH2F>(Form("eFinePerTime_gr%d_t%d_ch%d", gr, t, j), Form("%s: eFine for gemroc %d tiger %d channel %d;full time, s; eFine", file.Data(), gr, t, j), 600, 0, 60, 512, 0, 1024));
         hTigerFullTimePerChannel.emplace(make_tuple(gr, t, j),
@@ -122,41 +136,6 @@ void tiger::Loop(unsigned long n)
     }
     out->cd();
   }
-
-  out->mkdir(Form("deltaT_sci"))->cd();
-  auto straw_vs_sci = make_shared<TH1F>("straw_vs_sci", Form("%s: straw vs scint;#Deltat, ns", file.Data()), 1000, -500, 500);
-  map<int, shared_ptr<TH1F>> straw_vs_mm, mm_vs_sci, mm_vs_sciCoarse;
-  for(int i = 0; i < 4; i++){
-    straw_vs_mm.emplace(i+2, make_shared<TH1F>(Form("straw_vs_mm%d", i), Form("%s: straw vs microMegas %d;#Deltat, ns", file.Data(), i), 1000, -500, 500));
-    mm_vs_sci.emplace(i+2, make_shared<TH1F>(Form("mm%d_vs_sci", i), Form("%s: microMegas %d vs scint;#Deltat, ns", file.Data(), i), 1000, -500, 500));
-    mm_vs_sciCoarse.emplace(i+2, make_shared<TH1F>(Form("mm%d_vs_sci_coarse", i), Form("%s: microMegas %d vs scint (coarse time);#DeltaT, ns", file.Data(), i), 160, -500, 500));
-  }
-  out->cd();
-  out->mkdir(Form("mm_vs_straw"))->cd();
-  map<int, shared_ptr<TH2F>> straw_vs_mm_spatial_corr, straw_vs_mm_spatial_corr_3det;
-  map<int, shared_ptr<TH2F>> straw_vs_mm_spatial_corr_3det_closestTime;
-  for(int i = 0; i < 4; i++){
-    if(i+2 == mmLayerY) continue;
-    straw_vs_mm_spatial_corr.emplace(i+2, make_shared<TH2F>(Form("straw_vs_mm%d_spatial_corr", i), Form("%s: microMegas %d vs straw spatial correaltion;straw ch;MM ch", file.Data(), i),
-                                                            detMax.at(1) - detMin.at(1) + 1, detMin.at(1), detMax.at(1) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
-    straw_vs_mm_spatial_corr_3det.emplace(i+2, make_shared<TH2F>(Form("straw_vs_mm%d_spatial_corr_3det", i), Form("%s: microMegas %d vs straw spatial correaltion (corellated to scint);straw ch;MM ch", file.Data(), i),
-                                                            detMax.at(1) - detMin.at(1) + 1, detMin.at(1), detMax.at(1) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
-    straw_vs_mm_spatial_corr_3det_closestTime.emplace(i+2, make_shared<TH2F>(Form("straw_vs_mm%d_spatial_corr_3det_closestTime", i),
-                                                                             Form("%s: microMegas %d vs straw spatial correaltion (corellated to scint, MM hit with minimal time to scint);straw ch;MM ch", file.Data(), i),
-                                                                             detMax.at(1) - detMin.at(1) + 1, detMin.at(1), detMax.at(1) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
-  }
-  map<int, shared_ptr<TH2F>> addstraw_vs_mm_spatial_corr, addstraw_vs_mm_spatial_corr_3det;
-  if(detMax.at(6) >= 0){
-    for(int i = 0; i < 4; i++){
-      if(i+2 == mmLayerY) continue;
-      addstraw_vs_mm_spatial_corr.emplace(i+2, make_shared<TH2F>(Form("addstraw_vs_mm%d_spatial_corr", i), Form("%s: microMegas %d vs det 6 spatial correaltion;det 6 straw ch;MM ch", file.Data(), i),
-                                                                 detMax.at(6) - detMin.at(6) + 1, detMin.at(6), detMax.at(6) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
-      addstraw_vs_mm_spatial_corr_3det.emplace(i+2, make_shared<TH2F>(Form("addstraw_vs_mm%d_spatial_corr_3det", i),
-                                                                      Form("%s: microMegas %d vs det 6 spatial correaltion (corellated to scint);det 6 straw ch;MM ch", file.Data(), i),
-                                                                      detMax.at(6) - detMin.at(6) + 1, detMin.at(6), detMax.at(6) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
-    }
-  }
-  out->cd();
 
   vector<shared_ptr<TH1F>> hprofile;
   vector<shared_ptr<TH2F>> hChargeToT, hChargeSH;
@@ -171,10 +150,10 @@ void tiger::Loop(unsigned long n)
     auto d = out->mkdir(Form("det%d", i));
     d->cd();
     hprofile.push_back(make_shared<TH1F>(Form("profile_det%d", i), Form("%s: profile for detector %d;channel", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1));
-    hChargeToT.push_back(make_shared<TH2F>(Form("charge_tot_det%d", i), Form("%s: charge (Time over Threshold mode) for detector %d;channel;charge", file.Data(), i),
+    hChargeToT.push_back(make_shared<TH2F>(Form("charge_tot_det%d", i), Form("%s: charge (Time over Threshold mode) for detector %d;channel;Charge", file.Data(), i),
                                            detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 1025, 0, 1025));
-    hChargeSH.push_back(make_shared<TH2F>(Form("charge_sh_det%d", i), Form("%s: charge (Sample and Hold mode) for detector %d;channel;charge", file.Data(), i),
-                                          detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 1025, 0, 1025));
+    hChargeSH.push_back(make_shared<TH2F>(Form("charge_sh_det%d", i), Form("%s: charge (Sample and Hold mode) for detector %d;channel;Charge, fC", file.Data(), i),
+                                          detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 1000, 0, 100));
     hTimeFine.push_back(make_shared<TH2F>(Form("timeFine_det%d", i), Form("%s: timeFine for detector %d;channel;time, ns", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 4096, 0, 409600));
     htCoarse.push_back(make_shared<TH2F>(Form("tCoarse_det%d", i), Form("%s: tCoarse for detector %d;channel;tCoarse", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 65536, 0, 65536));
     heCoarse.push_back(make_shared<TH2F>(Form("eCoarse_det%d", i), Form("%s: eCoarse for detector %d;channel;eCoarse", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 512, 0, 1024));
@@ -187,10 +166,17 @@ void tiger::Loop(unsigned long n)
 
     if(detMax.at(i) >= 0){
       for(auto j = detMin.at(i); j <= detMax.at(i); j++){
-        hChargePerTime.emplace(make_pair(i, j),
-                               make_shared<TH2F>(Form("ChargePerTime_det%d_ch%d", i, j),
-                                                 Form("%s: Charge for detector %d, channel %d;full time, s; charge%s", file.Data(), i, j, ((energyMode == TigerEnergyMode::SampleAndHold) ? " = 1024 - eFine": "")),
-                                                 600, 0, 60, 512, 0, 1024));
+        if(energyModes.at(i) == tigerHitTL::TigerEnergyMode::SampleAndHold){
+          hChargePerTime.emplace(make_pair(i, j),
+                                 make_shared<TH2F>(Form("ChargePerTime_det%d_ch%d", i, j),
+                                                   Form("%s: Charge for detector %d, channel %d;full time, s; charge, fC", file.Data(), i, j),
+                                                   600, 0, 60, 500, 15, 65));
+        }else{
+          hChargePerTime.emplace(make_pair(i, j),
+                                 make_shared<TH2F>(Form("ChargePerTime_det%d_ch%d", i, j),
+                                                   Form("%s: Charge for detector %d, channel %d;full time, s; charge", file.Data(), i, j),
+                                                   600, 0, 60, 512, 0, 1024));
+        }
         heFinePerTime.emplace(make_pair(i, j),
                               make_shared<TH2F>(Form("eFinePerTime_det%d_ch%d", i, j), Form("%s: eFine for detector %d, channel %d%s;full time, s; eFine", file.Data(), i, j,
                                                                                             (detectorNames.count({i,j}) ? (string() + " (" + detectorNames.at({i,j}) + ")").c_str() : "")),
@@ -204,8 +190,19 @@ void tiger::Loop(unsigned long n)
         d->mkdir("deltaT")->cd();
         hDeltaTPrev.emplace(i, make_shared<TH2F>(Form("DeltaTPrev_det%d", i), Form("%s: #Delta T for detector %d;channel;#Delta T, #mus", file.Data(), i), detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1, 10000, 0, 100000));
         for(auto j = detMin.at(i); j <= detMax.at(i); j++){
-          hDeltaTPrevPerCharge.emplace(make_pair(i, j),
-                                       make_shared<TH2F>(Form("DeltaTPrevPerCharge_det%d_ch%d", i, j), Form("%s: #Delta T for detector %d, channel %d;#Delta T, #mus; charge", file.Data(), i, j), 5000, 0, 50000, 512, 0, 1024));
+          if(energyModes.at(i) == tigerHitTL::TigerEnergyMode::SampleAndHold){
+            hDeltaTPrevPerCharge.emplace(make_pair(i, j),
+                                         make_shared<TH2F>(Form("DeltaTPrevPerCharge_det%d_ch%d", i, j),
+                                                           Form("%s: #Delta T for detector %d, channel %d;#Delta T, #mus; charge, fC", file.Data(), i, j),
+                                                           5000, 0, 50000,
+                                                           500, 15, 65));
+          }else{
+            hDeltaTPrevPerCharge.emplace(make_pair(i, j),
+                                         make_shared<TH2F>(Form("DeltaTPrevPerCharge_det%d_ch%d", i, j),
+                                                           Form("%s: #Delta T for detector %d, channel %d;#Delta T, #mus; charge", file.Data(), i, j),
+                                                           5000, 0, 50000,
+                                                           512, 0, 1024));
+          }
         }
         d->cd();
       }
@@ -213,6 +210,49 @@ void tiger::Loop(unsigned long n)
     out->cd();
   }
   map<pair<int, int>, tigerHitTL> prevHit;
+
+  out->mkdir(Form("deltaT_sci"))->cd();
+  auto straw_vs_sci = make_shared<TH1F>("straw_vs_sci", Form("%s: straw vs scint;#Deltat, ns", file.Data()), 1000, -500, 500);
+  map<int, shared_ptr<TH1F>> straw_vs_mm, mm_vs_sci, mm_vs_sciCoarse;
+  for(int i = 0; i < 4; i++){
+    straw_vs_mm.emplace(i+2, make_shared<TH1F>(Form("straw_vs_mm%d", i), Form("%s: straw vs microMegas %d;#Deltat, ns", file.Data(), i), 1000, -500, 500));
+    mm_vs_sci.emplace(i+2, make_shared<TH1F>(Form("mm%d_vs_sci", i), Form("%s: microMegas %d vs scint;#Deltat, ns", file.Data(), i), 1000, -500, 500));
+    mm_vs_sciCoarse.emplace(i+2, make_shared<TH1F>(Form("mm%d_vs_sci_coarse", i), Form("%s: microMegas %d vs scint (coarse time);#DeltaT, ns", file.Data(), i), 160, -500, 500));
+  }
+  out->cd();
+  out->mkdir(Form("mm_vs_straw"))->cd();
+  map<int, shared_ptr<TH2F>> straw_vs_mm_spatial_corr, straw_vs_mm_spatial_corr_3det;
+  map<int, shared_ptr<TH2F>> straw_vs_mm_spatial_corr_3det_closestTime;
+  map<int, shared_ptr<TH2F>> straw_vs_mm_spatial_corr_3det_clusters;
+  for(int i = 0; i < 4; i++){
+    if(i+2 == mmLayerY) continue;
+    straw_vs_mm_spatial_corr.emplace(i+2, make_shared<TH2F>(Form("straw_vs_mm%d_spatial_corr", i), Form("%s: microMegas %d vs straw spatial correaltion;straw ch;MM ch", file.Data(), i),
+                                                            detMax.at(1) - detMin.at(1) + 1, detMin.at(1), detMax.at(1) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
+    straw_vs_mm_spatial_corr_3det.emplace(i+2, make_shared<TH2F>(Form("straw_vs_mm%d_spatial_corr_3det", i), Form("%s: microMegas %d vs straw spatial correaltion (corellated to scint);straw ch;MM ch", file.Data(), i),
+                                                                 detMax.at(1) - detMin.at(1) + 1, detMin.at(1), detMax.at(1) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
+    straw_vs_mm_spatial_corr_3det_closestTime.emplace(i+2, make_shared<TH2F>(Form("straw_vs_mm%d_spatial_corr_3det_closestTime", i),
+                                                                             Form("%s: microMegas %d vs straw spatial correaltion (corellated to scint, MM hit with minimal time to scint);straw ch;MM ch", file.Data(), i),
+                                                                             detMax.at(1) - detMin.at(1) + 1, detMin.at(1), detMax.at(1) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
+    straw_vs_mm_spatial_corr_3det_clusters.emplace(i+2, make_shared<TH2F>(Form("straw_vs_mm%d_spatial_corr_3det_clusters", i),
+                                                                          Form("%s: clusters in microMegas %d vs straw spatial correaltion (corellated to scint);MM cluster center;MM ch", file.Data(), i),
+                                                                          detMax.at(1) - detMin.at(1) + 1, detMin.at(1), detMax.at(1) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
+  }
+  map<int, shared_ptr<TH2F>> addstraw_vs_mm_spatial_corr, addstraw_vs_mm_spatial_corr_3det;
+  map<int, shared_ptr<TH2F>> addstraw_vs_mmClusters_spatial_corr_3det;
+  if(detMax.at(6) >= 0){
+    for(int i = 0; i < 4; i++){
+      if(i+2 == mmLayerY) continue;
+      addstraw_vs_mm_spatial_corr.emplace(i+2, make_shared<TH2F>(Form("addstraw_vs_mm%d_spatial_corr", i), Form("%s: microMegas %d vs det 6 spatial correaltion;det 6 straw ch;MM ch", file.Data(), i),
+                                                                 detMax.at(6) - detMin.at(6) + 1, detMin.at(6), detMax.at(6) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
+      addstraw_vs_mm_spatial_corr_3det.emplace(i+2, make_shared<TH2F>(Form("addstraw_vs_mm%d_spatial_corr_3det", i),
+                                                                      Form("%s: microMegas %d vs det 6 spatial correaltion (corellated to scint);det 6 straw ch;MM ch", file.Data(), i),
+                                                                      detMax.at(6) - detMin.at(6) + 1, detMin.at(6), detMax.at(6) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
+      addstraw_vs_mmClusters_spatial_corr_3det.emplace(i+2, make_shared<TH2F>(Form("addstraw_vs_mm%d_clusters_spatial_corr_3det", i),
+                                                                              Form("%s: clusters in microMegas %d vs det 6 spatial correaltion (corellated to scint);det 6 straw ch;MM cluster center", file.Data(), i),
+                                                                              detMax.at(6) - detMin.at(6) + 1, detMin.at(6), detMax.at(6) + 1, detMax.at(i+2) - detMin.at(i+2) + 1, detMin.at(i+2), detMax.at(i+2)));
+    }
+  }
+  out->cd();
 
   out->mkdir("straw_banana")->cd();
   map<int, shared_ptr<TH2F>> straw_banana ;
@@ -231,8 +271,8 @@ void tiger::Loop(unsigned long n)
                         make_shared<TH1F>(Form("straw%d_vs_straw%d", i, i+1),
                                           Form("%s: straw%d_vs_straw%d;T_{straw%d} - T_{straw%d}", file.Data(), i, i+1, i, i+1), 1000, -500, 500));
     straw_straw_sci.emplace(i,
-                        make_shared<TH1F>(Form("straw%d_vs_straw%d_vs_sci", i, i+1),
-                                          Form("%s: straw%d_vs_straw%d;T_{straw%d} - T_{straw%d}, corellated to sci", file.Data(), i, i+1, i, i+1), 1000, -500, 500));
+                            make_shared<TH1F>(Form("straw%d_vs_straw%d_vs_sci", i, i+1),
+                                              Form("%s: straw%d_vs_straw%d;T_{straw%d} - T_{straw%d}, corellated to sci", file.Data(), i, i+1, i, i+1), 1000, -500, 500));
   }
   out->cd();
 
@@ -260,11 +300,29 @@ void tiger::Loop(unsigned long n)
   
   out->mkdir("dt_vs_sci")->cd();
   map<int, shared_ptr<TH1F>> hSciTimeToDet, hSciTimeToDetCoarse;
-  map<int, shared_ptr<TH2F>> hSciTimeToDetCoarsePerTime;
-  for(int i = 1; i <= nDetectorTypes; i++){
+  map<int, shared_ptr<TH2F>> hSciTimeToDetCoarsePerTime, hSciTimeToDetCoarsePerCharge;
+  map<int, shared_ptr<TH2F>> hSciTimeToDetCoarsePerChannel;
+  for(int i = 1; i < nDetectorTypes; i++){
+    if(detMax.at(i) < 0)
+      continue;
     hSciTimeToDet.emplace(i, make_shared<TH1F>(Form("sci_vs_det%d", i), Form("%s: T_{det %d} - T_{scint};#Deltat, ns", file.Data(), i), 1000, -500, 500));
     hSciTimeToDetCoarse.emplace(i, make_shared<TH1F>(Form("sci_vs_det%d_coarse", i), Form("%s: T_{det %d} - T_{scint} (coarse time);#DeltaT, ns", file.Data(), i), 160, -500, 500));
     hSciTimeToDetCoarsePerTime.emplace(i, make_shared<TH2F>(Form("sci_vs_det%d_coarse_per_time", i), Form("%s: T_{det %d} - T_{scint} (coarse time);time, s; #DeltaT, ns", file.Data(), i), 600, 0, 60, 160, -500, 500));
+    hSciTimeToDetCoarsePerChannel.emplace(i, make_shared<TH2F>(Form("sci_vs_det%d_coarse_per_channel", i), Form("%s: T_{det %d} - T_{scint} (coarse time);#DeltaT, ns;channel", file.Data(), i),
+                                                               160, -500, 500, detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i) + 1));
+    if(energyModes.at(i) == tigerHitTL::TigerEnergyMode::SampleAndHold){
+      hSciTimeToDetCoarsePerCharge.emplace(i,
+                                           make_shared<TH2F>(Form("sci_vs_det%d_coarse_per_charge", i),
+                                                             Form("%s: T_{det %d} - T_{scint} (coarse time); #DeltaT, ns; Charge, fC", file.Data(), i),
+                                                             160, -500, 500,
+                                                             500, 15, 65));
+    }else{
+      hSciTimeToDetCoarsePerCharge.emplace(i,
+                                           make_shared<TH2F>(Form("sci_vs_det%d_coarse_per_charge", i),
+                                                             Form("%s: T_{det %d} - T_{scint} (coarse time); #DeltaT, ns; Charge", file.Data(), i),
+                                                             160, -500, 500,
+                                                             1024, 0, 1024));
+    }
   }
   map<int, shared_ptr<TH1F>> hSciVsSci, hSciVsSciCoarse;
   map<int, shared_ptr<TH2F>> hSciVsSciCoarsePerTime;
@@ -296,6 +354,7 @@ void tiger::Loop(unsigned long n)
 
   out->mkdir("rt")->cd();
   map<int, shared_ptr<TH2F>> hStrawRT, hStrawRTCoarse, hStrawRT_closestTime;
+  map<int, shared_ptr<TH2F>> hStrawRT_clusters, hStrawRTCoarse_clusters;
   if(detMax.at(1) > 0){
     for(int i = 2; i <= 5; i++){
       if(i == mmLayerY) continue;
@@ -304,10 +363,15 @@ void tiger::Loop(unsigned long n)
       hStrawRTCoarse.emplace(i, make_shared<TH2F>(Form("straw_rt_vs_mm%d_coarse", i-2), Form("%s: RT for straws and MM %d (coarse time);strip;#DeltaT (coarse), ns", file.Data(), i-2),
                                                   detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i), 96, -300, 300));
       hStrawRT_closestTime.emplace(i, make_shared<TH2F>(Form("straw_rt_vs_mm%d_closestTime", i-2), Form("%s: RT for straws and MM %d, MM closest hit to scint;strip;#DeltaT, ns", file.Data(), i-2),
-                                            detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i), 600, -300, 300));
+                                                        detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i), 600, -300, 300));
+      hStrawRT_clusters.emplace(i, make_shared<TH2F>(Form("straw_rt_vs_mm%d_clusters", i-2), Form("%s: RT for straws and clusters in MM %d;MM cluster center;#DeltaT, ns", file.Data(), i-2),
+                                                     detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i), 600, -300, 300));
+      hStrawRTCoarse_clusters.emplace(i, make_shared<TH2F>(Form("straw_rt_vs_mm%d_clusters_coarse", i-2), Form("%s: RT for straws and clusters in MM %d (coarse time);MM cluster center;#DeltaT (coarse), ns", file.Data(), i-2),
+                                                           detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i), 96, -300, 300));
     }
   }
   map<pair<int, int>, shared_ptr<TH2F>> straw_rt, straw_rt_closestTime;
+  map<pair<int, int>, shared_ptr<TH2F>> straw_rt_clusters;
   for(auto i = detMin.at(1); i <= detMax.at(1); i++){
     for(int j = 0; j < 4; j++){
       if(j+2 == mmLayerY) continue;
@@ -316,17 +380,23 @@ void tiger::Loop(unsigned long n)
                                          Form("%s: straw %d v-shape against MM%d;MM strip;T, ns", file.Data(), i, j),
                                          detMax.at(j+2) - detMin.at(j+2) + 1, detMin.at(j+2), detMax.at(j+2) + 1, 600, -300, 300));
       straw_rt_closestTime.emplace(make_pair(i,j+2),
-                       make_shared<TH2F>(Form("straw%d_rt_det%d_closestTime", i, j+2),
-                                         Form("%s: straw %d v-shape against MM%d, MM closest hit to scint;MM strip;T, ns", file.Data(), i, j),
-                                         detMax.at(j+2) - detMin.at(j+2) + 1, detMin.at(j+2), detMax.at(j+2) + 1, 600, -300, 300));
+                                   make_shared<TH2F>(Form("straw%d_rt_det%d_closestTime", i, j+2),
+                                                     Form("%s: straw %d v-shape against MM%d, MM closest hit to scint;MM strip;T, ns", file.Data(), i, j),
+                                                     detMax.at(j+2) - detMin.at(j+2) + 1, detMin.at(j+2), detMax.at(j+2) + 1, 600, -300, 300));
+      straw_rt_clusters.emplace(make_pair(i,j+2),
+                                make_shared<TH2F>(Form("straw%d_rt_det%d_clusters", i, j+2),
+                                                  Form("%s: straw %d v-shape against clusters in MM%d;MM cluster center ;T, ns", file.Data(), i, j),
+                                                  detMax.at(j+2) - detMin.at(j+2) + 1, detMin.at(j+2), detMax.at(j+2) + 1, 600, -300, 300));
     }
   }
-  map<int, shared_ptr<TH2F>> hShipRT;
+  map<int, shared_ptr<TH2F>> hShipRT, hShipRTClusters;
   if(detMax.at(6) >= 0){
     for(int i = 2; i <= 5; i++){
       if(i == mmLayerY) continue;
       hShipRT.emplace(i, make_shared<TH2F>(Form("ship_rt_vs_mm%d", i-2), Form("%s: RT for SHiP straw and MM %d;strip;#DeltaT, ns", file.Data(), i-2),
                                            detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i), 6000, -100, 500));
+      hShipRTClusters.emplace(i, make_shared<TH2F>(Form("ship_rt_vs_mm%d_clusters", i-2), Form("%s: RT for SHiP straw and clusters in MM %d;MM cluster center;#DeltaT, ns", file.Data(), i-2),
+                                                   detMax.at(i) - detMin.at(i) + 1, detMin.at(i), detMax.at(i), 6000, -100, 500));
     }
   }
   out->cd();
@@ -341,6 +411,8 @@ void tiger::Loop(unsigned long n)
   Long64_t firstHitInWindow = 0;
   tigerHitTL *hitMain, *hitSecondary, hitFirst;
   map<int, map<int, tigerHitTL*>> closestHitsInLayer;
+  map<double, double> hitsPerLayerAndDet;
+
   for (Long64_t jentry = 0; jentry < nentries; jentry++)
   {
     if (!(jentry % 100000)){
@@ -356,7 +428,7 @@ void tiger::Loop(unsigned long n)
     }
     auto fchMapped = getMapped(hitMain);
     auto [fchD, fchM] = fchMapped;
-    auto charge = hitMain->charge(energyMode);
+    auto charge = hitMain->charge();
     auto timeSinceStart = timeDifferenceFineNS(hitMain, &hitFirst)  *  1E-9;
     { // per-tiger histograms
       hTigerProfile.at({hitMain->gemrocID, hitMain->tigerID})->Fill(hitMain->channelID);
@@ -371,7 +443,7 @@ void tiger::Loop(unsigned long n)
       hTigereFine.at({hitMain->gemrocID, hitMain->tigerID})->Fill(hitMain->channelID, hitMain->eFine);
       hTigerFullTime.at({hitMain->gemrocID, hitMain->tigerID})->Fill(hitMain->channelID, timeSinceStart);
       hTigerFullTime1D.at({hitMain->gemrocID, hitMain->tigerID})->Fill(timeSinceStart);
-      hTigerChargePerTime.at({hitMain->gemrocID, hitMain->tigerID, hitMain->channelID})->Fill(timeSinceStart, hitMain->charge(energyMode));
+      hTigerChargePerTime.at({hitMain->gemrocID, hitMain->tigerID, hitMain->channelID})->Fill(timeSinceStart, hitMain->charge());
       hTigereFinePerTime.at({hitMain->gemrocID, hitMain->tigerID, hitMain->channelID})->Fill(timeSinceStart, hitMain->eFine);        
       hTigerFullTimePerChannel.at({hitMain->gemrocID, hitMain->tigerID, hitMain->channelID})->Fill(timeSinceStart);
       hTigertFineCorrected.at({hitMain->gemrocID, hitMain->tigerID})->Fill(hitMain->channelID, hitMain->tFineCorrected());
@@ -392,7 +464,7 @@ void tiger::Loop(unsigned long n)
       hFullTime.at(fchD)->Fill(fchM, timeSinceStart);
       hFullTime1D.at(fchD)->Fill(timeSinceStart);
       hFullTimePerChannel.at(fchMapped)->Fill(timeSinceStart);
-      hChargePerTime.at(fchMapped)->Fill(timeSinceStart, hitMain->charge(energyMode));
+      hChargePerTime.at(fchMapped)->Fill(timeSinceStart, hitMain->charge());
       heFinePerTime.at(fchMapped)->Fill(timeSinceStart, hitMain->eFine);        
       if(!prevHit.count(fchMapped)){
         if(fchD == 0 || fchD == 7){
@@ -407,7 +479,7 @@ void tiger::Loop(unsigned long n)
         if(hDeltaTPrev.count(fchD))
           hDeltaTPrev.at(fchD)->Fill(fchM, timeDifferenceFineNS(hitMain, &prevHit.at(fchMapped)) * 1E-3);
         if(hDeltaTPrevPerCharge.count(fchMapped))
-          hDeltaTPrevPerCharge.at(fchMapped)->Fill(timeDifferenceFineNS(hitMain, &prevHit.at(fchMapped)) * 1E-3, hitMain->charge(energyMode));
+          hDeltaTPrevPerCharge.at(fchMapped)->Fill(timeDifferenceFineNS(hitMain, &prevHit.at(fchMapped)) * 1E-3, hitMain->charge());
         prevHit[fchMapped] = *hitMain;
       }
     }
@@ -436,6 +508,12 @@ void tiger::Loop(unsigned long n)
           (closestHitsInLayer.at(ffchD))[ffchM] = hitSecondary;
 
       }
+
+      // TODO maybe replace per-detector to the general one ?
+      // // Generation MicroMegas clusters
+      // if(closestHitsInLayer.count(1) || closestHitsInLayer.count(6))
+      //   auto constructedClusters = constructMMClusters(closestHitsInLayer);
+
       // RT for Ship straw
       if(closestHitsInLayer.count(6) && closestHitsInLayer.at(6).count(0) &&
          fabs(timeDifferenceFineNS(closestHitsInLayer.at(6).at(0), hitMain)) < maxTimeDiff(fchD, 6)){
@@ -444,11 +522,18 @@ void tiger::Loop(unsigned long n)
           if(idet == mmLayerY) continue;
           if(!closestHitsInLayer.count(idet))
             continue;
+          hitsPerLayerAndDet.clear();
           for(auto &h: closestHitsInLayer.at(idet)){
             if(fabs(timeDifferenceFineNS(h.second, hitMain)) > maxTimeDiff(fchD, idet))
               continue;
             hShipRT.at(idet)->Fill(h.first, timeDifferenceFineNS(closestHitsInLayer.at(6).at(0), hitMain));
             addstraw_vs_mm_spatial_corr_3det.at(idet)->Fill(getMappedChannel(closestHitsInLayer.at(6).at(0)), h.first);
+            hitsPerLayerAndDet.emplace(h.first, h.second->charge());
+          }
+          auto clusters = constructMMClusters(hitsPerLayerAndDet, i, false);
+          if(clusters.size()){
+            hShipRTClusters.at(idet)->Fill(clusters.at(0).center, timeDifferenceFineNS(closestHitsInLayer.at(6).at(0), hitMain));
+            addstraw_vs_mmClusters_spatial_corr_3det.at(idet)->Fill(getMappedChannel(closestHitsInLayer.at(6).at(0)), clusters.at(0).center);
           }
         }
       }
@@ -463,6 +548,7 @@ void tiger::Loop(unsigned long n)
             if(idet == mmLayerY) continue;
             if(!closestHitsInLayer.count(idet)) continue;
             optional<int> closest = nullopt;
+            hitsPerLayerAndDet.clear();
             for(auto &h: closestHitsInLayer.at(idet)){
               if(fabs(timeDifferenceFineNS(h.second, hitMain)) > maxTimeDiff(fchD, idet))
                 continue;
@@ -473,10 +559,19 @@ void tiger::Loop(unsigned long n)
               hStrawRTCoarse.at(idet)->Fill(h.first, timeDifferenceCoarsePS(straw.second, hitMain) / 1E3);
               straw_vs_mm_spatial_corr_3det.at(idet)->Fill(getMappedChannel(straw.second), h.first);
               straw_rt.at(make_pair(getMappedChannel(straw.second), idet))->Fill(h.first, timeDifferenceFineNS(straw.second, hitMain));
+              hitsPerLayerAndDet.emplace(h.first, h.second->charge());
             }
             straw_vs_mm_spatial_corr_3det_closestTime.at(idet)->Fill(getMappedChannel(straw.second), closest.value());
             straw_rt_closestTime.at(make_pair(getMappedChannel(straw.second), idet))->Fill(closest.value(), timeDifferenceFineNS(straw.second, hitMain));
             hStrawRT_closestTime.at(idet)->Fill(closest.value(), timeDifferenceFineNS(straw.second, hitMain));
+            auto clusters = constructMMClusters(hitsPerLayerAndDet, i, false);
+            if(clusters.size()){
+              straw_vs_mm_spatial_corr_3det_clusters.at(idet)->Fill(getMappedChannel(straw.second), clusters.at(0).center);
+              straw_rt_clusters.at(make_pair(getMappedChannel(straw.second), idet))->Fill(clusters.at(0).center, timeDifferenceFineNS(straw.second, hitMain));
+              hStrawRT_clusters.at(idet)->Fill(clusters.at(0).center, timeDifferenceFineNS(straw.second, hitMain));
+              hStrawRTCoarse_clusters.at(idet)->Fill(clusters.at(0).center, timeDifferenceCoarsePS(straw.second, hitMain) / 1E3);
+            }
+
           }
         }
       }
@@ -502,6 +597,8 @@ void tiger::Loop(unsigned long n)
             hSciTimeToDet.at(i)->Fill(timeDifferenceFineNS(h.second, hitMain));
             hSciTimeToDetCoarse.at(i)->Fill(timeDifferenceCoarsePS(h.second, hitMain)/1E3);
             hSciTimeToDetCoarsePerTime.at(i)->Fill(timeSinceStart, timeDifferenceCoarsePS(h.second, hitMain)/1E3);
+            hSciTimeToDetCoarsePerCharge.at(i)->Fill(timeDifferenceCoarsePS(h.second, hitMain)/1E3, h.second->charge());
+            hSciTimeToDetCoarsePerChannel.at(i)->Fill(timeDifferenceCoarsePS(h.second, hitMain)/1E3, h.first);
           }
         }
         if(i == 1 && hSciTimeToDet.count(i)){
@@ -616,6 +713,253 @@ void tiger::Loop(unsigned long n)
     }
 
   out->Write();
+  out->Close();
+
+  printf("Finish\n");
+}
+
+// deltaT in NS
+bool inTimeWindow(int detector, double deltaTNS){
+  switch(detector){
+    case 0:
+      return false;
+      break;
+    case 1:
+      return (-140 < deltaTNS && deltaTNS < 40);
+      break;
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+      return (-140 < deltaTNS && deltaTNS < 320);
+      break;
+    case 6:
+      return false;
+      break;
+    case 7:
+      return false;
+      break;
+    default:
+      break;
+  }
+  return false;
+}
+
+template<typename T1, typename T2>
+vector<map<T1, T2>> splitByDistance(map<T1, T2> hitsPerLayer, T1 maxDistance = 5){
+  vector<map<T1, T2>> out;
+  double prev = -1;
+  for(auto &h: hitsPerLayer){ // hits are sorted by the rules of map structure
+    if(!out.size() || prev == -1 || fabs(prev - h.first) > maxDistance)
+      out.push_back({});
+    out.back().emplace(h.first, h.second);
+    prev = h.first;
+  }
+  return out;
+}
+
+template<typename T1, typename T2>
+void filterClusterVector(vector<map<T1, T2>> &clusters, pair<int, int> clusterSizes = {1, 5}){
+  /* Remove small clusters or clusters with small energy for the first layers only */
+  clusters.erase(std::remove_if(clusters.begin(), clusters.end(),
+                                [clusterSizes](auto c){return (c.size() < clusterSizes.first || c.size() > clusterSizes.second);}),
+                 clusters.end());
+}
+void filterClusterVector(vector<mmCluster> &clusters, pair<int, int> clusterSizes = {1, 5}){
+  /* Remove small clusters or clusters with small energy for the first layers only */
+  clusters.erase(std::remove_if(clusters.begin(), clusters.end(),
+                                [clusterSizes](auto c){return (c.hits.size() < clusterSizes.first || c.hits.size() > clusterSizes.second);}),
+                 clusters.end());
+}
+
+template<typename T1, typename T2>
+mmCluster tiger::constructClusterMM(const map<T1, T2> &hits, int layer){
+  double sum = 0, e_sum = 0;
+  for (auto &hit_i : hits)
+  {
+    sum += hit_i.first * hit_i.second;
+    e_sum += hit_i.second;
+  }
+  double w_mean = sum / e_sum;
+
+  double std_sq = 0, e2_sum = 0;
+  for (auto &hit_i : hits)
+  {
+    std_sq += (hit_i.first - w_mean) * (hit_i.first - w_mean) * hit_i.second * hit_i.second;
+    e2_sum += hit_i.second * hit_i.second;
+  }
+  double mean_e = (hits.size() < 2) ? 0.5 : TMath::Sqrt(std_sq / e2_sum);
+  return {layer, w_mean, mean_e, hits, 0};
+}
+
+// Generation MicroMegas clusters per one layer
+template<typename T1, typename T2>
+vector<mmCluster> tiger::constructMMClusters(const map<T1, T2> &hitsPerLayer, int layer, bool filter) const {
+  static vector<mmCluster> clustersInLayer;
+  clustersInLayer.clear();
+
+  auto hitsPerLayer_splited = splitByDistance(hitsPerLayer);
+
+  clustersInLayer.clear();
+  std::transform(hitsPerLayer_splited.cbegin(), hitsPerLayer_splited.cend(),
+                 std::back_inserter(clustersInLayer),
+                 [layer](auto c){ return constructClusterMM(c, layer); });
+
+  if (clustersInLayer.size() > 1)
+    std::sort(clustersInLayer.begin(), clustersInLayer.end(), [](auto ca, auto cb){return ca.sumE() > cb.sumE();});
+
+  if(filter)
+    filterClusterVector(clustersInLayer);
+
+  return clustersInLayer;
+}
+
+// Generation MicroMegas clusters
+map<int, vector<mmCluster>> tiger::constructMMClusters(const map<int, map<int, tigerHitTL*>> &closestHitsInLayer, bool filter) const {
+  static map<int, vector<mmCluster>> selectedClusters;
+  static map<double, double> hitsPerLayer;
+  selectedClusters.clear();
+  hitsPerLayer.clear();
+  for(auto i = 0; i < 4; i++){
+    auto idet = i+2;
+
+    if(!closestHitsInLayer.count(idet))
+      continue;
+
+    hitsPerLayer.clear();
+    for (auto &hit : closestHitsInLayer.at(idet))
+      hitsPerLayer.emplace(hit.first, hit.second->charge());
+
+    auto clustersInLayer = constructMMClusters(hitsPerLayer, i, filter);
+
+    if (!clustersInLayer.size())
+      continue;
+
+    selectedClusters.emplace(idet, clustersInLayer);
+  }
+  return selectedClusters;
+}
+
+void tiger::FindClusters(unsigned long n)
+{
+  printf("tiger::FindClusters()\n");
+
+  if (fChain == 0)
+    return;
+
+  auto out = make_shared<TFile>("../out/tiger_clusters_" + ((runFolder == "") ? "" : runFolder + "-") + file + ending, "RECREATE"); // PATH where to save out_*.root file
+  auto tree = make_shared<TTree>("clusters", "clusters");
+
+  map<int, pair<double, double>> mm_clusters;
+  map<int, double> straw_hits;
+  Long64_t scintEntry;
+  vector<mmCluster> mm_clusters_all;
+
+  tree->Branch("scintEntry", &scintEntry);
+  tree->Branch("mm_clusters", &mm_clusters);
+  tree->Branch("straw_hits", &straw_hits);
+  tree->Branch("mm_clusters_all", &mm_clusters_all);
+
+  Long64_t nentries = fChain->GetEntries();
+  if(n > 0 && nentries > n)
+    nentries = n;
+  
+  // =============================== CORRELATION FINDING ===============================
+  Long64_t timeWindowNS = maxTimeDiff(); // ns
+  Long64_t firstHitInWindow = 0;
+  tigerHitTL *hitMain, *hitSecondary, hitFirst;
+  map<int, map<int, tigerHitTL*>> closestHitsInLayer;
+  for (Long64_t jentry = 0; jentry < nentries; jentry++)
+  {
+    if (!(jentry % 100000)){
+      std::cout << "Entry " << jentry << "\t of \t" << nentries << "\n";
+      // if(jentry>0) break;
+      freeHitMap(firstHitInWindow);
+    }
+    hitMain = getHitFromTree(jentry, true);
+    if (!jentry){
+      printf("First hit: ");
+      hitMain->print();
+      hitFirst = *hitMain;
+    }
+
+    if(!isGoodHit(jentry)) continue;
+    auto fchMapped = getMapped(hitMain);
+    auto [fchD, fchM] = fchMapped;
+    if (fchD < 0) continue; // unmapped channels
+    
+    auto charge = hitMain->charge();
+    auto timeSinceStart = timeDifferenceFineNS(hitMain, &hitFirst)  *  1E-9;
+
+    if(fchD == 0 && fchM == 0){ // Scintillator
+      closestHitsInLayer.clear();
+      scintEntry = jentry;
+      for(Long64_t kentry = firstHitInWindow; kentry < nentries; kentry++){
+        if(kentry == jentry) continue;
+        hitSecondary = getHitFromTree(kentry);
+        if(!hitSecondary) continue;
+        /* Checking that second hit in maximum time window */
+        auto timeDifference = timeDifferenceFineNS(hitSecondary, hitMain);
+        auto timeDifferenceAbs = fabs(timeDifference);
+        if(timeDifferenceAbs > timeWindowNS){
+          if(timeDifference < 0){ // hitSecondary before hitMain
+            firstHitInWindow++;
+            continue;
+          } else // hitSecondary after hitMain
+            break;
+        }
+        auto [ffchD, ffchM] = getMapped(hitSecondary);
+        if(!inTimeWindow(ffchD, timeDifference))
+          continue;
+        if(!closestHitsInLayer.count(ffchD)) closestHitsInLayer[ffchD] = {};
+        // Search closest hits for all other channels
+        if(!closestHitsInLayer.at(ffchD).count(ffchM) || timeDifferenceAbs < fabs(timeDifferenceFineNS(hitMain, closestHitsInLayer.at(ffchD).at(ffchM))))
+          (closestHitsInLayer.at(ffchD))[ffchM] = hitSecondary;
+
+      }
+      // Here we have closestHitsInLayer with hits acceptable to produce clusters
+      if(!closestHitsInLayer.count(1))
+        continue;
+
+      mm_clusters.clear();
+      straw_hits.clear();
+      mm_clusters_all.clear();
+
+      auto constructedClusters = constructMMClusters(closestHitsInLayer);
+      // TODO move to function. mb optimize
+      for(auto i = 0; i < 4; i++)
+      {
+        auto idet = i + 2;
+        if(!constructedClusters.count(idet))
+          continue;
+        auto cluster = constructedClusters.at(idet).at(0);
+        mm_clusters.emplace(cluster.layer, make_pair(cluster.center, cluster.centerE));
+        for(auto j = 1; j < constructedClusters.at(idet).size(); j++)
+          constructedClusters.at(idet).at(j).quality = -1;
+        mm_clusters_all.insert(mm_clusters_all.end(), constructedClusters.at(idet).begin(), constructedClusters.at(idet).end());
+      }
+
+      bool threePointsTrack = true;
+      for(auto i = 0; i < 4; i++)
+      {
+        auto idet = i + 2;
+        if(idet != mmLayerY && !mm_clusters.count(i))
+          threePointsTrack = false;
+      }
+      if (!threePointsTrack)
+        continue;
+      
+      for (auto &hit_i : closestHitsInLayer.at(1))
+      {
+        straw_hits.emplace(hit_i.first, timeDifferenceFineNS(hit_i.second, hitMain));
+        // cout << hit_i.first << "\t" << timeDifferenceFineNS(hit_i.second, hitMain) << std::endl;
+      }
+      tree->Fill();
+    }
+  }
+  tree->Print();
+  tree->Write();
+  
   out->Close();
 
   printf("Finish\n");
