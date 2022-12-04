@@ -65,9 +65,14 @@ ln -s /mnt/data-1/rd51-straw/TestBeam-2022-October/data-tiger/RUN_* data/tiger/
 `
 cd code
 `
-4. Run "Loop" script on file:
+4. Create dictionary file for used classes:
+`
+rootcint -f link.C -c link.h LinkDef.h
+`
+5. Run "Loop" script on file:
 ```c++
 root l
+.L link.C
 .L tiger.C
 t = new tiger("SubRUN_1_GEMROC_0_TL", "RUN_1", "20221020", "20221019", {})
 t->Loop()
@@ -75,7 +80,7 @@ t->Loop()
 ```
 or, as oneliner:
 `
-root -b -q -e 'gROOT->ProcessLine(".L tiger.C"); gROOT->ProcessLine("(new tiger(\"SubRUN_1_GEMROC_0_TL\", \"RUN_1\", \"20221020\", \"20221020\", {}))->Loop()")'
+root -b -q -e 'gROOT->ProcessLine(".L link.C"); gROOT->ProcessLine(".L tiger.C"); gROOT->ProcessLine("(new tiger(\"SubRUN_1_GEMROC_0_TL\", \"RUN_1\", \"20221020\", \"20221020\", {}))->Loop()")'
 `
 Options:
 1. File name without ".root" ending
